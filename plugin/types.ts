@@ -4,7 +4,7 @@
  * Phase 1 introduces this protocol alongside the existing flat
  * component layout. New features land as plugins; the existing 28
  * components stay in `src/` until Phase 2 moves them under
- * `core/components/` and `lintpdf/plugins/`.
+ * `core/components/` and `lintpdf/components/`.
  *
  * Slots map to where a plugin's `mount()` return value renders:
  * - `overlay.canvas` — absolutely-positioned over the page canvas;
