@@ -10,6 +10,8 @@
  * @public
  */
 
+import type { ColorSample, DensitometerSample } from "../types";
+
 /**
  * Page-image source. Returns a URL the viewer renders into a canvas
  * / `<img>` tag. The viewer caches results — services should not
@@ -123,6 +125,61 @@ export interface TACHeatmapService {
 }
 
 /**
+ * Color-sampler source — picks the rendered colour at a single PDF
+ * point and returns RGB + hex + total area coverage. Hosts that
+ * don't expose colour sampling leave the no-op default (returns
+ * `null`); the `ColorPickerTool` then shows nothing.
+ *
+ * @public
+ */
+export interface ColorSampleService {
+  /**
+   * Sample at the given PDF coordinates (origin lower-left). Returns
+   * `null` on any failure — the tool deliberately swallows errors so
+   * a flaky network doesn't push a popover with a confusing chrome
+   * fallback colour.
+   */
+  sampleAt(args: {
+    pageNum: number;
+    pdfX: number;
+    pdfY: number;
+    /** Optional render DPI override; service decides the default. */
+    dpi?: number;
+  }): Promise<ColorSample | null>;
+}
+
+/**
+ * Densitometer source — reads ink-channel percentages + Total Area
+ * Coverage at a PDF point. Hosts that can't split ink channels
+ * (RGB-only documents, no Ghostscript) leave the no-op default —
+ * `sampleAt` then throws a `"No separations"` error so the tool
+ * renders its friendly amber banner.
+ *
+ * @public
+ */
+export interface DensitometerService {
+  /**
+   * Sample at the given PDF coordinates. On success returns the
+   * ink-channel readings + TAC. On failure throws an `Error` with
+   * a short user-facing message — the tool surfaces `.message`
+   * verbatim in its readout panel. Distinct error paths the LintPDF
+   * impl produces:
+   *   - "No separations available for this page." — engine 422
+   *     (RGB-only document, no CMYK to split)
+   *   - "Sampling failed (NNN)" — engine non-2xx other than 422
+   *   - "Network error" — fetch rejected
+   */
+  sampleAt(args: {
+    pageNum: number;
+    pdfX: number;
+    pdfY: number;
+    /** Optional render DPI override; service decides the default. */
+    dpi?: number;
+    tacLimit: number;
+  }): Promise<DensitometerSample>;
+}
+
+/**
  * Annotation CRUD interface. The viewer doesn't own annotation state —
  * it subscribes to a source via `AnnotationSourceProvider` and writes
  * back through this service.
@@ -178,6 +235,8 @@ export interface ViewerServices {
   readonly layers: LayerService;
   readonly separations: SeparationService;
   readonly tacHeatmap: TACHeatmapService;
+  readonly colorSample: ColorSampleService;
+  readonly densitometer: DensitometerService;
   readonly annotations: AnnotationService;
   readonly telemetry: TelemetryService;
   readonly i18n: I18nService;

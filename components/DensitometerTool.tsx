@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import type { DensitometerSample } from "../types";
-import { useViewerHost } from "../host";
+import { useViewerServices } from "../host";
 
 interface DensitometerToolProps {
   jobId: string;
@@ -36,7 +36,7 @@ export function DensitometerTool({
   canvasHeight,
   tacLimit = 300,
 }: DensitometerToolProps) {
-  const { apiBase } = useViewerHost();
+  const { densitometer } = useViewerServices();
   const [sample, setSample] = useState<DensitometerSample | null>(null);
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
   const [loading, setLoading] = useState(false);
@@ -53,26 +53,22 @@ export function DensitometerTool({
       setSample(null);
 
       try {
-        const resp = await fetch(
-          `${apiBase}/pages/${pageNum}/densitometer` +
-            `?x=${pdfX.toFixed(1)}&y=${pdfY.toFixed(1)}&dpi=300&tac_limit=${tacLimit}`,
+        const data = await densitometer.sampleAt({
+          pageNum,
+          pdfX,
+          pdfY,
+          tacLimit,
+        });
+        setSample(data);
+      } catch (e) {
+        setError(
+          e instanceof Error ? e.message : "Sampling failed",
         );
-        if (resp.ok) {
-          const data: DensitometerSample = await resp.json();
-          setSample(data);
-        } else if (resp.status === 422) {
-          const body = await resp.json().catch(() => ({ detail: "No separations" }));
-          setError(body.detail ?? "No separations available for this page.");
-        } else {
-          setError(`Sampling failed (${resp.status})`);
-        }
-      } catch {
-        setError("Network error");
       } finally {
         setLoading(false);
       }
     },
-    [apiBase, pageNum, pageWidthPts, pageHeightPts, canvasWidth, canvasHeight, tacLimit],
+    [densitometer, pageNum, pageWidthPts, pageHeightPts, canvasWidth, canvasHeight, tacLimit],
   );
 
   const handleClick = useCallback(

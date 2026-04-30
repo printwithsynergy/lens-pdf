@@ -108,6 +108,14 @@ const defaultViewerServices: ViewerServices = {
     getHeatmapImageUrl: () => "",
     listRuns: async () => [],
   },
+  colorSample: {
+    sampleAt: async () => null,
+  },
+  densitometer: {
+    sampleAt: async () => {
+      throw new Error("No separations available for this page.");
+    },
+  },
   annotations: {
     list: async () => [],
     create: async (a) => a,

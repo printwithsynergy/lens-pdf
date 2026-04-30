@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import type { ColorSample } from "../types";
-import { useViewerHost } from "../host";
+import { useViewerServices } from "../host";
 
 interface ColorPickerToolProps {
   jobId: string;
@@ -21,39 +21,35 @@ export function ColorPickerTool({
   canvasWidth,
   canvasHeight,
 }: ColorPickerToolProps) {
-  const { apiBase } = useViewerHost();
+  const { colorSample } = useViewerServices();
   const [sample, setSample] = useState<ColorSample | null>(null);
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleClick = useCallback(
-    async (e: React.MouseEvent<HTMLDivElement>) => {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const clickX = e.clientX - rect.left;
-      const clickY = e.clientY - rect.top;
-
+  const pickAt = useCallback(
+    async (clickX: number, clickY: number) => {
       // Convert to PDF coordinates (origin lower-left)
       const pdfX = (clickX / canvasWidth) * pageWidthPts;
       const pdfY = pageHeightPts - (clickY / canvasHeight) * pageHeightPts;
 
       setPosition({ x: clickX, y: clickY });
       setLoading(true);
-
       try {
-        const resp = await fetch(
-          `${apiBase}/pages/${pageNum}/sample?x=${pdfX.toFixed(1)}&y=${pdfY.toFixed(1)}&dpi=300`,
-        );
-        if (resp.ok) {
-          const data = await resp.json();
-          setSample(data);
-        }
-      } catch {
-        // ignore
+        const data = await colorSample.sampleAt({ pageNum, pdfX, pdfY });
+        if (data) setSample(data);
       } finally {
         setLoading(false);
       }
     },
-    [apiBase, pageNum, pageWidthPts, pageHeightPts, canvasWidth, canvasHeight],
+    [colorSample, pageNum, pageWidthPts, pageHeightPts, canvasWidth, canvasHeight],
+  );
+
+  const handleClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      void pickAt(e.clientX - rect.left, e.clientY - rect.top);
+    },
+    [pickAt],
   );
 
   const handleTouch = useCallback(
@@ -62,19 +58,9 @@ export function ColorPickerTool({
       e.preventDefault();
       const touch = e.touches[0]!;
       const rect = e.currentTarget.getBoundingClientRect();
-      const clickX = touch.clientX - rect.left;
-      const clickY = touch.clientY - rect.top;
-      const pdfX = (clickX / canvasWidth) * pageWidthPts;
-      const pdfY = pageHeightPts - (clickY / canvasHeight) * pageHeightPts;
-      setPosition({ x: clickX, y: clickY });
-      setLoading(true);
-      fetch(`${apiBase}/pages/${pageNum}/sample?x=${pdfX.toFixed(1)}&y=${pdfY.toFixed(1)}&dpi=300`)
-        .then((r) => r.ok ? r.json() : null)
-        .then((data) => { if (data) setSample(data); })
-        .catch(() => {})
-        .finally(() => setLoading(false));
+      void pickAt(touch.clientX - rect.left, touch.clientY - rect.top);
     },
-    [apiBase, pageNum, pageWidthPts, pageHeightPts, canvasWidth, canvasHeight],
+    [pickAt],
   );
 
   return (
