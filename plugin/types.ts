@@ -54,6 +54,28 @@ export interface ViewerPluginManifest {
   version: string;
   /** Slot the plugin mounts into. */
   slot: ViewerSlot;
+  /**
+   * Optional opt-in override: when set, this plugin **replaces** the
+   * plugin with the given id in slot lookups. The replaced plugin
+   * stays registered (callers can still inspect it via `listAll()`),
+   * but `getPluginsForSlot()` returns this one instead.
+   *
+   * Use case: a third-party plugin pack ships its own findings panel
+   * by registering a `PanelPlugin` with `replaces: "lintpdf.findings"`.
+   * The viewer mounts the third-party panel; the LintPDF first-party
+   * one stays out of the slot.
+   *
+   * Constraints:
+   * - The replacement must declare the same `slot` as the target.
+   *   Cross-slot overrides are not supported (panels can't replace
+   *   overlays, etc.).
+   * - At most one plugin can claim a given `replaces` target. A
+   *   second registration that targets the same id throws.
+   * - The target id does not need to be registered yet — the
+   *   override registers cleanly even before the LintPDF pack loads,
+   *   and starts shadowing as soon as the target appears.
+   */
+  replaces?: string;
 }
 
 /**
