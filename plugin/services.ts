@@ -35,6 +35,36 @@ export interface PageImageService {
 }
 
 /**
+ * PDF Optional Content Group (OCG / "layer") source.
+ *
+ * Hosts that don't expose layers should leave the no-op default
+ * (returns no layers); the `LayerPanel` then renders an empty-
+ * state placeholder.
+ *
+ * @public
+ */
+export interface LayerService {
+  /**
+   * Synchronous URL for an isolated layer image. The host renders
+   * one PNG per OCG with a transparent background; the viewer
+   * composites the active subset locally.
+   */
+  getLayerImageUrl(args: {
+    pageNum: number;
+    layerIndex: number;
+    dpi: number;
+  }): string;
+  /** List the OCGs available for the current document. */
+  listLayers(): Promise<
+    ReadonlyArray<{
+      name: string;
+      ocg_index: number;
+      default_on: boolean;
+    }>
+  >;
+}
+
+/**
  * Annotation CRUD interface. The viewer doesn't own annotation state —
  * it subscribes to a source via `AnnotationSourceProvider` and writes
  * back through this service.
@@ -87,6 +117,7 @@ export interface ThemeTokens {
  */
 export interface ViewerServices {
   readonly pageImages: PageImageService;
+  readonly layers: LayerService;
   readonly annotations: AnnotationService;
   readonly telemetry: TelemetryService;
   readonly i18n: I18nService;

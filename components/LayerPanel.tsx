@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { LayerInfo } from "../types";
-import { useViewerHost } from "../host";
+import { useViewerServices } from "../host";
 
 interface LayerPanelProps {
   jobId: string;
@@ -17,23 +17,21 @@ export function LayerPanel({
   onToggleLayer,
   onSetAllLayers,
 }: LayerPanelProps) {
-  const { apiBase } = useViewerHost();
+  const { layers: layerService } = useViewerServices();
   const [layers, setLayers] = useState<LayerInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const fetchLayers = useCallback(async () => {
     try {
-      const resp = await fetch(`${apiBase}/layers`);
-      if (!resp.ok) throw new Error("Failed to load layers");
-      const data = await resp.json();
-      setLayers(data.layers ?? []);
+      const items = await layerService.listLayers();
+      setLayers([...items]);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load layers");
     } finally {
       setLoading(false);
     }
-  }, [apiBase]);
+  }, [layerService]);
 
   useEffect(() => {
     fetchLayers();

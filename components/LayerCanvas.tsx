@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DEFAULT_DPI } from "../types";
-import { useViewerHost } from "../host";
+import { useViewerServices } from "../host";
 
 /**
  * WS-17C — instant layer toggling via per-OCG isolated tiles.
@@ -42,7 +42,7 @@ export function LayerCanvas({
   height,
   dpi = DEFAULT_DPI,
 }: LayerCanvasProps) {
-  const { apiBase } = useViewerHost();
+  const { layers: layerService } = useViewerServices();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [layerImages, setLayerImages] = useState<Map<number, HTMLImageElement>>(
     new Map(),
@@ -64,7 +64,7 @@ export function LayerCanvas({
       setLoadingLayers((prev) => new Set(prev).add(layerIndex));
 
       const img = new Image();
-      const url = `${apiBase}/pages/${pageNum}/layers/${layerIndex}?dpi=${dpi}`;
+      const url = layerService.getLayerImageUrl({ pageNum, layerIndex, dpi });
 
       await new Promise<void>((resolve) => {
         img.onload = () => {
@@ -94,7 +94,7 @@ export function LayerCanvas({
         img.src = url;
       });
     },
-    [apiBase, pageNum, dpi, layerImages, loadingLayers],
+    [layerService, pageNum, dpi, layerImages, loadingLayers],
   );
 
   // Trigger fetches for any enabled layer we don't have cached yet.

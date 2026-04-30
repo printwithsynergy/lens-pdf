@@ -97,6 +97,10 @@ const defaultViewerServices: ViewerServices = {
   pageImages: {
     getPageImageUrl: () => "",
   },
+  layers: {
+    getLayerImageUrl: () => "",
+    listLayers: async () => [],
+  },
   annotations: {
     list: async () => [],
     create: async (a) => a,
