@@ -20,7 +20,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: pnpm
 
       - name: Install
         run: pnpm install --no-frozen-lockfile
@@ -29,7 +28,10 @@ jobs:
         run: pnpm typecheck
 
       - name: Test
-        run: pnpm test
+        run: pnpm test --passWithNoTests || pnpm test
+        # Vitest exits 1 if no test files match; the package was extracted
+        # without tests on its own (tests live in lint-pdf:packages/viewer-shared/tests/
+        # — moving them here is Phase 4 cleanup work).
 
       - name: Build
         run: pnpm build
