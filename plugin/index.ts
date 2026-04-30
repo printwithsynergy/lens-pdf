@@ -8,6 +8,7 @@ export type {
   AnnotationSourceProvider,
   DialogPlugin,
   MeasurementUnit,
+  OverlayItem,
   OverlayPlugin,
   PanelPlugin,
   ToolbarPlugin,

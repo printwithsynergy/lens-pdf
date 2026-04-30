@@ -151,3 +151,44 @@ export interface MeasurementUnit {
   /** Inverse conversion. */
   toPoints(value: number): number;
 }
+
+/**
+ * Generic overlay item rendered on top of a page canvas.
+ *
+ * Phase 2 abstraction: replaces the LintPDF-specific `ViewerFinding`
+ * type that `PageCanvas` and `PageNavigator` previously consumed.
+ * Plugins (and the LintPDF host) translate their domain types
+ * (findings, annotations, brand-spec violations) into `OverlayItem`s
+ * before handing them to a core component.
+ *
+ * The shape is deliberately minimal. Anything richer that callers
+ * need to round-trip (per-finding metadata, click handlers, hover
+ * tooltips) goes through ``data: Record<string, unknown>``.
+ *
+ * After Phase 3 this interface ships as part of the LoupePDF OSS
+ * surface; LintPDF's ``viewer-shared/lintpdf`` pack provides a
+ * ``findingToOverlayItem(finding)`` adapter.
+ *
+ * @public
+ */
+export interface OverlayItem {
+  /** Stable identifier for selection / hover / dedupe. */
+  readonly id: string;
+  /** 1-indexed page number this item belongs to. */
+  readonly page: number;
+  /** Bounding box in PDF points: ``[x0, y0, x1, y1]``. */
+  readonly bbox: readonly [number, number, number, number];
+  /**
+   * Severity-like tier the renderer maps to a colour. Hosts can
+   * supply their own palette via ``ViewerServices.tokens``; the
+   * default LintPDF mapping treats ``"error"`` as red,
+   * ``"warning"`` as amber, ``"advisory"`` as blue.
+   */
+  readonly tier?: "error" | "warning" | "advisory" | "info" | "neutral";
+  /** Optional CSS hex colour override (e.g., ``"#ff5722"``). */
+  readonly color?: string;
+  /** Optional short label rendered alongside the bbox. */
+  readonly label?: string;
+  /** Free-form payload for round-tripping host-specific data. */
+  readonly data?: Record<string, unknown>;
+}
