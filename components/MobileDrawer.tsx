@@ -4,7 +4,11 @@ import { useState } from "react";
 import type { ViewerConfig } from "../types";
 import { useViewerHost, useViewerServices } from "../host";
 import { ZoomControls } from "./ZoomControls";
-import { hostFallbackClient } from "../../lib/host-fallback-client";
+
+function brandFallback(): string {
+  if (typeof window === "undefined") return "Preflight";
+  return window.location.hostname || "Preflight";
+}
 
 type ViewerMode = "normal" | "separation" | "layers" | "annotation" | "comparison" | "health" | "chain";
 type MeasureMode = "none" | "color_picker" | "densitometer" | "ruler";
@@ -247,7 +251,7 @@ export function MobileDrawer({
           <span className="text-sm font-bold text-white">
             {config.anonymous
               ? "Preflight Report"
-              : config.brand_name || hostFallbackClient()}
+              : config.brand_name || brandFallback()}
           </span>
           <button
             onClick={onClose}
