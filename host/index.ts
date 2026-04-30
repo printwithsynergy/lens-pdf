@@ -122,6 +122,10 @@ const defaultViewerServices: ViewerServices = {
     saveForPage: async () => {},
     remove: async () => {},
   },
+  reports: {
+    getHtmlReportUrl: () => "",
+    getPdfDownloadUrl: () => "",
+  },
   telemetry: noopTelemetry,
   i18n: noopI18n,
   tokens: defaultThemeTokens,

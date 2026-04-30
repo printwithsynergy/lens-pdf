@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { ViewerConfig } from "../types";
-import { useViewerHost } from "../host";
+import { useViewerHost, useViewerServices } from "../host";
 import { ZoomControls } from "./ZoomControls";
 import { hostFallbackClient } from "../../lib/host-fallback-client";
 
@@ -207,12 +207,13 @@ export function MobileDrawer({
   findingSummary,
   zoom,
   onZoomChange,
-  jobId,
+  jobId: _jobId,
   onExpandSheet,
   onOpenShare,
   hasChain,
 }: MobileDrawerProps) {
-  const { apiBase, readOnly } = useViewerHost();
+  const { readOnly } = useViewerHost();
+  const { reports } = useViewerServices();
 
   const handlePanelMode = (fn: () => void) => {
     fn();
@@ -224,8 +225,6 @@ export function MobileDrawer({
     fn();
     onClose();
   };
-
-  const reportBase = apiBase.replace(/\/viewer\/.*$/, "/reports/" + jobId);
 
   return (
     <>
@@ -405,7 +404,7 @@ export function MobileDrawer({
                 <DrawerLink
                   label="View HTML Report"
                   icon={Icons.report}
-                  href={`${reportBase}/html`}
+                  href={reports.getHtmlReportUrl()}
                   onClick={onClose}
                 />
               )}
@@ -413,7 +412,7 @@ export function MobileDrawer({
                 <DrawerLink
                   label="Download PDF"
                   icon={Icons.download}
-                  href={`${reportBase}/download`}
+                  href={reports.getPdfDownloadUrl()}
                   onClick={onClose}
                 />
               )}

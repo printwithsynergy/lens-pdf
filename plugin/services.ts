@@ -231,6 +231,22 @@ export interface AnnotationService {
 }
 
 /**
+ * Report-export source — supplies the URLs the drawer / toolbar
+ * link to for the HTML report viewer and PDF download. Hosts that
+ * don't expose report exports leave the no-op default (returns
+ * empty strings); the consuming menu items render but their links
+ * resolve to the current page (still inert).
+ *
+ * @public
+ */
+export interface ReportsService {
+  /** URL the "View HTML Report" link points at. */
+  getHtmlReportUrl(): string;
+  /** URL the "Download PDF" link points at. */
+  getPdfDownloadUrl(): string;
+}
+
+/**
  * Telemetry / analytics. No-op default keeps OSS hosts fast.
  *
  * @public
@@ -275,6 +291,7 @@ export interface ViewerServices {
   readonly colorSample: ColorSampleService;
   readonly densitometer: DensitometerService;
   readonly annotations: AnnotationService;
+  readonly reports: ReportsService;
   readonly telemetry: TelemetryService;
   readonly i18n: I18nService;
   readonly tokens: ThemeTokens;
