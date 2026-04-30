@@ -1,14 +1,20 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { PageInfo, ViewerFinding } from "../../types";
+import type { OverlayItem } from "../plugin/types";
+import type { PageInfo } from "../../types";
 import { THUMBNAIL_DPI, useViewerApi } from "../../types";
 
 interface PageNavigatorProps {
   pages: PageInfo[];
   currentPage: number;
-  findings: ViewerFinding[];
-  jobId: string;
+  /**
+   * Generic overlay items rendered as per-page badge counts. Replaces
+   * the legacy `findings: ViewerFinding[]` prop — hosts convert their
+   * domain records (LintPDF: `findingsToOverlayItems(findings)`)
+   * before passing them in.
+   */
+  items: readonly OverlayItem[];
   onPageChange: (page: number) => void;
   /** When true, render as a horizontal strip (for left panel header). */
   horizontal?: boolean;
@@ -17,8 +23,7 @@ interface PageNavigatorProps {
 export function PageNavigator({
   pages,
   currentPage,
-  findings,
-  jobId: _jobId,
+  items,
   onPageChange,
   horizontal,
 }: PageNavigatorProps) {
@@ -33,14 +38,13 @@ export function PageNavigator({
     });
   }, [currentPage, horizontal]);
 
-  const findingsPerPage = new Map<number, { errors: number; warnings: number }>();
-  for (const f of findings) {
-    if (f.page_num) {
-      const curr = findingsPerPage.get(f.page_num) ?? { errors: 0, warnings: 0 };
-      if (f.severity === "error") curr.errors++;
-      else if (f.severity === "warning") curr.warnings++;
-      findingsPerPage.set(f.page_num, curr);
-    }
+  const itemsPerPage = new Map<number, { errors: number; warnings: number }>();
+  for (const item of items) {
+    if (!item.page) continue;
+    const curr = itemsPerPage.get(item.page) ?? { errors: 0, warnings: 0 };
+    if (item.tier === "error") curr.errors++;
+    else if (item.tier === "warning") curr.warnings++;
+    itemsPerPage.set(item.page, curr);
   }
 
   if (horizontal) {
@@ -48,7 +52,7 @@ export function PageNavigator({
       <>
         {pages.map((page) => {
           const isActive = page.page_num === currentPage;
-          const counts = findingsPerPage.get(page.page_num);
+          const counts = itemsPerPage.get(page.page_num);
           return (
             <button
               key={page.page_num}
@@ -98,7 +102,7 @@ export function PageNavigator({
       </div>
       {pages.map((page) => {
         const isActive = page.page_num === currentPage;
-        const counts = findingsPerPage.get(page.page_num);
+        const counts = itemsPerPage.get(page.page_num);
         return (
           <button
             key={page.page_num}
