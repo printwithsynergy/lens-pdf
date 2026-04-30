@@ -33,3 +33,14 @@ export { PageNavigator } from "./components/PageNavigator";
 export { SeparationCanvas } from "./components/SeparationCanvas";
 export { TACHeatmapOverlay } from "./components/TACHeatmapOverlay";
 export { ZoomControls } from "./components/ZoomControls";
+
+// Built-in MeasurementUnit definitions consumed by MeasureTool.
+export {
+  agateUnit,
+  allMeasurementUnits,
+  defaultMeasurementUnits,
+  inchUnit,
+  mmUnit,
+  picaUnit,
+  pointUnit,
+} from "./units";

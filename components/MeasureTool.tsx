@@ -1,12 +1,20 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import type { MeasurementUnit } from "../plugin/types";
+import { defaultMeasurementUnits } from "../units";
 
 interface MeasureToolProps {
   pageWidthPts: number;
   pageHeightPts: number;
   canvasWidth: number;
   canvasHeight: number;
+  /**
+   * Measurement units to display in the readout. Defaults to
+   * `[mmUnit, inchUnit, pointUnit]`. Pass `allMeasurementUnits` to
+   * include pica + agate, or any custom subset/extension.
+   */
+  units?: ReadonlyArray<MeasurementUnit>;
 }
 
 interface Measurement {
@@ -14,9 +22,10 @@ interface Measurement {
   y1: number;
   x2: number;
   y2: number;
+  /** Distance in PDF points — the canonical measurement. The
+   *  rendered readout converts this through each unit's
+   *  `fromPoints`. */
   distancePts: number;
-  distanceMm: number;
-  distanceIn: number;
 }
 
 export function MeasureTool({
@@ -24,6 +33,7 @@ export function MeasureTool({
   pageHeightPts,
   canvasWidth,
   canvasHeight,
+  units = defaultMeasurementUnits,
 }: MeasureToolProps) {
   const [measuring, setMeasuring] = useState(false);
   const [start, setStart] = useState<{ x: number; y: number } | null>(null);
@@ -80,16 +90,12 @@ export function MeasureTool({
     const dx = p2.x - p1.x;
     const dy = p2.y - p1.y;
     const distancePts = Math.sqrt(dx * dx + dy * dy);
-    const distanceMm = distancePts * (25.4 / 72);
-    const distanceIn = distancePts / 72;
     setMeasurement({
       x1: start.x,
       y1: start.y,
       x2: end.x,
       y2: end.y,
-      distancePts: Math.round(distancePts * 100) / 100,
-      distanceMm: Math.round(distanceMm * 100) / 100,
-      distanceIn: Math.round(distanceIn * 1000) / 1000,
+      distancePts,
     });
     setMeasuring(false);
   }, [measuring, start, end, pixelToPts]);
@@ -177,7 +183,18 @@ export function MeasureTool({
           className="pointer-events-none absolute z-30 rounded bg-green-900/90 px-2 py-1 text-xs font-mono text-green-100 shadow-lg"
           style={{ left: midX + 8, top: midY - 24 }}
         >
-          {measurement.distanceMm} mm &middot; {measurement.distanceIn}&quot; &middot; {measurement.distancePts} pt
+          {units
+            .map((u) => {
+              const value = u.fromPoints(measurement.distancePts);
+              // Round to 2 decimals for compact units (mm, pt, pc, ag),
+              // 3 for inches where small fractions matter visually.
+              const rounded =
+                u.id === "in"
+                  ? Math.round(value * 1000) / 1000
+                  : Math.round(value * 100) / 100;
+              return `${rounded} ${u.label}`;
+            })
+            .join(" · ")}
         </div>
       )}
 
