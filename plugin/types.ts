@@ -176,8 +176,12 @@ export interface OverlayItem {
   readonly id: string;
   /** 1-indexed page number this item belongs to. */
   readonly page: number;
-  /** Bounding box in PDF points: ``[x0, y0, x1, y1]``. */
-  readonly bbox: readonly [number, number, number, number];
+  /**
+   * Optional bounding box in PDF points: ``[x0, y0, x1, y1]``. When
+   * absent, the item applies to the whole page (the renderer may
+   * draw a page-level indicator instead of a bbox).
+   */
+  readonly bbox?: readonly [number, number, number, number];
   /**
    * Severity-like tier the renderer maps to a colour. Hosts can
    * supply their own palette via ``ViewerServices.tokens``; the
@@ -189,6 +193,19 @@ export interface OverlayItem {
   readonly color?: string;
   /** Optional short label rendered alongside the bbox. */
   readonly label?: string;
+  /**
+   * Optional longer description used by tooltip-style renderers.
+   * The host adapter is responsible for any domain-specific
+   * cleanup (e.g., LintPDF strips long PDF object references
+   * before populating this field).
+   */
+  readonly description?: string;
+  /**
+   * Optional short identifier code rendered alongside the tier
+   * (e.g., LintPDF inspection_id ``"LPDF_PRINT_001"``). Renderers
+   * typically display this in a code badge in tooltips.
+   */
+  readonly code?: string;
   /** Free-form payload for round-tripping host-specific data. */
   readonly data?: Record<string, unknown>;
 }

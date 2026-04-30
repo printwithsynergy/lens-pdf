@@ -1,16 +1,26 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { PageInfo, ViewerFinding } from "../../types";
+import type { OverlayItem } from "../plugin/types";
+import type { PageInfo } from "../../types";
 import { DEFAULT_DPI, SEVERITY_COLORS, useViewerApi } from "../../types";
 
 interface PageCanvasProps {
   jobId: string;
   page: PageInfo;
   zoom: number;
-  findings: ViewerFinding[];
-  selectedFinding: ViewerFinding | null;
-  onFindingClick: (finding: ViewerFinding) => void;
+  /**
+   * Generic overlay items to render on top of the page tile. Replaces
+   * the legacy `findings: ViewerFinding[]` prop — hosts convert their
+   * domain records (LintPDF: `findingsToOverlayItems(findings)`)
+   * before passing them in.
+   */
+  items: readonly OverlayItem[];
+  /** Currently-selected overlay item (or null). Drives the highlight
+   * + tooltip + page-level indicator branches. */
+  selectedItem: OverlayItem | null;
+  /** Fires when the user clicks an item's bbox on the canvas. */
+  onItemClick: (item: OverlayItem) => void;
   onZoomChange?: (zoom: number) => void;
   onPageChange?: (delta: number) => void;
   tileDpi?: number;
@@ -25,19 +35,36 @@ interface PageCanvasProps {
   cropToTrim?: boolean;
 }
 
-const SEVERITY_HEX: Record<string, string> = {
+const TIER_HEX: Record<NonNullable<OverlayItem["tier"]>, string> = {
   error: "#ef4444",
   warning: "#f59e0b",
   advisory: "#3b82f6",
+  info: "#64748b",
+  neutral: "#64748b",
 };
+
+// Fallback fill/stroke palette for tiers that don't have a SEVERITY_COLORS
+// entry. SEVERITY_COLORS only ships error/warning/advisory because that
+// was the LintPDF-finding shape; info/neutral hit this fallback.
+const TIER_FALLBACK_COLORS = {
+  fill: "rgba(100, 116, 139, 0.15)",
+  stroke: "#64748b",
+} as const;
+
+function colorsForTier(tier: OverlayItem["tier"]) {
+  if (tier === "error") return SEVERITY_COLORS.error;
+  if (tier === "warning") return SEVERITY_COLORS.warning;
+  if (tier === "advisory") return SEVERITY_COLORS.advisory;
+  return TIER_FALLBACK_COLORS;
+}
 
 export function PageCanvas({
   jobId: _jobId,
   page,
   zoom,
-  findings,
-  selectedFinding,
-  onFindingClick,
+  items,
+  selectedItem,
+  onItemClick,
   onZoomChange,
   onPageChange,
   tileDpi,
@@ -49,8 +76,8 @@ export function PageCanvas({
   const [tileImg, setTileImg] = useState<HTMLImageElement | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Tooltip state: shows finding info near the clicked bbox
-  const [tooltip, setTooltip] = useState<{ finding: ViewerFinding; x: number; y: number } | null>(null);
+  // Tooltip state: shows item info near the clicked bbox
+  const [tooltip, setTooltip] = useState<{ item: OverlayItem; x: number; y: number } | null>(null);
 
   // Root wrapper — we attach a non-passive touchmove listener here so
   // pinch-zoom (2-finger) can preventDefault without blocking the browser's
@@ -118,15 +145,6 @@ export function PageCanvas({
   const canvasWidth = Math.round(page.width_pts * ptsToPixels * scale);
   const canvasHeight = Math.round(page.height_pts * ptsToPixels * scale);
 
-  // WS-17B trim viewport. Pre-WS-17B-fix this used a CSS clip-path,
-  // but the clipped-out region of a transparent canvas reveals
-  // whatever is *behind* the canvas (the viewer chrome), which on
-  // dark mode is fine but on the share-link viewer was drawing the
-  // page's own white paper extending beyond the trim. The fix:
-  // shrink the *outer* DOM box to trim dimensions and translate the
-  // full canvas inward, so the bleed area is physically not part of
-  // the viewport at all. Falls back to BleedBox → CropBox → no-op
-  // when no TrimBox is declared.
   const trimViewport = (() => {
     if (!cropToTrim) return null;
     const box = page.trim_box ?? page.bleed_box ?? page.crop_box;
@@ -139,7 +157,6 @@ export function PageCanvas({
     const topPx = ((mb.y1 - box.y1) / mbH) * canvasHeight;
     const widthPx = ((box.x1 - box.x0) / mbW) * canvasWidth;
     const heightPx = ((box.y1 - box.y0) / mbH) * canvasHeight;
-    // No-op when the trim equals the media (every value sub-pixel).
     if (
       Math.abs(leftPx) < 0.5 &&
       Math.abs(topPx) < 0.5 &&
@@ -179,9 +196,9 @@ export function PageCanvas({
     img.src = cdnUrl ?? proxyUrl;
   }, [apiBase, page.page_num, dpi, tileCdnBase]);
 
-  // Animate pulse for selected finding
+  // Animate pulse for selected item
   useEffect(() => {
-    if (!selectedFinding?.bbox || selectedFinding.page_num !== page.page_num) return;
+    if (!selectedItem?.bbox || selectedItem.page !== page.page_num) return;
     let raf: number;
     let start: number | null = null;
     const animate = (ts: number) => {
@@ -193,18 +210,18 @@ export function PageCanvas({
     };
     raf = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(raf);
-  }, [selectedFinding, page.page_num]);
+  }, [selectedItem, page.page_num]);
 
-  // Show tooltip when selectedFinding changes (from panel click or canvas click)
+  // Show tooltip when selectedItem changes (from panel click or canvas click)
   useEffect(() => {
-    if (!selectedFinding || selectedFinding.page_num !== page.page_num) {
+    if (!selectedItem || selectedItem.page !== page.page_num) {
       setTooltip(null);
       return;
     }
     let x: number;
     let y: number;
-    if (selectedFinding.bbox) {
-      const [x0, , x1, y1] = selectedFinding.bbox;
+    if (selectedItem.bbox) {
+      const [x0, , x1, y1] = selectedItem.bbox;
       x = ((x0 + x1) / 2) * ptsToPixels * scale;
       y = (page.height_pts - y1) * ptsToPixels * scale;
     } else {
@@ -212,9 +229,9 @@ export function PageCanvas({
       x = canvasWidth / 2;
       y = 40;
     }
-    setTooltip({ finding: selectedFinding, x, y });
+    setTooltip({ item: selectedItem, x, y });
     // No auto-dismiss: tooltip stays until user clicks elsewhere or changes selection
-  }, [selectedFinding, page.page_num, page.height_pts, ptsToPixels, scale, canvasWidth]);
+  }, [selectedItem, page.page_num, page.height_pts, ptsToPixels, scale, canvasWidth]);
 
   // Render canvas
   const draw = useCallback(() => {
@@ -230,23 +247,23 @@ export function PageCanvas({
     // Draw the page tile, scaled to the canvas size
     ctx.drawImage(tileImg, 0, 0, canvasWidth, canvasHeight);
 
-    // Draw finding overlays
-    const pageFindings = findings.filter(
-      (f) => f.page_num === page.page_num && f.bbox,
+    // Draw item overlays
+    const pageItems = items.filter(
+      (it) => it.page === page.page_num && it.bbox,
     );
 
     const hasSelected =
-      selectedFinding &&
-      selectedFinding.page_num === page.page_num &&
-      selectedFinding.bbox;
+      selectedItem &&
+      selectedItem.page === page.page_num &&
+      selectedItem.bbox;
 
     // Counter for badge numbering
     let badgeIndex = 0;
 
-    for (const finding of pageFindings) {
-      if (!finding.bbox) continue;
+    for (const item of pageItems) {
+      if (!item.bbox) continue;
       badgeIndex++;
-      const [x0, y0, x1, y1] = finding.bbox;
+      const [x0, y0, x1, y1] = item.bbox;
 
       // Convert PDF coordinates (origin lower-left) to canvas (origin upper-left)
       const px0 = x0 * ptsToPixels * scale;
@@ -254,18 +271,12 @@ export function PageCanvas({
       const pw = (x1 - x0) * ptsToPixels * scale;
       const ph = (y1 - y0) * ptsToPixels * scale;
 
-      // Severity is a fixed union ("error" | "warning" | "advisory");
-      // the fallback keeps TS's noUncheckedIndexedAccess happy without
-      // changing runtime behaviour.
-      const colors = SEVERITY_COLORS[finding.severity] ?? SEVERITY_COLORS.advisory;
-      const severityHex = SEVERITY_HEX[finding.severity] ?? "#64748b";
-      const isSelected =
-        selectedFinding?.inspection_id === finding.inspection_id &&
-        selectedFinding?.page_num === finding.page_num &&
-        selectedFinding?.message === finding.message;
+      const colors = colorsForTier(item.tier);
+      const tierHex = item.color ?? TIER_HEX[item.tier ?? "neutral"];
+      const isSelected = selectedItem?.id === item.id;
 
       if (hasSelected && !isSelected) {
-        // Dimmed: other findings when one is selected
+        // Dimmed: other items when one is selected
         ctx.globalAlpha = 0.3;
         ctx.fillStyle = colors.fill;
         ctx.fillRect(px0, py0, pw, ph);
@@ -274,7 +285,7 @@ export function PageCanvas({
         ctx.strokeRect(px0, py0, pw, ph);
         ctx.globalAlpha = 1;
       } else if (isSelected) {
-        // Selected finding: prominent highlight with animated glow
+        // Selected item: prominent highlight with animated glow
         const glowAlpha = 0.15 + pulsePhase * 0.2;
         ctx.fillStyle = colors.fill.replace(
           /[\d.]+\)$/,
@@ -284,9 +295,9 @@ export function PageCanvas({
 
         // Animated outer glow
         const glowSize = 4 + pulsePhase * 4;
-        ctx.shadowColor = severityHex;
+        ctx.shadowColor = tierHex;
         ctx.shadowBlur = glowSize;
-        ctx.strokeStyle = severityHex;
+        ctx.strokeStyle = tierHex;
         ctx.lineWidth = 4;
         ctx.strokeRect(px0, py0, pw, ph);
         ctx.shadowColor = "transparent";
@@ -296,7 +307,7 @@ export function PageCanvas({
         const badgeRadius = 10;
         const bx = px0 + pw - 2;
         const by = py0 - 2;
-        ctx.fillStyle = severityHex;
+        ctx.fillStyle = tierHex;
         ctx.beginPath();
         ctx.arc(bx, by, badgeRadius, 0, Math.PI * 2);
         ctx.fill();
@@ -318,11 +329,11 @@ export function PageCanvas({
     tileImg,
     canvasWidth,
     canvasHeight,
-    findings,
+    items,
     page,
     ptsToPixels,
     scale,
-    selectedFinding,
+    selectedItem,
     pulsePhase,
   ]);
 
@@ -330,7 +341,7 @@ export function PageCanvas({
     draw();
   }, [draw]);
 
-  // Handle click on canvas to detect finding and show tooltip
+  // Handle click on canvas to detect item and show tooltip
   const handleClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -342,16 +353,16 @@ export function PageCanvas({
     const pdfX = clickX / (ptsToPixels * scale);
     const pdfY = page.height_pts - clickY / (ptsToPixels * scale);
 
-    // Find clicked finding
-    const pageFindings = findings.filter(
-      (f) => f.page_num === page.page_num && f.bbox,
+    // Find clicked item
+    const pageItems = items.filter(
+      (it) => it.page === page.page_num && it.bbox,
     );
-    for (const finding of pageFindings) {
-      if (!finding.bbox) continue;
-      const [x0, y0, x1, y1] = finding.bbox;
+    for (const item of pageItems) {
+      if (!item.bbox) continue;
+      const [x0, y0, x1, y1] = item.bbox;
       if (pdfX >= x0 && pdfX <= x1 && pdfY >= y0 && pdfY <= y1) {
-        onFindingClick(finding);
-        // Tooltip shown by the selectedFinding useEffect
+        onItemClick(item);
+        // Tooltip shown by the selectedItem useEffect
         return;
       }
     }
@@ -359,14 +370,11 @@ export function PageCanvas({
     setTooltip(null);
   };
 
-  // The outer DOM element is the *visible* viewport. When the trim
-  // crop is active the viewport equals the trim dimensions and the
-  // inner shifted div positions the canvas so its trim region maps
-  // exactly onto the visible area. Findings + the tooltip live in
-  // the same canvas-coordinate space as the canvas itself, so they
-  // shift along correctly for free.
   const outerWidth = trimViewport ? trimViewport.widthPx : canvasWidth;
   const outerHeight = trimViewport ? trimViewport.heightPx : canvasHeight;
+
+  const tooltipTier = tooltip?.item.tier ?? "neutral";
+  const selectedItemTier = selectedItem?.tier ?? "neutral";
 
   return (
     <div
@@ -407,14 +415,17 @@ export function PageCanvas({
           height: canvasHeight,
         }}
       />
-      {/* Page-level indicator for findings without bbox */}
-      {selectedFinding && !selectedFinding.bbox && selectedFinding.page_num === page.page_num && (
+      {/* Page-level indicator for items without bbox */}
+      {selectedItem && !selectedItem.bbox && selectedItem.page === page.page_num && (
         <div
           className="pointer-events-none absolute inset-0 animate-pulse rounded border-2"
-          style={{ borderColor: SEVERITY_HEX[selectedFinding.severity], boxShadow: `inset 0 0 30px ${SEVERITY_HEX[selectedFinding.severity]}30` }}
+          style={{
+            borderColor: TIER_HEX[selectedItemTier],
+            boxShadow: `inset 0 0 30px ${TIER_HEX[selectedItemTier]}30`,
+          }}
         />
       )}
-      {/* Finding tooltip */}
+      {/* Item tooltip */}
       {tooltip && (
         <div
           className="pointer-events-none absolute z-40 max-w-[280px] rounded-lg bg-black/90 px-3 py-2 text-xs text-white shadow-xl"
@@ -427,18 +438,19 @@ export function PageCanvas({
           <div className="mb-1 flex items-center gap-2">
             <span
               className="inline-block h-2 w-2 shrink-0 rounded-full"
-              style={{ backgroundColor: SEVERITY_HEX[tooltip.finding.severity] }}
+              style={{ backgroundColor: TIER_HEX[tooltipTier] }}
             />
-            <span className="font-bold uppercase" style={{ color: SEVERITY_HEX[tooltip.finding.severity] }}>
-              {tooltip.finding.severity}
+            <span className="font-bold uppercase" style={{ color: TIER_HEX[tooltipTier] }}>
+              {tooltipTier}
             </span>
-            <code className="ml-auto text-[10px] text-gray-400">{tooltip.finding.inspection_id}</code>
+            {tooltip.item.code && (
+              <code className="ml-auto text-[10px] text-gray-400">{tooltip.item.code}</code>
+            )}
           </div>
           <p className="break-words leading-snug text-gray-200">
             {(() => {
-              // Strip long object references like 'FormXob.6b8351906a...' for cleaner display
-              const msg = tooltip.finding.message.replace(/'[A-Za-z]+\.[a-f0-9]{16,}'/g, '').replace(/\s+/g, ' ').trim();
-              return msg.length > 160 ? msg.slice(0, 160) + "..." : msg;
+              const text = tooltip.item.description ?? tooltip.item.label ?? "";
+              return text.length > 160 ? text.slice(0, 160) + "..." : text;
             })()}
           </p>
         </div>
