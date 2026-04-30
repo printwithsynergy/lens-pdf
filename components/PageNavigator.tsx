@@ -2,8 +2,8 @@
 
 import { useEffect, useRef } from "react";
 import type { OverlayItem } from "../plugin/types";
-import type { PageInfo } from "../../types";
-import { THUMBNAIL_DPI } from "../../types";
+import type { PageInfo } from "../types";
+import { THUMBNAIL_DPI } from "../types";
 import { useViewerHost } from "../host";
 
 interface PageNavigatorProps {

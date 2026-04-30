@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { DensitometerSample } from "../../types";
+import type { DensitometerSample } from "../types";
 import { useViewerHost } from "../host";
 
 interface DensitometerToolProps {

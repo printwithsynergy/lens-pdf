@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { ViewerConfig } from "../../types";
+import type { ViewerConfig } from "../types";
 import { useViewerHost } from "../host";
 import { ZoomControls } from "./ZoomControls";
 import { hostFallbackClient } from "../../lib/host-fallback-client";

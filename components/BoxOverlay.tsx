@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { DielineResult, PageInfo } from "../../types";
+import type { DielineResult, PageInfo } from "../types";
 
 interface BoxOverlayProps {
   page: PageInfo;

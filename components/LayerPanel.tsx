@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { LayerInfo } from "../../types";
+import type { LayerInfo } from "../types";
 import { useViewerHost } from "../host";
 
 interface LayerPanelProps {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { ColorSample } from "../../types";
+import type { ColorSample } from "../types";
 import { useViewerHost } from "../host";
 
 interface ColorPickerToolProps {

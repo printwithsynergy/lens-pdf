@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { DEFAULT_DPI } from "../../types";
+import { DEFAULT_DPI } from "../types";
 import { useViewerHost } from "../host";
 
 /**
