@@ -101,6 +101,13 @@ const defaultViewerServices: ViewerServices = {
     getLayerImageUrl: () => "",
     listLayers: async () => [],
   },
+  separations: {
+    getChannelImageUrl: () => "",
+  },
+  tacHeatmap: {
+    getHeatmapImageUrl: () => "",
+    listRuns: async () => [],
+  },
   annotations: {
     list: async () => [],
     create: async (a) => a,

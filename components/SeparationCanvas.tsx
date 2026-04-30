@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DEFAULT_DPI } from "../types";
-import { useViewerHost } from "../host";
+import { useViewerServices } from "../host";
 
 /**
  * RGB tint colors for compositing each channel onto a white background
@@ -61,7 +61,7 @@ export function SeparationCanvas({
   height,
   dpi = DEFAULT_DPI,
 }: SeparationCanvasProps) {
-  const { apiBase } = useViewerHost();
+  const { separations } = useViewerServices();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [channelImages, setChannelImages] = useState<
     Map<string, HTMLImageElement>
@@ -85,7 +85,7 @@ export function SeparationCanvas({
       setLoadingChannels((prev) => new Set(prev).add(channelName));
 
       const img = new Image();
-      const url = `${apiBase}/pages/${pageNum}/channel/${encodeURIComponent(channelName)}?dpi=${dpi}`;
+      const url = separations.getChannelImageUrl({ pageNum, channelName, dpi });
 
       await new Promise<void>((resolve) => {
         img.onload = () => {
@@ -112,7 +112,7 @@ export function SeparationCanvas({
         img.src = url;
       });
     },
-    [apiBase, pageNum, dpi, channelImages, loadingChannels],
+    [separations, pageNum, dpi, channelImages, loadingChannels],
   );
 
   // Load enabled channels

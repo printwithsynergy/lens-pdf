@@ -65,6 +65,64 @@ export interface LayerService {
 }
 
 /**
+ * Per-channel separation source. Hosts that don't expose ink
+ * separations leave the no-op default (returns an empty URL); the
+ * SeparationCanvas renders blank stock for any unrenderable channel.
+ *
+ * @public
+ */
+export interface SeparationService {
+  /**
+   * Synchronous URL for an isolated channel image (one PNG per ink
+   * with a transparent background). Channel name is process-ink
+   * (`"Cyan"`, `"Magenta"`, `"Yellow"`, `"Black"`) or a spot ink
+   * (`"Pantone Reflex Blue C"`, etc.). The host is responsible for
+   * percent-encoding the channel name in whatever URL it returns.
+   */
+  getChannelImageUrl(args: {
+    pageNum: number;
+    channelName: string;
+    dpi: number;
+  }): string;
+}
+
+/**
+ * Total-Area-Coverage heatmap source. Hosts that don't compute a
+ * TAC heatmap leave the no-op default (URL returns empty, runs
+ * resolves to []); the overlay renders nothing in that case.
+ *
+ * @public
+ */
+export interface TACHeatmapService {
+  /** Synchronous URL for the heatmap image (per-pixel RGBA tint). */
+  getHeatmapImageUrl(args: {
+    pageNum: number;
+    dpi: number;
+    tacLimit: number;
+  }): string;
+  /**
+   * Per-text-run TAC readings used to drive the hover-tooltip layer.
+   * Coordinates are PDF points with origin at the **top-left** of the
+   * page (matches poppler's ``pdftotext -bbox`` output).
+   */
+  listRuns(args: {
+    pageNum: number;
+    dpi: number;
+    tacLimit: number;
+  }): Promise<
+    ReadonlyArray<{
+      x0: number;
+      y0: number;
+      x1: number;
+      y1: number;
+      mean_tac: number;
+      limit: number;
+      exceeds: boolean;
+    }>
+  >;
+}
+
+/**
  * Annotation CRUD interface. The viewer doesn't own annotation state —
  * it subscribes to a source via `AnnotationSourceProvider` and writes
  * back through this service.
@@ -118,6 +176,8 @@ export interface ThemeTokens {
 export interface ViewerServices {
   readonly pageImages: PageImageService;
   readonly layers: LayerService;
+  readonly separations: SeparationService;
+  readonly tacHeatmap: TACHeatmapService;
   readonly annotations: AnnotationService;
   readonly telemetry: TelemetryService;
   readonly i18n: I18nService;

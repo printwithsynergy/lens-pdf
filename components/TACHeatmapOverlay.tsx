@@ -2,14 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 import { DEFAULT_DPI } from "../types";
-import { useViewerHost } from "../host";
+import { useViewerServices } from "../host";
 
-/** Per-text-run TAC reading, as returned by ``/tac-heatmap/runs``.
+/** Per-text-run TAC reading.
  *
  * Coordinates are PDF points with origin at the **top-left** of the
  * page (matches poppler's ``pdftotext -bbox`` output). The overlay
  * places an SVG hit rectangle at each run and shows a tooltip with the
  * bbox's mean TAC on hover.
+ *
+ * Shape mirrors the `TACHeatmapService.listRuns` return type.
  */
 interface TacRun {
   x0: number;
@@ -19,14 +21,6 @@ interface TacRun {
   mean_tac: number;
   limit: number;
   exceeds: boolean;
-}
-
-interface TacRunsResponse {
-  job_id: string;
-  page_num: number;
-  dpi: number;
-  tac_limit: number;
-  runs: TacRun[];
 }
 
 interface TACHeatmapOverlayProps {
@@ -55,7 +49,7 @@ export function TACHeatmapOverlay({
   dpi = DEFAULT_DPI,
   tacLimit = 300,
 }: TACHeatmapOverlayProps) {
-  const { apiBase } = useViewerHost();
+  const { tacHeatmap } = useViewerServices();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [heatmapImg, setHeatmapImg] = useState<HTMLImageElement | null>(null);
   const [loading, setLoading] = useState(true);
@@ -81,29 +75,26 @@ export function TACHeatmapOverlay({
       setError("Failed to load TAC heatmap");
       setLoading(false);
     };
-    img.src = `${apiBase}/pages/${pageNum}/tac-heatmap?dpi=${dpi}&tac_limit=${tacLimit}`;
-  }, [apiBase, pageNum, dpi, tacLimit]);
+    img.src = tacHeatmap.getHeatmapImageUrl({ pageNum, dpi, tacLimit });
+  }, [tacHeatmap, pageNum, dpi, tacLimit]);
 
   // Fetch run metadata in parallel with the PNG so the tooltip layer
-  // and the pixel gradient appear together. A failure here doesn't
-  // knock out the heatmap itself — the SVG layer just stays empty.
+  // and the pixel gradient appear together. The service's listRuns()
+  // already swallows non-fatal failures and returns [] — keep the
+  // local cancellation flag so a fast page-flip doesn't write stale
+  // runs onto the new page.
   useEffect(() => {
     let cancelled = false;
     setRuns([]);
-    fetch(`${apiBase}/pages/${pageNum}/tac-heatmap/runs?dpi=${dpi}&tac_limit=${tacLimit}`)
-      .then((res) => (res.ok ? (res.json() as Promise<TacRunsResponse>) : null))
-      .then((json) => {
-        if (!cancelled && json && Array.isArray(json.runs)) {
-          setRuns(json.runs);
-        }
-      })
-      .catch(() => {
-        /* non-fatal */
+    void tacHeatmap
+      .listRuns({ pageNum, dpi, tacLimit })
+      .then((items) => {
+        if (!cancelled) setRuns([...items]);
       });
     return () => {
       cancelled = true;
     };
-  }, [apiBase, pageNum, dpi, tacLimit]);
+  }, [tacHeatmap, pageNum, dpi, tacLimit]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
