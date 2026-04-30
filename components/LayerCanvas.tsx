@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { DEFAULT_DPI, useViewerApi } from "../../types";
+import { DEFAULT_DPI } from "../../types";
+import { useViewerHost } from "../host";
 
 /**
  * WS-17C — instant layer toggling via per-OCG isolated tiles.
@@ -41,7 +42,7 @@ export function LayerCanvas({
   height,
   dpi = DEFAULT_DPI,
 }: LayerCanvasProps) {
-  const { apiBase } = useViewerApi();
+  const { apiBase } = useViewerHost();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [layerImages, setLayerImages] = useState<Map<number, HTMLImageElement>>(
     new Map(),

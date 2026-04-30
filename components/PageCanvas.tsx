@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { OverlayItem } from "../plugin/types";
 import type { PageInfo } from "../../types";
-import { DEFAULT_DPI, SEVERITY_COLORS, useViewerApi } from "../../types";
+import { DEFAULT_DPI, SEVERITY_COLORS } from "../../types";
+import { useViewerHost } from "../host";
 
 interface PageCanvasProps {
   jobId: string;
@@ -71,7 +72,7 @@ export function PageCanvas({
   tileCdnBase,
   cropToTrim = false,
 }: PageCanvasProps) {
-  const { apiBase } = useViewerApi();
+  const { apiBase } = useViewerHost();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [tileImg, setTileImg] = useState<HTMLImageElement | null>(null);
   const [loading, setLoading] = useState(true);

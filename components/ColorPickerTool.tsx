@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import type { ColorSample } from "../../types";
-import { useViewerApi } from "../../types";
+import { useViewerHost } from "../host";
 
 interface ColorPickerToolProps {
   jobId: string;
@@ -21,7 +21,7 @@ export function ColorPickerTool({
   canvasWidth,
   canvasHeight,
 }: ColorPickerToolProps) {
-  const { apiBase } = useViewerApi();
+  const { apiBase } = useViewerHost();
   const [sample, setSample] = useState<ColorSample | null>(null);
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
   const [loading, setLoading] = useState(false);

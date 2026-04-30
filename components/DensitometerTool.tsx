@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import type { DensitometerSample } from "../../types";
-import { useViewerApi } from "../../types";
+import { useViewerHost } from "../host";
 
 interface DensitometerToolProps {
   jobId: string;
@@ -36,7 +36,7 @@ export function DensitometerTool({
   canvasHeight,
   tacLimit = 300,
 }: DensitometerToolProps) {
-  const { apiBase } = useViewerApi();
+  const { apiBase } = useViewerHost();
   const [sample, setSample] = useState<DensitometerSample | null>(null);
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
   const [loading, setLoading] = useState(false);

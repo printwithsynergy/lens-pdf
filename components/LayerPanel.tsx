@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { LayerInfo } from "../../types";
-import { useViewerApi } from "../../types";
+import { useViewerHost } from "../host";
 
 interface LayerPanelProps {
   jobId: string;
@@ -17,7 +17,7 @@ export function LayerPanel({
   onToggleLayer,
   onSetAllLayers,
 }: LayerPanelProps) {
-  const { apiBase } = useViewerApi();
+  const { apiBase } = useViewerHost();
   const [layers, setLayers] = useState<LayerInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");

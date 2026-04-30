@@ -3,7 +3,8 @@
 import { useEffect, useRef } from "react";
 import type { OverlayItem } from "../plugin/types";
 import type { PageInfo } from "../../types";
-import { THUMBNAIL_DPI, useViewerApi } from "../../types";
+import { THUMBNAIL_DPI } from "../../types";
+import { useViewerHost } from "../host";
 
 interface PageNavigatorProps {
   pages: PageInfo[];
@@ -27,7 +28,7 @@ export function PageNavigator({
   onPageChange,
   horizontal,
 }: PageNavigatorProps) {
-  const { apiBase } = useViewerApi();
+  const { apiBase } = useViewerHost();
   const activeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {

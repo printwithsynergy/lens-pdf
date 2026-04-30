@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AnnotationTool } from "./AnnotationToolbar";
-import { useViewerApi } from "../../types";
+import { useViewerHost } from "../host";
 
 interface AnnotationCanvasProps {
   jobId: string;
@@ -31,7 +31,7 @@ export function AnnotationCanvas({
   onSavingChange,
   onHistoryChange,
 }: AnnotationCanvasProps) {
-  const { apiBase, readOnly } = useViewerApi();
+  const { apiBase, readOnly } = useViewerHost();
   const canvasElRef = useRef<HTMLCanvasElement>(null);
 
   const fabricRef = useRef<any>(null);

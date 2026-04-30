@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useViewerApi } from "../../types";
+import { useViewerHost } from "../host";
 
 interface AnnotationEntry {
   id: string;
@@ -24,7 +24,7 @@ export function AnnotationThread({
   currentUserEmail,
   onJumpToPage,
 }: AnnotationThreadProps) {
-  const { apiBase, readOnly } = useViewerApi();
+  const { apiBase, readOnly } = useViewerHost();
   const [annotations, setAnnotations] = useState<AnnotationEntry[]>([]);
   const [loading, setLoading] = useState(true);
 

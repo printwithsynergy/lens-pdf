@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { ViewerConfig } from "../../types";
-import { useViewerApi } from "../../types";
+import { useViewerHost } from "../host";
 import { ZoomControls } from "./ZoomControls";
 import { hostFallbackClient } from "../../lib/host-fallback-client";
 
@@ -212,7 +212,7 @@ export function MobileDrawer({
   onOpenShare,
   hasChain,
 }: MobileDrawerProps) {
-  const { apiBase, readOnly } = useViewerApi();
+  const { apiBase, readOnly } = useViewerHost();
 
   const handlePanelMode = (fn: () => void) => {
     fn();

@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { DEFAULT_DPI, useViewerApi } from "../../types";
+import { DEFAULT_DPI } from "../../types";
+import { useViewerHost } from "../host";
 
 /**
  * RGB tint colors for compositing each channel onto a white background
@@ -60,7 +61,7 @@ export function SeparationCanvas({
   height,
   dpi = DEFAULT_DPI,
 }: SeparationCanvasProps) {
-  const { apiBase } = useViewerApi();
+  const { apiBase } = useViewerHost();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [channelImages, setChannelImages] = useState<
     Map<string, HTMLImageElement>

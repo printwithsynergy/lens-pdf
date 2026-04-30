@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { DEFAULT_DPI, useViewerApi } from "../../types";
+import { DEFAULT_DPI } from "../../types";
+import { useViewerHost } from "../host";
 
 /** Per-text-run TAC reading, as returned by ``/tac-heatmap/runs``.
  *
@@ -54,7 +55,7 @@ export function TACHeatmapOverlay({
   dpi = DEFAULT_DPI,
   tacLimit = 300,
 }: TACHeatmapOverlayProps) {
-  const { apiBase } = useViewerApi();
+  const { apiBase } = useViewerHost();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [heatmapImg, setHeatmapImg] = useState<HTMLImageElement | null>(null);
   const [loading, setLoading] = useState(true);
