@@ -52,5 +52,7 @@ ships unbranded.
 
 ## License
 
-Currently UNLICENSED while this repo is private. License will be added at
-the visibility flip.
+LoupePDF is licensed under the GNU Affero General Public License v3.0 or
+later (AGPL-3.0-or-later). See [`LICENSE`](./LICENSE) for the full text.
+
+Copyright (C) 2026 Think Neverland LLC.
