@@ -1,8 +1,8 @@
 # LoupePDF
 
-OSS PDF viewer core. Plugin-driven canvas viewer with overlay / panel / toolbar
-slots. Extracted from `thinkneverland/lint-pdf:packages/viewer-shared/src/core/`
-(Phase 4 — Q1 2026).
+OSS PDF viewer core. A plugin-driven canvas viewer with overlay, panel, and
+toolbar slots, built around React 19. Extracted from
+`thinkneverland/lint-pdf:packages/viewer-shared/src/core/` (Phase 4 — Q1 2026).
 
 ## Install
 
@@ -15,40 +15,91 @@ pnpm add @printwithsynergy/loupe-pdf
 pnpm add github:thinkneverland/loupe-pdf#main
 ```
 
-## Plugin model
+Peer dependencies you provide in your host app:
 
-LoupePDF mounts plugins into nine slots:
+```sh
+pnpm add react react-dom
+# Optional — only if you mount AnnotationCanvas / AnnotationThread:
+pnpm add fabric
+```
 
-- `overlay.canvas`, `panel.{right,left,bottom}`,
-- `toolbar.{top,left,bottom}`,
-- `annotation.source`, `dialog.modal`.
+Requires `react@^19` and `react-dom@^19`. `fabric@^6` is an optional peer used
+by the annotation components. The package ships ESM only.
 
-Plugins satisfy a TypeScript Protocol (`OverlayPlugin`, `PanelPlugin`,
-`ToolbarPlugin`, `AnnotationSourceProvider`, `MeasurementUnit`) and are
-registered via `registry.register(plugin)`. Theme / page-image / annotation
-services live behind `ViewerServices` Protocols with no-op defaults so an
-OSS host can run with zero SaaS coupling.
+## Quick start
 
-## Boundary rule
+A single-page viewer with a zoom control and a tile canvas.
+`ZoomControls` exposes zoom as a percentage (`100`); `PageCanvas` expects a
+multiplier (`1.0`). Convert at the boundary as shown.
 
-The viewer core MUST NOT import:
+```tsx
+import { useState } from "react";
+import {
+  PageCanvas,
+  ZoomControls,
+} from "@printwithsynergy/loupe-pdf/components";
+import {
+  ViewerHostContext,
+  ViewerServicesContext,
+} from "@printwithsynergy/loupe-pdf/host";
+import type { ViewerServices } from "@printwithsynergy/loupe-pdf/plugin";
+import type { PageInfo } from "@printwithsynergy/loupe-pdf/types";
 
-- `@lintpdf/*` packages or any `**/lintpdf/**` paths,
-- the literal string `"/api/lintpdf/"` (route-through `ViewerServices`).
+const services = {
+  pageImages: {
+    getPageImageUrl: ({ pageNum, dpi }) =>
+      `/api/pdf/${pageNum}.png?dpi=${dpi}`,
+  },
+} as ViewerServices;
 
-This is enforced upstream in lint-pdf's `eslint.config.mjs` and re-checked
-in this repo's CI typecheck pass.
+const page: PageInfo = {
+  page_num: 1,
+  width_pts: 612,
+  height_pts: 792,
+  media_box: { x0: 0, y0: 0, x1: 612, y1: 792 },
+  crop_box: null,
+  trim_box: null,
+  bleed_box: null,
+  rotation: 0,
+};
 
-## Phase 4 status
+export function MyViewer() {
+  const [zoom, setZoom] = useState(100);
+  return (
+    <ViewerHostContext.Provider
+      value={{ apiBase: "/api/pdf", jobApiBase: "/api/pdf", readOnly: false }}
+    >
+      <ViewerServicesContext.Provider value={services}>
+        <ZoomControls zoom={zoom} onZoomChange={setZoom} />
+        <PageCanvas
+          jobId="demo"
+          page={page}
+          zoom={zoom / 100}
+          items={[]}
+          selectedItem={null}
+          onItemClick={() => {}}
+        />
+      </ViewerServicesContext.Provider>
+    </ViewerHostContext.Provider>
+  );
+}
+```
 
-This package was extracted from the lint-pdf monorepo via
-`git subtree split --prefix=packages/viewer-shared/src/core/`. History is
-file-scoped; the synthetic root commit (`c77ccc51`) is the start of this
-repo's history.
+That's enough to render a page tile. From here, wire whichever
+`ViewerServices` fields your host supports and mount more components — see
+the docs below for everything else.
 
-The lint-pdf SaaS continues to ship the `@thinkneverland/loupe-plugin-lintpdf`
-plugin pack (proprietary findings + branding overlays); LoupePDF itself
-ships unbranded.
+## Documentation
+
+| Topic | Doc |
+| --- | --- |
+| How the contexts, components, and plugins fit together | [docs/architecture.md](./docs/architecture.md) |
+| Wiring `ViewerServices` (page images, layers, separations, TAC, color, densitometer, annotations, reports) | [docs/services.md](./docs/services.md) |
+| Per-component props and usage | [docs/components.md](./docs/components.md) |
+| Plugin slots, registration, and the `replaces` mechanism | [docs/plugins.md](./docs/plugins.md) |
+| Built-in `MeasurementUnit`s + custom-unit Protocol | [docs/measurement-units.md](./docs/measurement-units.md) |
+| Theme tokens, i18n, telemetry, read-only mode | [docs/theming.md](./docs/theming.md) |
+| Boundary rule, Phase 4 origin, contributing | [docs/contributing.md](./docs/contributing.md) |
 
 ## License
 
