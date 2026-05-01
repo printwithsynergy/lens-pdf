@@ -1,7 +1,7 @@
 {
   "name": "@thinkneverland/loupe-pdf",
   "version": "0.1.0",
-  "description": "LoupePDF — OSS PDF viewer core (extracted from lint-pdf). Plugin-driven canvas viewer with overlay / panel / toolbar slots.",
+  "description": "LoupePDF \u2014 OSS PDF viewer core (extracted from lint-pdf). Plugin-driven canvas viewer with overlay / panel / toolbar slots.",
   "license": "UNLICENSED",
   "private": true,
   "main": "./dist/index.js",
@@ -40,7 +40,8 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prepare": "tsc -p tsconfig.build.json"
   },
   "peerDependencies": {
     "react": "^19.0.0",
@@ -48,7 +49,9 @@
     "fabric": "^6.0.0"
   },
   "peerDependenciesMeta": {
-    "fabric": { "optional": true }
+    "fabric": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/react": "^19.2.14",
