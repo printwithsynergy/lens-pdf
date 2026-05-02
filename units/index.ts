@@ -16,7 +16,7 @@
 import type { MeasurementUnit } from "../plugin/types";
 
 /**
- * Millimetre. The metric default for print preflight workflows.
+ * Millimetre. The metric default for print workflows.
  *
  * @public
  */

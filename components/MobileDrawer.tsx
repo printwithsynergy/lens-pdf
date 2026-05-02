@@ -5,9 +5,14 @@ import type { ViewerConfig } from "../types";
 import { isUnwired, logUnwiredHide, useViewerHost, useViewerServices } from "../host";
 import { ZoomControls } from "./ZoomControls";
 
+// Brand fallback chain: the host's own `config.brand_name` wins; if
+// it's null, fall back to whatever the page is hosted on (informative
+// even on first paint), and only when *that* is missing (SSR, blank
+// hostname) use a fully generic last-resort label. The viewer is a
+// pure renderer — no product brand belongs in its defaults.
 function brandFallback(): string {
-  if (typeof window === "undefined") return "Preflight";
-  return window.location.hostname || "Preflight";
+  if (typeof window === "undefined") return "PDF Viewer";
+  return window.location.hostname || "PDF Viewer";
 }
 
 type ViewerMode = "normal" | "separation" | "layers" | "annotation" | "comparison" | "health" | "chain";
@@ -255,7 +260,7 @@ export function MobileDrawer({
         <div className="flex h-12 items-center justify-between border-b border-white/[0.06] px-4">
           <span className="text-sm font-bold text-white">
             {config.anonymous
-              ? "Preflight Report"
+              ? "PDF Report"
               : config.brand_name || brandFallback()}
           </span>
           <button
