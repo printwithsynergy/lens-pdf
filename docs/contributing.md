@@ -7,14 +7,14 @@ elsewhere in [`docs/`](.).
 
 The viewer core MUST NOT import:
 
-- `@lintpdf/*` packages or any `**/lintpdf/**` paths,
-- the literal string `"/api/lintpdf/"` (route through `ViewerServices`).
+- any host- or product-specific package or path,
+- a literal backend route string anywhere in source — every URL is
+  composed by a `ViewerServices` URL builder the host supplies.
 
-This is enforced upstream in lint-pdf's `eslint.config.mjs` and re-checked
-in this repo's CI typecheck pass. Anything LintPDF-shaped (findings,
-brand-spec violations, audit verdicts) belongs in the `loupe-plugin-lintpdf`
-plugin pack — the `core/` namespace stays unbranded so OSS hosts can run
-it with zero SaaS coupling.
+CI typecheck flags violations. Anything domain-shaped (findings,
+brand-spec violations, audit verdicts, host-specific configuration)
+lives in plugin packs — the core namespace stays unbranded so any
+host can mount it with zero coupling to a particular SaaS.
 
 When you add a new feature, ask:
 
@@ -23,29 +23,28 @@ When you add a new feature, ask:
 - Does it depend on a domain shape (a finding, an annotation
   interpretation, a brand spec)? → It does not belong in `core/`.
 
-## Phase 4 status
+## Provenance
 
-This package was extracted from the lint-pdf monorepo via
-`git subtree split --prefix=packages/viewer-shared/src/core/`. History is
-file-scoped; the synthetic root commit (`c77ccc51`) is the start of this
-repo's history.
-
-The lint-pdf SaaS continues to ship the `@thinkneverland/loupe-plugin-lintpdf`
-plugin pack (proprietary findings + branding overlays); LoupePDF itself
-ships unbranded.
+This package was extracted from an upstream SaaS monorepo via
+`git subtree split` over `packages/viewer-shared/src/core/`. History
+is file-scoped; the synthetic root commit (`c77ccc51`) is the start
+of this repo's history. Everything host-specific from the original
+monorepo lives in separate downstream plugin packs — none of it is
+imported here.
 
 ## Local development
 
 ```sh
-pnpm install
-pnpm typecheck   # tsc -p tsconfig.json
-pnpm test        # vitest run
-pnpm build       # tsc -p tsconfig.build.json
+npm install
+npm run typecheck   # tsc -p tsconfig.json
+npm test            # vitest run
+npm run build       # tsc -p tsconfig.build.json
 ```
 
-There's no published lockfile yet (the package is still pre-flip); CI
-tolerates an empty test suite for the same reason. Add tests alongside
-new components — `vitest` is already wired up.
+The repo doesn't track a `package-lock.json` (libraries leave that to
+consuming apps). Add tests alongside new components — `vitest` is
+already wired up; see `plugin/services.test.ts` for the existing
+pattern.
 
 ## Public API surface
 

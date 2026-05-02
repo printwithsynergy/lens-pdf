@@ -1,11 +1,12 @@
 /**
- * Viewer services — SaaS-coupled feature surface.
+ * Viewer services — host-supplied data-source protocols.
  *
- * Plugins reach annotations, page images, telemetry, i18n, and theme
- * tokens through these protocols rather than hardcoding LintPDF API
- * paths or importing LintPDF types directly. OSS hosts (post-Phase-3
- * LoupePDF) wire no-op stubs for telemetry + i18n; the LintPDF SaaS
- * provides concrete impls in `lintpdf/sources/`.
+ * Components reach page images, layers, separations, annotations,
+ * telemetry, i18n, and theme tokens through these protocols rather
+ * than hardcoding any backend specifics. Hosts implement the
+ * protocols their backend supports; the rest fall through to no-op
+ * defaults (see `host/index.ts`) and the consuming components
+ * self-hide.
  *
  * @public
  */
@@ -162,11 +163,12 @@ export interface DensitometerService {
    * Sample at the given PDF coordinates. On success returns the
    * ink-channel readings + TAC. On failure throws an `Error` with
    * a short user-facing message — the tool surfaces `.message`
-   * verbatim in its readout panel. Distinct error paths the LintPDF
-   * impl produces:
-   *   - "No separations available for this page." — engine 422
-   *     (RGB-only document, no CMYK to split)
-   *   - "Sampling failed (NNN)" — engine non-2xx other than 422
+   * verbatim in its readout panel. Distinct error paths a typical
+   * server-side implementation produces:
+   *   - "No separations available for this page." — backend signals
+   *     the page can't be split (e.g. RGB-only document, no CMYK)
+   *   - "Sampling failed (NNN)" — backend non-2xx other than the
+   *     "no separations" case
    *   - "Network error" — fetch rejected
    */
   sampleAt(args: {
@@ -222,8 +224,8 @@ export interface AnnotationService {
   getForPage(pageNum: number): Promise<AnnotationEntry | null>;
   /**
    * Upsert the active author's drawing for one page. Best-effort —
-   * the LintPDF impl swallows network errors so flaky connectivity
-   * doesn't block the user from continuing to draw.
+   * implementations should swallow network errors so flaky
+   * connectivity doesn't block the user from continuing to draw.
    */
   saveForPage(pageNum: number, fabricJson: unknown): Promise<void>;
   /** Delete a single annotation by id. */
@@ -364,8 +366,8 @@ export const noopI18n: I18nService = {
 };
 
 /**
- * Default theme tokens — neutral light palette. LintPDF host overrides
- * these from tenant branding.
+ * Default theme tokens — neutral light palette. Hosts typically
+ * override these with their tenant or product branding.
  *
  * @public
  */

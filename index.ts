@@ -1,14 +1,19 @@
 /**
- * `@lintpdf/viewer-shared/core` — future LoupePDF OSS surface.
+ * `@printwithsynergy/loupe-pdf` — root barrel.
  *
- * Phase 2 moved the 17 pure-core components (the 16 originally
- * surfaced in the Track B audit + `MeasureTool`, which defaulted
- * to core with a `MeasurementUnit` plugin slot) into
- * `core/components/`. They're re-exported from this barrel.
+ * Re-exports every public protocol, component, and unit. Host
+ * applications usually import directly from a sub-path (`/host`,
+ * `/components`, `/plugin`, `/units`, `/types`) so their bundler
+ * only pulls what they use; this convenience barrel exists for
+ * smaller embeds that want the whole surface in one import.
  *
- * **No LintPDF imports in this namespace.** The `core/`-scoped
- * ESLint rule enforces it. After Phase 3 the contents of this
- * directory ship as `@printwithsynergy/loupe-pdf` (AGPL-3.0-or-later).
+ * The viewer is host-agnostic — no SaaS-specific imports, no
+ * hardcoded backend paths. Hosts wire their own concrete
+ * `ViewerServices` and supply their own host context. See the
+ * `core/`-scoped ESLint rule (mirrored in `docs/contributing.md`)
+ * for the boundary that keeps it that way.
+ *
+ * Distributed under AGPL-3.0-or-later.
  *
  * @public
  */

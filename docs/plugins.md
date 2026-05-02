@@ -167,7 +167,7 @@ register({
   id: "thirdparty.panel.findings",
   version: "0.1.0",
   slot: "panel.right",
-  replaces: "lintpdf.panel.findings",  // shadow the original
+  replaces: "vendor.panel.findings",  // shadow the original
   title: "Findings",
   mount: (ctx) => <ThirdPartyFindings ctx={ctx} />,
 });
@@ -185,7 +185,7 @@ Constraints:
 
 ## `OverlayItem`
 
-Plugins (and the LintPDF host) translate their domain types — findings,
+Plugins and host adapters translate their domain types — findings,
 annotations, brand-spec violations — into `OverlayItem`s before handing
 them to a core component. The shape is deliberately minimal:
 

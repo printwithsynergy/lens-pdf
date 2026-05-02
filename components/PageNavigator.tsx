@@ -10,10 +10,9 @@ interface PageNavigatorProps {
   pages: PageInfo[];
   currentPage: number;
   /**
-   * Generic overlay items rendered as per-page badge counts. Replaces
-   * the legacy `findings: ViewerFinding[]` prop — hosts convert their
-   * domain records (LintPDF: `findingsToOverlayItems(findings)`)
-   * before passing them in.
+   * Generic overlay items rendered as per-page badge counts. Hosts
+   * convert their domain records (findings, annotations, brand-spec
+   * violations) into `OverlayItem`s before passing them in.
    */
   items: readonly OverlayItem[];
   onPageChange: (page: number) => void;

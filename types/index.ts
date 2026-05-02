@@ -1,16 +1,12 @@
 /**
- * Core viewer types — generic PDF/canvas shapes consumed by
- * components in `src/core/components/`.
+ * Core viewer types — generic PDF/canvas shapes consumed by the
+ * components in `components/`.
  *
- * Phase 2 extracted these out of `src/types.ts` so `src/core/`
- * doesn't have to import from a LintPDF-flavoured location. The
- * legacy names are still re-exported from `src/types.ts` for
- * back-compat, so consumers outside `core/` don't need to update.
- *
- * After Phase 3 this directory ships as part of the LoupePDF OSS
- * surface; LintPDF-specific extensions (`AuditVerdict`,
- * `ViewerFinding`, `ArtSizeMM`, etc.) stay in `src/types.ts`
- * (becoming part of `@thinkneverland/loupe-plugin-lintpdf`).
+ * The shapes here are deliberately host-neutral: page geometry,
+ * sampling-result records, layer entries, and a `ViewerConfig`
+ * surface for feature flags + branding. Anything domain-shaped
+ * (findings, audit verdicts, brand-spec violations, art-size
+ * metadata) lives in plugin packs, not here.
  *
  * @public
  */

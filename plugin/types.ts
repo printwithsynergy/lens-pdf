@@ -1,10 +1,9 @@
 /**
  * Viewer plugin protocol — slot types + plugin shape.
  *
- * Phase 1 introduces this protocol alongside the existing flat
- * component layout. New features land as plugins; the existing 28
- * components stay in `src/` until Phase 2 moves them under
- * `core/components/` and `lintpdf/components/`.
+ * Plugins extend the viewer without modifying core. Each plugin
+ * declares the slot it mounts into; the registry resolves slot
+ * lookups in order.
  *
  * Slots map to where a plugin's `mount()` return value renders:
  * - `overlay.canvas` — absolutely-positioned over the page canvas;
@@ -15,9 +14,9 @@
  *   `AnnotationSourceProvider`.
  * - `dialog.modal` — modal dialog launched from another plugin.
  *
- * After Phase 3 the `core/` package ships as `@printwithsynergy/loupe-pdf`
- * (AGPL-3.0-or-later, OSS) and the LintPDF-flavoured plugins ship as
- * `@thinkneverland/loupe-plugin-lintpdf` (proprietary).
+ * Anything host- or domain-shaped (host-specific findings,
+ * brand-spec violations, audit verdicts) belongs in a plugin pack,
+ * not core.
  *
  * @public
  */
@@ -61,9 +60,9 @@ export interface ViewerPluginManifest {
    * but `getPluginsForSlot()` returns this one instead.
    *
    * Use case: a third-party plugin pack ships its own findings panel
-   * by registering a `PanelPlugin` with `replaces: "lintpdf.findings"`.
-   * The viewer mounts the third-party panel; the LintPDF first-party
-   * one stays out of the slot.
+   * by registering a `PanelPlugin` with
+   * `replaces: "vendor.findings.default"`. The viewer mounts the
+   * third-party panel; the original stays out of the slot.
    *
    * Constraints:
    * - The replacement must declare the same `slot` as the target.
@@ -72,8 +71,8 @@ export interface ViewerPluginManifest {
    * - At most one plugin can claim a given `replaces` target. A
    *   second registration that targets the same id throws.
    * - The target id does not need to be registered yet — the
-   *   override registers cleanly even before the LintPDF pack loads,
-   *   and starts shadowing as soon as the target appears.
+   *   override registers cleanly even before the target loads, and
+   *   starts shadowing as soon as the target appears.
    */
   replaces?: string;
 }
@@ -177,19 +176,12 @@ export interface MeasurementUnit {
 /**
  * Generic overlay item rendered on top of a page canvas.
  *
- * Phase 2 abstraction: replaces the LintPDF-specific `ViewerFinding`
- * type that `PageCanvas` and `PageNavigator` previously consumed.
- * Plugins (and the LintPDF host) translate their domain types
- * (findings, annotations, brand-spec violations) into `OverlayItem`s
- * before handing them to a core component.
- *
- * The shape is deliberately minimal. Anything richer that callers
- * need to round-trip (per-finding metadata, click handlers, hover
- * tooltips) goes through ``data: Record<string, unknown>``.
- *
- * After Phase 3 this interface ships as part of the LoupePDF OSS
- * surface; LintPDF's ``viewer-shared/lintpdf`` pack provides a
- * ``findingToOverlayItem(finding)`` adapter.
+ * Plugins and host adapters translate their domain types (findings,
+ * annotations, brand-spec violations, etc.) into `OverlayItem`s
+ * before handing them to a core component. The shape is
+ * deliberately minimal — anything richer that callers need to
+ * round-trip (per-finding metadata, click handlers, hover tooltips)
+ * goes through ``data: Record<string, unknown>``.
  *
  * @public
  */
@@ -207,8 +199,8 @@ export interface OverlayItem {
   /**
    * Severity-like tier the renderer maps to a colour. Hosts can
    * supply their own palette via ``ViewerServices.tokens``; the
-   * default LintPDF mapping treats ``"error"`` as red,
-   * ``"warning"`` as amber, ``"advisory"`` as blue.
+   * default mapping treats ``"error"`` as red, ``"warning"`` as
+   * amber, ``"advisory"`` as blue.
    */
   readonly tier?: "error" | "warning" | "advisory" | "info" | "neutral";
   /** Optional CSS hex colour override (e.g., ``"#ff5722"``). */
@@ -218,14 +210,14 @@ export interface OverlayItem {
   /**
    * Optional longer description used by tooltip-style renderers.
    * The host adapter is responsible for any domain-specific
-   * cleanup (e.g., LintPDF strips long PDF object references
-   * before populating this field).
+   * cleanup before populating this field (e.g., stripping long
+   * PDF object references that would blow out the tooltip).
    */
   readonly description?: string;
   /**
    * Optional short identifier code rendered alongside the tier
-   * (e.g., LintPDF inspection_id ``"LPDF_PRINT_001"``). Renderers
-   * typically display this in a code badge in tooltips.
+   * (e.g., a vendor-specific check id like ``"PRINT_001"``).
+   * Renderers typically display this in a code badge in tooltips.
    */
   readonly code?: string;
   /** Free-form payload for round-tripping host-specific data. */

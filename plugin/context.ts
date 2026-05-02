@@ -2,13 +2,13 @@
  * Viewer context — single argument passed to every plugin's `mount` /
  * `subscribe` call.
  *
- * The context is intentionally narrow: it captures viewer-state only
- * (page, zoom, pan, viewport, selection) plus the `services` surface
- * for SaaS-coupled features. **No findings, no LintPDF types** — the
- * `core/` namespace is the future LoupePDF OSS surface.
+ * The context is intentionally narrow: viewer state only (page,
+ * zoom, pan, viewport, selection) plus the `services` surface for
+ * data sources. No host- or domain-shaped types live here — those
+ * belong in plugin packs.
  *
- * Plugins that need richer data subscribe to it via
- * `services.annotations` or `services.pageImages`.
+ * Plugins that need richer data subscribe to it via the relevant
+ * service (`services.annotations`, `services.pageImages`, etc.).
  *
  * @public
  */
@@ -28,8 +28,9 @@ export interface ViewerViewport {
 }
 
 /**
- * Read-only document metadata. Anything LintPDF-specific (job id,
- * brand spec, finding catalog) is exposed via services, not here.
+ * Read-only document metadata. Anything host- or domain-specific
+ * (job id, brand spec, finding catalog, audit verdict) is exposed
+ * via services or plugin payloads, not here.
  *
  * @public
  */
@@ -64,6 +65,6 @@ export interface ViewerContext {
   readonly selectionBbox: readonly [number, number, number, number] | null;
   /** Document metadata. */
   readonly document: ViewerDocumentMetadata;
-  /** SaaS-coupled services. */
+  /** Host-supplied data-source services. */
   readonly services: ViewerServices;
 }

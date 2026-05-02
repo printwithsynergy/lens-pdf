@@ -1,9 +1,10 @@
 /**
  * Viewer plugin registry — runtime registration + slot-aware lookup.
  *
- * Plugin packs (e.g., `lintpdf/register.ts`) call `register(plugin)`
- * during module load. The viewer reads `getPluginsForSlot(slot)` at
- * render time to find what to mount.
+ * Plugin packs call `register(plugin)` during module load (typically
+ * from a top-level `register.ts` the consumer imports for side
+ * effects). The viewer reads `getPluginsForSlot(slot)` at render
+ * time to find what to mount.
  *
  * Phase 1 keeps the registry simple — a process-wide map. Phase 2
  * introduces per-viewer-instance scopes so two viewer instances on the

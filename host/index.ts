@@ -1,22 +1,18 @@
 /**
  * Viewer host context — the bridge between an embedding application
- * and the core viewer components.
+ * and the core viewer components. Two contexts live here:
  *
- * Phase 2 (this directory) extracts the context that was previously
- * defined in `src/types.ts` (`ViewerApiContextValue` / `ViewerApiContext`
- * / `useViewerApi`) so `src/core/` no longer needs to import from
- * `../../types`. The boundary rule that blocks `core/` from
- * referencing the LintPDF directory couldn't catch `../../types`
- * imports — this move closes that gap.
+ * - {@link ViewerHostContext}: cross-cutting host config (API base
+ *   paths, read-only flag, debug toggle, optional pdf.js fallback).
+ * - {@link ViewerServicesContext}: the {@link ViewerServices} object
+ *   carrying all the data-source protocols (page images, layers,
+ *   separations, annotations, etc.). Components read services via
+ *   {@link useViewerServices}; components decide between wired,
+ *   fallback, and hidden render modes via {@link useFallbackMode}.
  *
- * Phase 3 (LoupePDF) extracts this directory, alongside everything
- * else under `src/core/`, into `@printwithsynergy/loupe-pdf`. Hosts
- * (LintPDF SaaS, OSS embeds) supply their own concrete values via
- * `<ViewerHostContext.Provider value={...}>`.
- *
- * The legacy `useViewerApi` / `ViewerApiContext` names are still
- * re-exported from `src/types.ts` so components outside `core/` (and
- * downstream consumers) can keep their existing imports.
+ * Hosts mount a `<ViewerHostContext.Provider>` at the root of their
+ * app and supply concrete values; the no-op defaults exported below
+ * keep an unwired viewer renderable but quiet.
  *
  * @public
  */
@@ -33,22 +29,26 @@ import {
 
 /**
  * Values the host application supplies to the viewer's core
- * components. Today this is API base URLs + a read-only flag; later
- * PRs in the Phase-2 abstraction stream will replace direct
- * URL-string consumption with `ViewerServices` (page images,
- * annotations, telemetry, i18n, theme tokens) so this surface stays
- * minimal even as the viewer's capabilities grow.
+ * components. Cross-cutting toggles, base API paths, and the
+ * optional PDF fallback adapter live here; per-feature data sources
+ * are on {@link ViewerServices}.
  *
  * @public
  */
 export interface ViewerHostContextValue {
   /**
-   * Base path for viewer API calls (no trailing slash). LintPDF
-   * authenticated mode: ``/api/lintpdf/viewer/{jobId}``. Public-token
-   * (share-link) mode: ``/api/lintpdf/viewer/public/{token}``.
+   * Base path for viewer API calls (no trailing slash). The viewer
+   * itself never builds URLs from this — it's plumbed through for
+   * host-side service implementations that want a single source of
+   * truth (e.g. a host's `getPageImageUrl` returning
+   * ``${apiBase}/page/${n}.png``). Leave empty if your services
+   * compose URLs differently.
    */
   apiBase: string;
-  /** Base path for job-level API calls (findings, reports). */
+  /**
+   * Base path for job-level API calls (findings, reports, etc.).
+   * Same plumbing convention as {@link apiBase}.
+   */
   jobApiBase: string;
   /**
    * When true, hides write-only UI (annotations, verdict, comparison
@@ -164,8 +164,8 @@ const defaultViewerServices: ViewerServices = {
 /**
  * React context carrying the active `ViewerServices` instance.
  * `<ViewerServicesContext.Provider value={...}>` mounts a host's
- * concrete impl (LintPDF SaaS supplies one via
- * `createLintPDFViewerServices` in `src/lintpdf/sources/services`).
+ * concrete implementation; downstream plugin packs typically expose
+ * a factory like `createMyHostViewerServices(...)` that returns one.
  *
  * @public
  */

@@ -1,8 +1,9 @@
 # LoupePDF
 
 OSS PDF viewer core. A plugin-driven canvas viewer with overlay, panel, and
-toolbar slots, built around React 19. Extracted from
-`thinkneverland/lint-pdf:packages/viewer-shared/src/core/` (Phase 4 — Q1 2026).
+toolbar slots, built around React 19. Host-agnostic: the viewer never
+imports a SaaS, never hardcodes a backend route, and self-hides any tool
+whose backing service the host hasn't wired. AGPL-3.0-or-later.
 
 ## Install
 

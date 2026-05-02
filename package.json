@@ -1,7 +1,7 @@
 {
   "name": "@printwithsynergy/loupe-pdf",
   "version": "0.1.0",
-  "description": "LoupePDF \u2014 OSS PDF viewer core (extracted from lint-pdf). Plugin-driven canvas viewer with overlay / panel / toolbar slots.",
+  "description": "LoupePDF \u2014 host-agnostic OSS PDF viewer core. Plugin-driven canvas viewer with overlay / panel / toolbar slots.",
   "license": "AGPL-3.0-or-later",
   "private": true,
   "main": "./dist/index.js",

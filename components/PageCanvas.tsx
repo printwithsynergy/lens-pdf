@@ -16,10 +16,9 @@ interface PageCanvasProps {
   page: PageInfo;
   zoom: number;
   /**
-   * Generic overlay items to render on top of the page tile. Replaces
-   * the legacy `findings: ViewerFinding[]` prop — hosts convert their
-   * domain records (LintPDF: `findingsToOverlayItems(findings)`)
-   * before passing them in.
+   * Generic overlay items to render on top of the page tile. Hosts
+   * convert their domain records (findings, annotations, brand-spec
+   * violations) into `OverlayItem`s before passing them in.
    */
   items: readonly OverlayItem[];
   /** Currently-selected overlay item (or null). Drives the highlight
@@ -50,8 +49,8 @@ const TIER_HEX: Record<NonNullable<OverlayItem["tier"]>, string> = {
 };
 
 // Fallback fill/stroke palette for tiers that don't have a SEVERITY_COLORS
-// entry. SEVERITY_COLORS only ships error/warning/advisory because that
-// was the LintPDF-finding shape; info/neutral hit this fallback.
+// entry. SEVERITY_COLORS only ships error/warning/advisory; info/neutral
+// hit this fallback.
 const TIER_FALLBACK_COLORS = {
   fill: "rgba(100, 116, 139, 0.15)",
   stroke: "#64748b",
@@ -181,9 +180,10 @@ export function PageCanvas({
     };
   })();
 
-  // Load tile image — prefer CDN when available, fall back to engine
-  // proxy. When the host hasn't wired pageImages but ``pdfFallback``
-  // is set, we ask the fallback adapter to render the page in-browser
+  // Load tile image — prefer the host-supplied CDN URL when set, fall
+  // back to whatever `pageImages.getPageImageUrl` returns. When the
+  // host hasn't wired pageImages but ``pdfFallback`` is set, we ask
+  // the fallback adapter to render the page in-browser
   // and use the resulting data URL.
   const proxyUrl = pageImages.getPageImageUrl({ pageNum: page.page_num, dpi });
   useEffect(() => {
