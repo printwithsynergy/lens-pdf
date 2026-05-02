@@ -89,6 +89,18 @@ That's enough to render a page tile. From here, wire whichever
 `ViewerServices` fields your host supports and mount more components — see
 the docs below for everything else.
 
+## Demo
+
+Want to see the hide-on-unwired contract in action without setting up your own
+host? `demo/` is a tiny Vite app that flips between empty / pdf.js-fallback /
+fully-mocked contexts:
+
+```sh
+cd demo && npm install && npm run dev
+```
+
+See [demo/README.md](./demo/README.md) for the smoke-check checklist.
+
 ## Documentation
 
 | Topic | Doc |
