@@ -4,7 +4,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { OverlayItem } from "../plugin/types";
 import type { PageInfo } from "../types";
 import { DEFAULT_DPI, SEVERITY_COLORS } from "../types";
-import { useViewerServices } from "../host";
+import {
+  logUnwiredHide,
+  useFallbackMode,
+  useViewerHost,
+  useViewerServices,
+} from "../host";
 
 interface PageCanvasProps {
   jobId: string;
@@ -73,6 +78,8 @@ export function PageCanvas({
   cropToTrim = false,
 }: PageCanvasProps) {
   const { pageImages } = useViewerServices();
+  const { debug, pdfFallback } = useViewerHost();
+  const mode = useFallbackMode(pageImages);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [tileImg, setTileImg] = useState<HTMLImageElement | null>(null);
   const [loading, setLoading] = useState(true);
@@ -174,28 +181,60 @@ export function PageCanvas({
     };
   })();
 
-  // Load tile image — prefer CDN when available, fall back to engine proxy
+  // Load tile image — prefer CDN when available, fall back to engine
+  // proxy. When the host hasn't wired pageImages but ``pdfFallback``
+  // is set, we ask the fallback adapter to render the page in-browser
+  // and use the resulting data URL.
   const proxyUrl = pageImages.getPageImageUrl({ pageNum: page.page_num, dpi });
   useEffect(() => {
-    setLoading(true);
-    const img = new Image();
-    const cdnUrl = tileCdnBase
-      ? `${tileCdnBase}p${page.page_num}_d${dpi}.png`
-      : null;
-
-    img.onload = () => {
-      setTileImg(img);
+    if (mode === "hidden") {
+      if (debug) logUnwiredHide("PageCanvas", "pageImages");
       setLoading(false);
-    };
-    img.onerror = () => {
-      if (cdnUrl && img.src === cdnUrl) {
-        img.src = proxyUrl;
-      } else {
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+
+    const startLoad = (src: string) => {
+      const img = new Image();
+      const cdnUrl =
+        mode === "wired" && tileCdnBase
+          ? `${tileCdnBase}p${page.page_num}_d${dpi}.png`
+          : null;
+      img.onload = () => {
+        if (cancelled) return;
+        setTileImg(img);
         setLoading(false);
-      }
+      };
+      img.onerror = () => {
+        if (cancelled) return;
+        if (cdnUrl && img.src === cdnUrl) {
+          img.src = src;
+        } else {
+          setLoading(false);
+        }
+      };
+      img.src = cdnUrl ?? src;
     };
-    img.src = cdnUrl ?? proxyUrl;
-  }, [proxyUrl, page.page_num, dpi, tileCdnBase]);
+
+    if (mode === "fallback" && pdfFallback) {
+      pdfFallback
+        .renderPageToUrl({ pageNum: page.page_num, dpi })
+        .then((url) => {
+          if (!cancelled) startLoad(url);
+        })
+        .catch(() => {
+          if (!cancelled) setLoading(false);
+        });
+    } else {
+      startLoad(proxyUrl);
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [proxyUrl, page.page_num, dpi, tileCdnBase, mode, pdfFallback, debug]);
 
   // Animate pulse for selected item
   useEffect(() => {
@@ -370,6 +409,8 @@ export function PageCanvas({
     // Clicked empty area: dismiss tooltip
     setTooltip(null);
   };
+
+  if (mode === "hidden") return null;
 
   const outerWidth = trimViewport ? trimViewport.widthPx : canvasWidth;
   const outerHeight = trimViewport ? trimViewport.heightPx : canvasHeight;

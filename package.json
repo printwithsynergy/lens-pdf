@@ -46,10 +46,14 @@
   "peerDependencies": {
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "fabric": "^6.0.0"
+    "fabric": "^6.0.0",
+    "pdfjs-dist": "^4.0.0"
   },
   "peerDependenciesMeta": {
     "fabric": {
+      "optional": true
+    },
+    "pdfjs-dist": {
       "optional": true
     }
   },

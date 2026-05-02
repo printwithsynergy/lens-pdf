@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { DensitometerSample } from "../types";
-import { useViewerServices } from "../host";
+import { isUnwired, logUnwiredHide, useViewerHost, useViewerServices } from "../host";
 
 interface DensitometerToolProps {
   jobId: string;
@@ -37,10 +37,16 @@ export function DensitometerTool({
   tacLimit = 300,
 }: DensitometerToolProps) {
   const { densitometer } = useViewerServices();
+  const { debug } = useViewerHost();
+  const hidden = isUnwired(densitometer);
   const [sample, setSample] = useState<DensitometerSample | null>(null);
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (hidden && debug) logUnwiredHide("DensitometerTool", "densitometer");
+  }, [hidden, debug]);
 
   const pickAt = useCallback(
     async (clickX: number, clickY: number) => {
@@ -101,6 +107,8 @@ export function DensitometerTool({
     if (n.startsWith("k") || n.startsWith("b")) return "#111827";
     return "#94a3b8";
   };
+
+  if (hidden) return null;
 
   return (
     <div

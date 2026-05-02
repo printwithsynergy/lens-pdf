@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { DEFAULT_DPI } from "../types";
-import { useViewerServices } from "../host";
+import { isUnwired, logUnwiredHide, useViewerHost, useViewerServices } from "../host";
 
 /** Per-text-run TAC reading.
  *
@@ -50,6 +50,8 @@ export function TACHeatmapOverlay({
   tacLimit = 300,
 }: TACHeatmapOverlayProps) {
   const { tacHeatmap } = useViewerServices();
+  const { debug } = useViewerHost();
+  const hidden = isUnwired(tacHeatmap);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [heatmapImg, setHeatmapImg] = useState<HTMLImageElement | null>(null);
   const [loading, setLoading] = useState(true);
@@ -63,6 +65,10 @@ export function TACHeatmapOverlay({
   } | null>(null);
 
   useEffect(() => {
+    if (hidden) {
+      if (debug) logUnwiredHide("TACHeatmapOverlay", "tacHeatmap");
+      return;
+    }
     setLoading(true);
     setError("");
 
@@ -76,7 +82,7 @@ export function TACHeatmapOverlay({
       setLoading(false);
     };
     img.src = tacHeatmap.getHeatmapImageUrl({ pageNum, dpi, tacLimit });
-  }, [tacHeatmap, pageNum, dpi, tacLimit]);
+  }, [tacHeatmap, pageNum, dpi, tacLimit, hidden, debug]);
 
   // Fetch run metadata in parallel with the PNG so the tooltip layer
   // and the pixel gradient appear together. The service's listRuns()
@@ -108,6 +114,8 @@ export function TACHeatmapOverlay({
     ctx.drawImage(heatmapImg, 0, 0, width, height);
     ctx.globalAlpha = 1.0;
   }, [heatmapImg, width, height, opacity]);
+
+  if (hidden) return null;
 
   if (loading) {
     return (

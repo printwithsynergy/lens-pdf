@@ -1,8 +1,13 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { ColorSample } from "../types";
-import { useViewerServices } from "../host";
+import {
+  logUnwiredHide,
+  useFallbackMode,
+  useViewerHost,
+  useViewerServices,
+} from "../host";
 
 interface ColorPickerToolProps {
   jobId: string;
@@ -22,9 +27,15 @@ export function ColorPickerTool({
   canvasHeight,
 }: ColorPickerToolProps) {
   const { colorSample } = useViewerServices();
+  const { debug, pdfFallback } = useViewerHost();
+  const mode = useFallbackMode(colorSample);
   const [sample, setSample] = useState<ColorSample | null>(null);
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (mode === "hidden" && debug) logUnwiredHide("ColorPickerTool", "colorSample");
+  }, [mode, debug]);
 
   const pickAt = useCallback(
     async (clickX: number, clickY: number) => {
@@ -35,14 +46,19 @@ export function ColorPickerTool({
       setPosition({ x: clickX, y: clickY });
       setLoading(true);
       try {
-        const data = await colorSample.sampleAt({ pageNum, pdfX, pdfY });
+        const data =
+          mode === "fallback" && pdfFallback
+            ? await pdfFallback.sampleColorAt({ pageNum, pdfX, pdfY })
+            : await colorSample.sampleAt({ pageNum, pdfX, pdfY });
         if (data) setSample(data);
       } finally {
         setLoading(false);
       }
     },
-    [colorSample, pageNum, pageWidthPts, pageHeightPts, canvasWidth, canvasHeight],
+    [colorSample, pdfFallback, mode, pageNum, pageWidthPts, pageHeightPts, canvasWidth, canvasHeight],
   );
+
+  if (mode === "hidden") return null;
 
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {

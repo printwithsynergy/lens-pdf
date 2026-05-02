@@ -2,7 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { LayerInfo } from "../types";
-import { useViewerServices } from "../host";
+import {
+  logUnwiredHide,
+  useFallbackMode,
+  useViewerHost,
+  useViewerServices,
+} from "../host";
 
 interface LayerPanelProps {
   jobId: string;
@@ -18,24 +23,35 @@ export function LayerPanel({
   onSetAllLayers,
 }: LayerPanelProps) {
   const { layers: layerService } = useViewerServices();
+  const { debug, pdfFallback } = useViewerHost();
+  const mode = useFallbackMode(layerService);
   const [layers, setLayers] = useState<LayerInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const fetchLayers = useCallback(async () => {
     try {
-      const items = await layerService.listLayers();
+      const items =
+        mode === "fallback" && pdfFallback
+          ? await pdfFallback.listLayers()
+          : await layerService.listLayers();
       setLayers([...items]);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load layers");
     } finally {
       setLoading(false);
     }
-  }, [layerService]);
+  }, [layerService, pdfFallback, mode]);
 
   useEffect(() => {
+    if (mode === "hidden") {
+      if (debug) logUnwiredHide("LayerPanel", "layers");
+      return;
+    }
     fetchLayers();
-  }, [fetchLayers]);
+  }, [fetchLayers, mode, debug]);
+
+  if (mode === "hidden") return null;
 
   if (loading) {
     return (

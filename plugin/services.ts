@@ -265,6 +265,43 @@ export interface I18nService {
 }
 
 /**
+ * Optional in-browser fallback that pulls "minimum data" directly from
+ * a raw PDF blob when a host hasn't wired a richer service. Hosts that
+ * supply this — typically by calling ``createPdfJsFallback(pdfUrl)``
+ * exported from ``@printwithsynergy/loupe-pdf/host`` — let the viewer
+ * keep tools like PageCanvas, PageNavigator, MeasureTool, LayerPanel,
+ * and ColorPickerTool functional without a server backend.
+ *
+ * **Capabilities not covered**: true ink separations (CMYK/spot
+ * channels), TAC heatmaps, and the densitometer all require server-
+ * side rendering (Ghostscript/MuPDF). pdf.js only renders to RGB, so
+ * those tools stay hidden when their dedicated services are unwired.
+ *
+ * Every method returns a Promise so the adapter can lazy-load pdf.js
+ * on first use. ``sampleColorAt`` returns ``null`` on failure to match
+ * the {@link ColorSampleService} contract.
+ *
+ * @public
+ */
+export interface PdfFallbackAdapter {
+  getPageCount(): Promise<number>;
+  getPageDimensions(pageNum: number): Promise<{
+    widthPts: number;
+    heightPts: number;
+  }>;
+  renderPageToUrl(args: { pageNum: number; dpi: number }): Promise<string>;
+  listLayers(): Promise<
+    ReadonlyArray<{ name: string; ocg_index: number; default_on: boolean }>
+  >;
+  sampleColorAt(args: {
+    pageNum: number;
+    pdfX: number;
+    pdfY: number;
+    dpi?: number;
+  }): Promise<ColorSample | null>;
+}
+
+/**
  * Theme tokens. Plugins that need brand colours read them from here
  * rather than hardcoding hex strings.
  *
@@ -339,3 +376,47 @@ export const defaultThemeTokens: ThemeTokens = {
   fg: "#0f172a",
   border: "#e2e8f0",
 };
+
+// ---------------------------------------------------------------------------
+// Capability detection
+// ---------------------------------------------------------------------------
+
+/**
+ * Non-enumerable marker tagged onto every default no-op service so
+ * components can tell "host didn't wire this" apart from "host wired
+ * something that returned no data". Components use the former to hide
+ * themselves outright; the latter still renders an empty state because
+ * the host explicitly opted in.
+ */
+const UNWIRED_MARKER = Symbol.for("@printwithsynergy/loupe-pdf:unwired");
+
+/**
+ * Tag a service object as a no-op default. Hosts almost never call
+ * this — it's used internally by ``defaultViewerServices`` and
+ * exposed only so unit tests / advanced hosts can simulate the
+ * unwired state.
+ *
+ * @public
+ */
+export function markUnwired<T extends object>(service: T): T {
+  Object.defineProperty(service, UNWIRED_MARKER, {
+    value: true,
+    enumerable: false,
+    configurable: false,
+    writable: false,
+  });
+  return service;
+}
+
+/**
+ * Returns ``true`` when the given service is the no-op default — i.e.
+ * the host did not wire a real implementation. Components call this
+ * to decide between hiding themselves (unwired) and rendering an
+ * empty state (wired but returned no data).
+ *
+ * @public
+ */
+export function isUnwired(service: object | null | undefined): boolean {
+  if (!service) return true;
+  return (service as Record<symbol, unknown>)[UNWIRED_MARKER] === true;
+}

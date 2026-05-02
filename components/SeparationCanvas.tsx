@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DEFAULT_DPI } from "../types";
-import { useViewerServices } from "../host";
+import { isUnwired, logUnwiredHide, useViewerHost, useViewerServices } from "../host";
 
 /**
  * RGB tint colors for compositing each channel onto a white background
@@ -62,6 +62,8 @@ export function SeparationCanvas({
   dpi = DEFAULT_DPI,
 }: SeparationCanvasProps) {
   const { separations } = useViewerServices();
+  const { debug } = useViewerHost();
+  const hidden = isUnwired(separations);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [channelImages, setChannelImages] = useState<
     Map<string, HTMLImageElement>
@@ -75,6 +77,10 @@ export function SeparationCanvas({
     setChannelImages(new Map());
     setLoadingChannels(new Set());
   }, [pageNum]);
+
+  useEffect(() => {
+    if (hidden && debug) logUnwiredHide("SeparationCanvas", "separations");
+  }, [hidden, debug]);
 
   // Load channel images lazily
   const loadChannel = useCallback(
@@ -184,6 +190,8 @@ export function SeparationCanvas({
     // Reset blend mode
     ctx.globalCompositeOperation = "source-over";
   }, [width, height, enabledChannels, channelImages, allChannels]);
+
+  if (hidden) return null;
 
   return (
     <canvas

@@ -27,6 +27,7 @@ export type {
   AnnotationService,
   I18nService,
   PageImageService,
+  PdfFallbackAdapter,
   TelemetryService,
   ThemeTokens,
   ViewerServices,
@@ -34,6 +35,8 @@ export type {
 
 export {
   defaultThemeTokens,
+  isUnwired,
+  markUnwired,
   noopI18n,
   noopTelemetry,
 } from "./services";
