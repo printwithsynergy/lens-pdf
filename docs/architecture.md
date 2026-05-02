@@ -11,8 +11,10 @@ provides, and a slot-aware plugin registry on top of that.
 - **`ViewerServicesContext`** — a `ViewerServices` object whose fields
   cover page-image URLs, layers, separations, TAC heatmaps, color sampling,
   the densitometer, annotations, report links, telemetry, i18n, and theme
-  tokens. Every field has a no-op default, so you only implement what your
-  host actually has.
+  tokens. Every field has a no-op default tagged as *unwired*; consuming
+  components self-hide when their service is unwired (see
+  [fallback.md](./fallback.md)) so you only implement what your host
+  actually has and tools without backing data simply don't appear.
 
 Components inside the viewer call `useViewerServices()` to reach your host
 data. Plugins receive the same `ViewerServices` through a `ViewerContext`

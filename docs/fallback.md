@@ -78,6 +78,9 @@ so consumers that don't use the fallback pay no bundle cost).
 | `SeparationCanvas` | `separations`       | ❌ pdf.js can't split inks.      |
 | `DensitometerTool` | `densitometer`      | ❌ pdf.js can't split inks.      |
 | `TACHeatmapOverlay`| `tacHeatmap`        | ❌ Needs server-side rendering.  |
+| `AnnotationCanvas` | `annotations`       | ❌ Annotations need persistence. |
+| `AnnotationThread` | `annotations`       | ❌ Same.                         |
+| `MobileDrawer`     | `reports` (links)   | ❌ Report URLs are host-built.   |
 
 \* `PageNavigator` reads page count from the host's page list, but
 `getPageCount()` is exposed on the adapter so hosts that build their own

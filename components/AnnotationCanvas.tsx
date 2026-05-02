@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AnnotationTool } from "./AnnotationToolbar";
-import { useViewerHost, useViewerServices } from "../host";
+import { isUnwired, logUnwiredHide, useViewerHost, useViewerServices } from "../host";
 
 interface AnnotationCanvasProps {
   jobId: string;
@@ -31,9 +31,14 @@ export function AnnotationCanvas({
   onSavingChange,
   onHistoryChange,
 }: AnnotationCanvasProps) {
-  const { readOnly } = useViewerHost();
+  const { readOnly, debug } = useViewerHost();
   const { annotations } = useViewerServices();
+  const hidden = isUnwired(annotations);
   const canvasElRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    if (hidden && debug) logUnwiredHide("AnnotationCanvas", "annotations");
+  }, [hidden, debug]);
 
   const fabricRef = useRef<any>(null);
   const historyRef = useRef<HistoryState>({ stack: [], index: -1 });
@@ -366,6 +371,8 @@ export function AnnotationCanvas({
       canvas.off("mouse:up", onMouseUp);
     };
   }, [activeTool, strokeColor, loaded]);
+
+  if (hidden) return null;
 
   return (
     <div

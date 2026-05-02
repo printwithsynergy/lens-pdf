@@ -1,8 +1,11 @@
 # Wiring `ViewerServices`
 
 Every field on `ViewerServices` is independent. Implement the ones your host
-supports; leave the rest to fall through to the no-op defaults exported from
-`@printwithsynergy/loupe-pdf/plugin`.
+supports; the rest fall through to *unwired* no-op defaults exported from
+`@printwithsynergy/loupe-pdf/plugin`. Consuming components detect the unwired
+state and self-hide rather than rendering empty placeholders — see
+[docs/fallback.md](./fallback.md) for the full capability-detection model,
+the in-browser pdf.js fallback, and debug logging.
 
 ```ts
 import type { ViewerServices } from "@printwithsynergy/loupe-pdf/plugin";
@@ -158,8 +161,9 @@ interpret it (it's the serialised Fabric.js canvas snapshot).
 ### `reports`
 
 Both URL builders are synchronous. Hosts without report exports leave the
-no-op defaults — the menu items render but their links resolve to the
-current page (still inert).
+no-op defaults — the consuming menu items (currently `MobileDrawer`'s
+"Share &amp; Export" section) drop the report links entirely rather than
+rendering inert hrefs.
 
 ### `telemetry`, `i18n`, `tokens`
 

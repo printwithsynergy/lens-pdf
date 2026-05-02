@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ViewerConfig } from "../types";
-import { useViewerHost, useViewerServices } from "../host";
+import { isUnwired, logUnwiredHide, useViewerHost, useViewerServices } from "../host";
 import { ZoomControls } from "./ZoomControls";
 
 function brandFallback(): string {
@@ -216,8 +216,13 @@ export function MobileDrawer({
   onOpenShare,
   hasChain,
 }: MobileDrawerProps) {
-  const { readOnly } = useViewerHost();
+  const { readOnly, debug } = useViewerHost();
   const { reports } = useViewerServices();
+  const reportsUnwired = isUnwired(reports);
+
+  useEffect(() => {
+    if (reportsUnwired && debug) logUnwiredHide("MobileDrawer", "reports");
+  }, [reportsUnwired, debug]);
 
   const handlePanelMode = (fn: () => void) => {
     fn();
@@ -389,8 +394,15 @@ export function MobileDrawer({
             </div>
           </DrawerSection>
 
-          {/* ── Share & Export ── */}
-          {(onOpenShare || config.enable_html_report_link || config.enable_download) && (
+          {/* ── Share & Export ──
+              Report links are double-gated: the host's `config` flags must
+              opt them in *and* the reports service must be wired. An unwired
+              reports service means the URL builders return "" — rendering
+              an inert link would mislead reviewers into clicking a dead
+              control, so we drop the items entirely. */}
+          {(onOpenShare ||
+            (!reportsUnwired &&
+              (config.enable_html_report_link || config.enable_download))) && (
             <DrawerSection title="Share &amp; Export" defaultOpen={false}>
               {onOpenShare && (
                 <DrawerItem
@@ -404,7 +416,7 @@ export function MobileDrawer({
                   onClick={() => handleTool(onOpenShare)}
                 />
               )}
-              {config.enable_html_report_link && (
+              {!reportsUnwired && config.enable_html_report_link && (
                 <DrawerLink
                   label="View HTML Report"
                   icon={Icons.report}
@@ -412,7 +424,7 @@ export function MobileDrawer({
                   onClick={onClose}
                 />
               )}
-              {config.enable_download && (
+              {!reportsUnwired && config.enable_download && (
                 <DrawerLink
                   label="Download PDF"
                   icon={Icons.download}

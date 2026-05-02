@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { AnnotationEntry } from "../plugin/services";
-import { useViewerHost, useViewerServices } from "../host";
+import { isUnwired, logUnwiredHide, useViewerHost, useViewerServices } from "../host";
 
 interface AnnotationThreadProps {
   jobId: string;
@@ -15,8 +15,9 @@ export function AnnotationThread({
   currentUserEmail,
   onJumpToPage,
 }: AnnotationThreadProps) {
-  const { readOnly } = useViewerHost();
+  const { readOnly, debug } = useViewerHost();
   const { annotations: annotationService } = useViewerServices();
+  const hidden = isUnwired(annotationService);
   const [annotations, setAnnotations] = useState<AnnotationEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -30,8 +31,12 @@ export function AnnotationThread({
   }, [annotationService]);
 
   useEffect(() => {
+    if (hidden) {
+      if (debug) logUnwiredHide("AnnotationThread", "annotations");
+      return;
+    }
     load();
-  }, [load]);
+  }, [load, hidden, debug]);
 
   const handleDelete = useCallback(
     async (annotationId: string) => {
@@ -40,6 +45,8 @@ export function AnnotationThread({
     },
     [annotationService],
   );
+
+  if (hidden) return null;
 
   if (loading) {
     return (

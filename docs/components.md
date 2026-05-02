@@ -295,7 +295,9 @@ disable undo/redo correctly.
 />
 ```
 
-Service deps: `annotations.getForPage`, `annotations.saveForPage`.
+Service deps: `annotations.getForPage`, `annotations.saveForPage`. Renders
+nothing when `services.annotations` is unwired (see
+[fallback.md](./fallback.md)).
 
 ### `AnnotationThread`
 
@@ -311,7 +313,8 @@ row.
 />
 ```
 
-Service deps: `annotations.list`, `annotations.remove`.
+Service deps: `annotations.list`, `annotations.remove`. Renders nothing
+when `services.annotations` is unwired (see [fallback.md](./fallback.md)).
 
 ## Mobile chrome
 
@@ -349,7 +352,10 @@ field list, and `DEFAULT_VIEWER_CONFIG` for sensible defaults.
 />
 ```
 
-Service deps: `reports.getHtmlReportUrl`, `reports.getPdfDownloadUrl`.
+Service deps: `reports.getHtmlReportUrl`, `reports.getPdfDownloadUrl`. The
+"View HTML Report" and "Download PDF" items are dropped when
+`services.reports` is unwired even if the matching `config.enable_*` flag
+is on (see [fallback.md](./fallback.md)).
 
 ### `MobileBottomSheet`
 
