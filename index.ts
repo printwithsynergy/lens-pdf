@@ -8,7 +8,7 @@
  *
  * **No LintPDF imports in this namespace.** The `core/`-scoped
  * ESLint rule enforces it. After Phase 3 the contents of this
- * directory ship as `@thinkneverland/loupe-pdf` (MIT).
+ * directory ship as `@printwithsynergy/loupe-pdf` (AGPL-3.0-or-later).
  *
  * @public
  */

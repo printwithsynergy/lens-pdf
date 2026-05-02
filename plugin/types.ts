@@ -15,8 +15,8 @@
  *   `AnnotationSourceProvider`.
  * - `dialog.modal` — modal dialog launched from another plugin.
  *
- * After Phase 3 the `core/` package ships as `@thinkneverland/loupe-pdf`
- * (MIT, OSS) and the LintPDF-flavoured plugins ship as
+ * After Phase 3 the `core/` package ships as `@printwithsynergy/loupe-pdf`
+ * (AGPL-3.0-or-later, OSS) and the LintPDF-flavoured plugins ship as
  * `@thinkneverland/loupe-plugin-lintpdf` (proprietary).
  *
  * @public

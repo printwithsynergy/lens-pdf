@@ -2,7 +2,7 @@
  * Public component barrel — every React component shipped by the OSS
  * loupe-pdf viewer core.
  *
- * Consumed via `import { PageCanvas, ... } from "@thinkneverland/loupe-pdf/components"`.
+ * Consumed via `import { PageCanvas, ... } from "@printwithsynergy/loupe-pdf/components"`.
  *
  * @public
  */

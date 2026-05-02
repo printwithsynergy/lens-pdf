@@ -12,7 +12,7 @@ visibility flip:
 ```sh
 pnpm add @printwithsynergy/loupe-pdf
 # or, while private (works as a private GitHub-Packages or git-ref dep):
-pnpm add github:thinkneverland/loupe-pdf#main
+pnpm add github:Printwithsynergy/loupe-pdf#main
 ```
 
 Peer dependencies you provide in your host app:

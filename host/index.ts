@@ -10,7 +10,7 @@
  * imports — this move closes that gap.
  *
  * Phase 3 (LoupePDF) extracts this directory, alongside everything
- * else under `src/core/`, into `@thinkneverland/loupe-pdf`. Hosts
+ * else under `src/core/`, into `@printwithsynergy/loupe-pdf`. Hosts
  * (LintPDF SaaS, OSS embeds) supply their own concrete values via
  * `<ViewerHostContext.Provider value={...}>`.
  *
