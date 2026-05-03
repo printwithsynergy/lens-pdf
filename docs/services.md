@@ -1,3 +1,10 @@
+---
+title: "Wiring ViewerServices"
+description: "Implement only the protocols your host supports — page images, layers, separations, TAC heatmaps, color sampling, densitometer, annotations, reports. Unwired services hide their consuming components automatically."
+group: "Reference"
+order: 3
+---
+
 # Wiring `ViewerServices`
 
 Every field on `ViewerServices` is independent. Implement the ones your host

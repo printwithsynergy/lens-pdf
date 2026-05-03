@@ -1,3 +1,10 @@
+---
+title: "Measurement units"
+description: "Built-in millimetre, inch, point, pica, and agate definitions, plus the MeasurementUnit protocol for adding custom units to the MeasureTool."
+group: "Reference"
+order: 7
+---
+
 # Measurement units
 
 `MeasureTool` accepts a `units` prop. The five built-ins cover most print

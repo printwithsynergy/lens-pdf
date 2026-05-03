@@ -1,3 +1,11 @@
+---
+title: "Overview"
+description: "Host-agnostic OSS PDF viewer core for React 19. A plugin-driven canvas viewer with overlay, panel, and toolbar slots. AGPL-3.0-or-later."
+group: "Getting started"
+order: 1
+slug: "overview"
+---
+
 # LoupePDF
 
 [![ci](https://github.com/Printwithsynergy/loupe-pdf/actions/workflows/ci.yml/badge.svg)](https://github.com/Printwithsynergy/loupe-pdf/actions/workflows/ci.yml)

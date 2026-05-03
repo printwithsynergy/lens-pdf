@@ -1,3 +1,10 @@
+---
+title: "Architecture"
+description: "How the two host contexts and the slot-aware plugin registry fit together, plus the coordinate space the viewer uses for pages, items, and sampling tools."
+group: "Getting started"
+order: 2
+---
+
 # Architecture
 
 LoupePDF deliberately knows nothing about your backend. Everything that

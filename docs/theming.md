@@ -1,3 +1,10 @@
+---
+title: "Theme, i18n, telemetry, read-only mode"
+description: "Brand tokens, translation strings, analytics hooks, and the read-only flag for share-link viewers. All optional — the no-op defaults keep OSS hosts fast."
+group: "Reference"
+order: 8
+---
+
 # Theme, i18n, telemetry, read-only mode
 
 Three of the `ViewerServices` fields are infrastructure rather than data:

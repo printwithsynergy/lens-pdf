@@ -1,3 +1,10 @@
+---
+title: "Component reference"
+description: "Per-component props, slots, and usage for every React component the package exports — page canvas, navigator, separations, layers, annotations, mobile chrome."
+group: "Reference"
+order: 5
+---
+
 # Component reference
 
 Every component is imported from `@printwithsynergy/loupe-pdf/components`

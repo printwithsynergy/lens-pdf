@@ -1,3 +1,10 @@
+---
+title: "Fallback & capability detection"
+description: "Tools self-hide when their backing service is unwired. Hosts can opt into graceful degradation with the in-browser pdf.js fallback adapter for page rendering, layers, and color sampling."
+group: "Reference"
+order: 4
+---
+
 # Fallback behaviour & capability detection
 
 LoupePDF's components no longer all render the same regardless of what the

@@ -1,3 +1,10 @@
+---
+title: "Contributing"
+description: "Boundary rule, provenance, local development workflow, public-API surface, commit and PR style, and license terms for contributors."
+group: "Project"
+order: 9
+---
+
 # Contributing
 
 Notes for contributors to LoupePDF itself. End-user / host docs live

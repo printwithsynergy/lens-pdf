@@ -1,3 +1,10 @@
+---
+title: "Plugin model"
+description: "Slot identifiers, plugin shapes, and registration semantics. Includes the replaces mechanism for shadowing first-party plugins with third-party drop-in alternatives."
+group: "Reference"
+order: 6
+---
+
 # Plugin model
 
 LoupePDF mounts plugins into nine slots:
