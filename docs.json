@@ -1,0 +1,62 @@
+{
+  "$schema": "https://docs.page/schema.json",
+  "name": "LoupePDF",
+  "description": "Host-agnostic OSS PDF viewer core. Plugin-driven canvas viewer with overlay, panel, and toolbar slots.",
+  "logo": {
+    "light": "/logo.svg",
+    "dark": "/logo.svg"
+  },
+  "favicon": "/favicon.ico",
+  "socialPreview": "/social-preview.png",
+  "theme": {
+    "primary": "#be185d",
+    "primaryLight": "#ec4899",
+    "primaryDark": "#9d174d"
+  },
+  "anchors": [
+    {
+      "title": "GitHub",
+      "icon": "github",
+      "link": "https://github.com/Printwithsynergy/loupe-pdf"
+    },
+    {
+      "title": "Issues",
+      "icon": "circle-exclamation",
+      "link": "https://github.com/Printwithsynergy/loupe-pdf/issues"
+    },
+    {
+      "title": "Discussions",
+      "icon": "comments",
+      "link": "https://github.com/Printwithsynergy/loupe-pdf/discussions"
+    }
+  ],
+  "sidebar": [
+    {
+      "group": "Getting started",
+      "pages": [
+        { "title": "Overview", "href": "/" }
+      ]
+    },
+    {
+      "group": "Reference",
+      "pages": [
+        { "title": "Architecture", "href": "/docs/architecture" },
+        { "title": "Wiring ViewerServices", "href": "/docs/services" },
+        { "title": "Fallback & capability detection", "href": "/docs/fallback" },
+        { "title": "Component reference", "href": "/docs/components" },
+        { "title": "Plugin model", "href": "/docs/plugins" },
+        { "title": "Measurement units", "href": "/docs/measurement-units" },
+        { "title": "Theme, i18n, telemetry, read-only mode", "href": "/docs/theming" }
+      ]
+    },
+    {
+      "group": "Project",
+      "pages": [
+        { "title": "Changelog", "href": "/CHANGELOG" },
+        { "title": "Contributing", "href": "/docs/contributing" },
+        { "title": "Code of Conduct", "href": "/CODE_OF_CONDUCT" },
+        { "title": "Security policy", "href": "/SECURITY" }
+      ]
+    }
+  ]
+}
