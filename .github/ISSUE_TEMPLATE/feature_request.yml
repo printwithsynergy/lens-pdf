@@ -1,0 +1,66 @@
+name: Feature request
+description: Suggest a new component, plugin slot, hook, or capability
+title: "feat: <short summary>"
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before opening a feature request, please skim the
+        [architecture doc](../docs/architecture.md) and the
+        [plugin protocol](../docs/plugins.md) — many extensions are best
+        shipped as plugins outside core, and core deliberately stays
+        host-agnostic.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: |
+        Describe the user-facing or developer-facing pain. "I want X" is
+        less useful than "When I do A, Y happens, but I needed Z."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed approach
+      description: |
+        Sketch the API or UX change. If you have multiple options in mind,
+        list them with the trade-offs.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Which surface does this touch?
+      multiple: true
+      options:
+        - New / changed component
+        - New / changed `ViewerServices` field
+        - New plugin slot
+        - New host-context field
+        - New hook / helper
+        - Docs only
+        - Tooling / CI
+        - Other (describe below)
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Workarounds, third-party libs, or shapes you ruled out.
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Confirmations
+      options:
+        - label: I searched existing issues and didn't find a duplicate.
+          required: true
+        - label: This belongs in core (not a plugin pack) — or I want to discuss whether it does.
+          required: true

@@ -1,5 +1,9 @@
 # LoupePDF
 
+[![ci](https://github.com/Printwithsynergy/loupe-pdf/actions/workflows/ci.yml/badge.svg)](https://github.com/Printwithsynergy/loupe-pdf/actions/workflows/ci.yml)
+[![license](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue.svg)](./LICENSE)
+[![react](https://img.shields.io/badge/react-19-61dafb.svg?logo=react&logoColor=white)](https://react.dev/)
+
 OSS PDF viewer core. A plugin-driven canvas viewer with overlay, panel, and
 toolbar slots, built around React 19. Host-agnostic: the viewer never
 imports a SaaS, never hardcodes a backend route, and self-hides any tool
@@ -115,6 +119,13 @@ See [demo/README.md](./demo/README.md) for the smoke-check checklist.
 | Built-in `MeasurementUnit`s + custom-unit Protocol | [docs/measurement-units.md](./docs/measurement-units.md) |
 | Theme tokens, i18n, telemetry, read-only mode | [docs/theming.md](./docs/theming.md) |
 | Boundary rule, provenance, contributing | [docs/contributing.md](./docs/contributing.md) |
+
+## Community
+
+- [CHANGELOG](./CHANGELOG.md) — release notes (Keep-a-Changelog format).
+- [CONTRIBUTING](./CONTRIBUTING.md) — quick-start; the full guide is in [docs/contributing.md](./docs/contributing.md).
+- [CODE_OF_CONDUCT](./CODE_OF_CONDUCT.md) — Contributor Covenant 2.1.
+- [SECURITY](./SECURITY.md) — vulnerability disclosure process. **Don't open public issues for security problems.**
 
 ## License
 
