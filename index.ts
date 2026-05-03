@@ -20,7 +20,6 @@
 
 export * from "./plugin";
 
-// Pure-core components moved in Phase 2.
 export { AnnotationCanvas } from "./components/AnnotationCanvas";
 export { AnnotationThread } from "./components/AnnotationThread";
 export { AnnotationToolbar } from "./components/AnnotationToolbar";

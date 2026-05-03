@@ -146,8 +146,7 @@ The tool reads `Error.message` verbatim — keep messages user-facing.
 
 ### `annotations`
 
-The Phase-2 shape replaces a speculative `list/create/update/remove` API
-with concrete methods that match actual call sites:
+Four concrete methods that match the actual call sites:
 
 - `list()` — sidebar thread (every page, every author).
 - `getForPage(pageNum)` — canvas init for the active author.

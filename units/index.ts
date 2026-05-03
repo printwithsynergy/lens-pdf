@@ -1,11 +1,9 @@
 /**
- * Built-in measurement units shipped with the OSS viewer.
+ * Built-in measurement units shipped with the viewer.
  *
- * The `MeasurementUnit` slot was reserved in Phase 1; this module
- * is the Phase-2 implementation. Five units are wired by default:
- * millimetre, inch, point, pica, agate. Hosts can pass any subset
- * (or extend with their own custom units) via the `units` prop on
- * `MeasureTool`.
+ * Five units are wired by default: millimetre, inch, point, pica,
+ * agate. Hosts can pass any subset (or extend with their own custom
+ * units) via the `units` prop on `MeasureTool`.
  *
  * Conversions are anchored to PDF points (1 pt = 1/72 inch). The
  * inch is exact (25.4 mm), so all derived units are deterministic.

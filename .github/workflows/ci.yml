@@ -13,28 +13,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
 
       - name: Install
-        run: pnpm install --no-frozen-lockfile
+        run: npm install --no-audit --no-fund
 
       - name: Typecheck
-        run: pnpm typecheck
+        run: npm run typecheck
 
       - name: Test
-        run: pnpm test --passWithNoTests || pnpm test
-        # Vitest exits 1 if no test files match; the package was extracted
-        # without tests on its own (tests live in lint-pdf:packages/viewer-shared/tests/
-        # — moving them here is Phase 4 cleanup work).
+        run: npm test
 
       - name: Build
-        run: pnpm build
+        run: npm run build
 
       - name: Verify dist artifacts
         run: |

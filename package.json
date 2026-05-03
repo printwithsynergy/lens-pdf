@@ -3,6 +3,27 @@
   "version": "0.1.0",
   "description": "LoupePDF \u2014 host-agnostic OSS PDF viewer core. Plugin-driven canvas viewer with overlay / panel / toolbar slots.",
   "license": "AGPL-3.0-or-later",
+  "author": "Think Neverland LLC",
+  "homepage": "https://github.com/Printwithsynergy/loupe-pdf#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Printwithsynergy/loupe-pdf.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Printwithsynergy/loupe-pdf/issues"
+  },
+  "keywords": [
+    "pdf",
+    "viewer",
+    "react",
+    "canvas",
+    "annotation",
+    "preflight",
+    "separations",
+    "cmyk",
+    "tac",
+    "pdfjs"
+  ],
   "private": true,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

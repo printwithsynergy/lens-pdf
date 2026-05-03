@@ -6,9 +6,9 @@
  * effects). The viewer reads `getPluginsForSlot(slot)` at render
  * time to find what to mount.
  *
- * Phase 1 keeps the registry simple — a process-wide map. Phase 2
- * introduces per-viewer-instance scopes so two viewer instances on the
- * same page can run different plugin packs.
+ * The registry is process-wide. Apps mounting two viewer instances on
+ * the same page currently share the same plugin set; per-instance
+ * scoping is a future addition.
  *
  * @public
  */

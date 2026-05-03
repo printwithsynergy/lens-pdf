@@ -157,8 +157,9 @@ export type ViewerPlugin =
 
 /**
  * Measurement-unit plugin — pluggable unit definition for the
- * `MeasureTool` core component. Phase 2 adds millimeter, inch,
- * point, pica, agate; Phase 1 reserves the slot.
+ * `MeasureTool` core component. The viewer ships millimetre, inch,
+ * point, pica, and agate by default (see `units/`); hosts can
+ * extend with their own.
  *
  * @public
  */

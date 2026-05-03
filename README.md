@@ -7,25 +7,26 @@ whose backing service the host hasn't wired. AGPL-3.0-or-later.
 
 ## Install
 
-This repo is currently **private** during the OSS pre-flip period. After the
-visibility flip:
-
 ```sh
-pnpm add @printwithsynergy/loupe-pdf
-# or, while private (works as a private GitHub-Packages or git-ref dep):
-pnpm add github:Printwithsynergy/loupe-pdf#main
+npm install @printwithsynergy/loupe-pdf
 ```
+
+(Or use a git-ref dep against this repo:
+`npm install github:Printwithsynergy/loupe-pdf#main`.)
 
 Peer dependencies you provide in your host app:
 
 ```sh
-pnpm add react react-dom
+npm install react react-dom
 # Optional — only if you mount AnnotationCanvas / AnnotationThread:
-pnpm add fabric
+npm install fabric
+# Optional — only if you wire the in-browser PDF fallback (see docs/fallback.md):
+npm install pdfjs-dist
 ```
 
-Requires `react@^19` and `react-dom@^19`. `fabric@^6` is an optional peer used
-by the annotation components. The package ships ESM only.
+Requires `react@^19` and `react-dom@^19`. `fabric@^6` and `pdfjs-dist@^4` are
+optional peers used by the annotation components and the pdf.js fallback
+adapter respectively. The package ships ESM only.
 
 ## Quick start
 
@@ -113,7 +114,7 @@ See [demo/README.md](./demo/README.md) for the smoke-check checklist.
 | Plugin slots, registration, and the `replaces` mechanism | [docs/plugins.md](./docs/plugins.md) |
 | Built-in `MeasurementUnit`s + custom-unit Protocol | [docs/measurement-units.md](./docs/measurement-units.md) |
 | Theme tokens, i18n, telemetry, read-only mode | [docs/theming.md](./docs/theming.md) |
-| Boundary rule, Phase 4 origin, contributing | [docs/contributing.md](./docs/contributing.md) |
+| Boundary rule, provenance, contributing | [docs/contributing.md](./docs/contributing.md) |
 
 ## License
 
