@@ -1397,12 +1397,11 @@ export function LoupePDFDemo({
                   lineHeight: 1.5,
                 }}
               >
-                Everything runs in your browser via pdf.js — your file
-                never leaves the page. CMYK / TAC are RGB-derived
-                approximations for showcase purposes; production hosts
-                wire a backend for ICC-correct readings. Annotations
-                live in this tab only and are discarded on reload. Max
-                upload {formatMaxSize(maxFileSize)}.
+                CMYK / TAC are RGB-derived approximations for showcase
+                purposes; production hosts wire a backend for
+                ICC-correct readings. Annotations live in this tab only
+                and are discarded on reload. Max upload{" "}
+                {formatMaxSize(maxFileSize)}.
               </p>
             </aside>
           )}
@@ -1440,7 +1439,7 @@ export function LoupePDFDemo({
                   Choose a file
                 </button>
                 <p style={{ fontSize: 11, opacity: 0.5 }}>
-                  Your file stays in your browser. Max {formatMaxSize(maxFileSize)}.
+                  Max upload {formatMaxSize(maxFileSize)}.
                 </p>
               </div>
             ) : (
