@@ -11,17 +11,20 @@
  * ```ts
  * import { createBrowserViewerServices } from "@printwithsynergy/loupe-pdf/browser";
  * const services = createBrowserViewerServices({ pdfUrl: "/proofs/abc.pdf" });
+ * await services.prepare(1); // pre-warm separations + heatmap + layers for page 1
  * // <ViewerServicesContext.Provider value={services}> ... </Provider>
  * services.dispose(); // free blob URLs / pdf.js doc on unmount
  * ```
  *
  * Server-only features (true ICC separations, preflight findings,
  * server-persisted annotations, PDF report exports) are explicitly
- * left as `markUnwired` no-ops; their components self-hide. The
- * RGB→CMYK / TAC implementation here is an approximation suitable
- * for showcase + visual inspection, **not** a press-grade
- * densitometer — production hosts wire a Ghostscript/MuPDF backend
- * for ICC-correct readings.
+ * left as `markUnwired` no-ops; their components self-hide.
+ *
+ * The CMYK numbers here are **rich-black approximations**, not ICC.
+ * Solid black RGB(0,0,0) reads as C=100, M=100, Y=100, K=80, TAC≈380%
+ * — close enough to a press CMYK rich-black to make the TAC heatmap
+ * and densitometer behave like their real backends. Production
+ * hosts wire a Ghostscript / MuPDF backend for ICC-correct readings.
  *
  * **Security**: this factory fetches whatever URL the host hands it.
  * Sign / scope / expire the URL the same way you would any other PDF
@@ -52,17 +55,17 @@ import { defaultThemeTokens } from "../plugin/services";
  *  fidelity, more memory; 200 is a good balance for screen review. */
 const ANALYSIS_DPI = 200;
 
+/**
+ * "Rich black" K factor. Press rich blacks land somewhere between
+ * 60 % and 100 % K with the rest filled in by C/M/Y; 0.8 gives
+ * realistic densitometer readings and a TAC heatmap that actually
+ * trips on solid-black artwork (TAC ≈ 380 % on RGB(0,0,0)).
+ */
+const K_FACTOR = 0.8;
+
 /** Process inks the demo synthesises from RGB. Spot inks aren't
  *  recoverable from a rasterised RGB image so they're not advertised. */
 export const PROCESS_CHANNELS = ["Cyan", "Magenta", "Yellow", "Black"] as const;
-
-/** 1×1 transparent PNG returned while a tile is still being rendered.
- *  Lets `<img>` tags resolve onload (instead of onerror, which
- *  components don't retry from) before swapping in the real URL on
- *  the next render pass. */
-const PLACEHOLDER_PNG =
-  "data:image/png;base64," +
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
 
 /**
  * Default URL for the pdf.js worker, served via unpkg pinned to the
@@ -75,18 +78,39 @@ const PLACEHOLDER_PNG =
  */
 export const defaultBrowserWorkerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
+/** 1×1 transparent PNG — returned by `getPageImageUrl` while a tile
+ *  is still being lazy-built. Page raster tiles are reactive (the
+ *  PageCanvas re-renders on `notify`), so a placeholder bridges the
+ *  brief gap until the real URL arrives. The OTHER URL builders
+ *  (channel / heatmap / layer) are NOT placeholdered — those are
+ *  consumed by canvases that cache the first loaded image and never
+ *  retry, so a placeholder there would stick forever. Hosts must
+ *  call `prepare(pageNum)` to pre-build them. */
+const PLACEHOLDER_PNG =
+  "data:image/png;base64," +
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+
 // ---------------------------------------------------------------------------
 // CMYK approximation
 // ---------------------------------------------------------------------------
 
 /**
- * Convert an sRGB triplet to a CMYK approximation using gray-component
- * replacement. Returns each ink in [0, 1] and total area coverage as a
- * percentage in [0, 400].
+ * Convert an sRGB triplet to a CMYK approximation. Uses an additive
+ * decomposition with a "rich-black" K plate:
  *
- * This is an intentional approximation — production engines use ICC
- * profiles and overprint-aware rasterization. Good enough for visual
- * inspection in a browser-only viewer.
+ *   C = 1 - R/255
+ *   M = 1 - G/255
+ *   Y = 1 - B/255
+ *   K = min(C, M, Y) × {@link K_FACTOR}
+ *   TAC = (C + M + Y + K) × 100   // [0, 380]
+ *
+ * Returns each ink in [0, 1] and total area coverage as a percentage
+ * in [0, 380].
+ *
+ * This is intentionally NOT a GCR substitution — keeping the full
+ * C/M/Y values lets the TAC heatmap actually trip on solid-black
+ * artwork instead of bottoming out at 100 % from K alone, which is
+ * the behaviour print-prepress reviewers expect.
  *
  * @public
  */
@@ -95,17 +119,10 @@ export function rgbToCmyk(
   g: number,
   b: number,
 ): { c: number; m: number; y: number; k: number; tac: number } {
-  const c1 = 1 - r / 255;
-  const m1 = 1 - g / 255;
-  const y1 = 1 - b / 255;
-  const k = Math.min(c1, m1, y1);
-  if (k >= 0.999) {
-    return { c: 0, m: 0, y: 0, k: 1, tac: 100 };
-  }
-  const denom = 1 - k;
-  const c = (c1 - k) / denom;
-  const m = (m1 - k) / denom;
-  const y = (y1 - k) / denom;
+  const c = 1 - r / 255;
+  const m = 1 - g / 255;
+  const y = 1 - b / 255;
+  const k = Math.min(c, m, y) * K_FACTOR;
   return { c, m, y, k, tac: (c + m + y + k) * 100 };
 }
 
@@ -153,17 +170,16 @@ async function rasterizeBlobUrl(
 }
 
 /**
- * Heatmap colour stops mirroring the legend baked into
- * {@link TACHeatmapOverlay}:
- *   < 250 %   → green
- *   250–limit → amber
- *   ≥ limit   → red
+ * Heatmap colour stops. Tuned for the rich-black TAC formula:
+ *   < 200 %      → green (clean)
+ *   200–limit    → amber (watch)
+ *   ≥ limit      → red   (over the press limit)
  */
 function heatmapColor(
   tac: number,
   limit: number,
 ): [number, number, number, number] {
-  if (tac < 250) return [0, 180, 0, 200];
+  if (tac < 200) return [0, 180, 0, 200];
   if (tac < limit) return [255, 200, 0, 200];
   return [255, 0, 0, 220];
 }
@@ -193,7 +209,8 @@ export interface BrowserViewerServicesOptions {
   /**
    * Default TAC limit (in percent) used when the host doesn't specify
    * one explicitly. The TAC heatmap and densitometer both respect the
-   * per-call value first; this is only used when the call site omits it.
+   * per-call value first; this is only used when the call site omits
+   * it. Default 300 — typical sheet-fed press limit.
    */
   tacLimit?: number;
   /**
@@ -205,9 +222,11 @@ export interface BrowserViewerServicesOptions {
 
 /**
  * Augmented `ViewerServices` returned by {@link createBrowserViewerServices}.
- * Extends the wire protocol with lifecycle helpers and a subscription
- * hook that fires whenever a lazily-built tile / channel / heatmap URL
- * becomes available.
+ * Extends the wire protocol with lifecycle helpers, a subscription
+ * hook that fires whenever a lazily-built tile URL becomes available,
+ * and a `prepare()` method that pre-warms the analysis raster, every
+ * channel, the TAC heatmap, and (if the PDF has OCGs) every layer
+ * for a given page.
  *
  * @public
  */
@@ -217,11 +236,28 @@ export interface BrowserViewerServices extends ViewerServices {
   /** Page dimensions in PDF points for `pageNum` (1-indexed). */
   getPageDimensions(pageNum: number): Promise<{ widthPts: number; heightPts: number }>;
   /**
+   * Pre-build analysis raster + every CMYK channel image + the TAC
+   * heatmap + every layer image for `pageNum`. Resolves once they're
+   * all cached so the synchronous URL builders return real blob URLs
+   * rather than placeholders. Hosts mounting `<SeparationCanvas>`,
+   * `<TACHeatmapOverlay>`, or `<LayerCanvas>` should `await` this
+   * before mounting the canvas — those components cache the first
+   * loaded image and never retry on URL change.
+   */
+  prepare(
+    pageNum: number,
+    opts?: { tacLimit?: number },
+  ): Promise<{
+    widthPts: number;
+    heightPts: number;
+    layerCount: number;
+  }>;
+  /**
    * Subscribe to "URL available" notifications. Components that read
-   * synchronous URL builders (`pageImages.getPageImageUrl`,
-   * `separations.getChannelImageUrl`, `tacHeatmap.getHeatmapImageUrl`)
-   * should re-render on each event so the next builder call returns
-   * the freshly-cached blob URL instead of the placeholder.
+   * synchronous URL builders (`pageImages.getPageImageUrl` in
+   * particular) should re-render on each event so the next builder
+   * call returns the freshly-cached blob URL instead of the
+   * placeholder.
    */
   subscribe(listener: () => void): () => void;
   /** Free every blob URL the services minted. Call on unmount. */
@@ -269,6 +305,12 @@ export function createBrowserViewerServices(
   // Keyed `${pageNum}|${tacLimit}` — TAC heatmap blob URLs.
   const heatmapUrls = new Map<string, string>();
   const heatmapBuilds = new Map<string, Promise<string>>();
+  // Per-page OCG metadata — id list keeps draw order; index → id map
+  // lets the layer URL builder re-key by ocg_index (the public API).
+  const ocgIdsPerPage = new Map<number, string[]>();
+  // Keyed `${pageNum}|${layerIndex}` — single-layer transparent PNGs.
+  const layerUrls = new Map<string, string>();
+  const layerBuilds = new Map<string, Promise<string>>();
   // In-memory annotation store — single anonymous author per page.
   const annotations = new Map<number, AnnotationEntry>();
   // Subscribers notified when a URL becomes available so consumers can
@@ -369,8 +411,6 @@ export function createBrowserViewerServices(
       })
       .catch((err) => {
         pageBuilds.delete(key);
-        // Surface in console — components can't show a meaningful
-        // error since they only see "" / placeholder.
         // eslint-disable-next-line no-console
         console.error("[loupe-pdf] page raster failed", err);
         throw err;
@@ -378,9 +418,10 @@ export function createBrowserViewerServices(
     pageBuilds.set(key, promise);
   }
 
-  function ensureChannelUrl(pageNum: number, channelName: string): void {
-    const key = `${pageNum}|${channelName}`;
-    if (channelUrls.has(key) || channelBuilds.has(key)) return;
+  async function buildChannelUrl(
+    pageNum: number,
+    channelName: string,
+  ): Promise<string> {
     const lower = channelName.toLowerCase();
     const channelIndex =
       lower === "cyan"
@@ -392,66 +433,198 @@ export function createBrowserViewerServices(
             : lower === "black"
               ? 3
               : -1;
-    const promise = (async () => {
-      const raster = await getAnalysisRaster(pageNum);
-      const data = raster.rgba.data;
-      const url = await rasterizeBlobUrl(raster.widthPx, raster.heightPx, (i) => {
-        if (channelIndex < 0) return [255, 255, 255, 255];
-        const r = data[i] ?? 255;
-        const g = data[i + 1] ?? 255;
-        const b = data[i + 2] ?? 255;
-        const cmyk = rgbToCmyk(r, g, b);
-        const ink =
-          channelIndex === 0
-            ? cmyk.c
-            : channelIndex === 1
-              ? cmyk.m
-              : channelIndex === 2
-                ? cmyk.y
-                : cmyk.k;
-        const grey = Math.max(0, Math.min(255, Math.round(255 * (1 - ink))));
-        return [grey, grey, grey, 255];
-      });
-      blobs.push(url);
-      channelUrls.set(key, url);
-      channelBuilds.delete(key);
-      notify();
-      return url;
-    })().catch((err) => {
-      channelBuilds.delete(key);
-      // eslint-disable-next-line no-console
-      console.error("[loupe-pdf] channel raster failed", err);
-      throw err;
+    const raster = await getAnalysisRaster(pageNum);
+    const data = raster.rgba.data;
+    const url = await rasterizeBlobUrl(raster.widthPx, raster.heightPx, (i) => {
+      if (channelIndex < 0) return [255, 255, 255, 255];
+      const r = data[i] ?? 255;
+      const g = data[i + 1] ?? 255;
+      const b = data[i + 2] ?? 255;
+      const cmyk = rgbToCmyk(r, g, b);
+      const ink =
+        channelIndex === 0
+          ? cmyk.c
+          : channelIndex === 1
+            ? cmyk.m
+            : channelIndex === 2
+              ? cmyk.y
+              : cmyk.k;
+      const grey = Math.max(0, Math.min(255, Math.round(255 * (1 - ink))));
+      return [grey, grey, grey, 255];
     });
-    channelBuilds.set(key, promise);
+    blobs.push(url);
+    return url;
   }
 
-  function ensureHeatmapUrl(pageNum: number, tacLimit: number): void {
-    const key = `${pageNum}|${tacLimit}`;
-    if (heatmapUrls.has(key) || heatmapBuilds.has(key)) return;
-    const promise = (async () => {
-      const raster = await getAnalysisRaster(pageNum);
-      const data = raster.rgba.data;
-      const url = await rasterizeBlobUrl(raster.widthPx, raster.heightPx, (i) => {
-        const r = data[i] ?? 255;
-        const g = data[i + 1] ?? 255;
-        const b = data[i + 2] ?? 255;
-        const { tac } = rgbToCmyk(r, g, b);
-        if (tac < 1) return [0, 0, 0, 0];
-        return heatmapColor(tac, tacLimit);
+  function ensureChannelUrl(pageNum: number, channelName: string): Promise<string> {
+    const key = `${pageNum}|${channelName}`;
+    const cached = channelUrls.get(key);
+    if (cached) return Promise.resolve(cached);
+    const inflight = channelBuilds.get(key);
+    if (inflight) return inflight;
+    const promise = buildChannelUrl(pageNum, channelName)
+      .then((url) => {
+        channelUrls.set(key, url);
+        channelBuilds.delete(key);
+        notify();
+        return url;
+      })
+      .catch((err) => {
+        channelBuilds.delete(key);
+        // eslint-disable-next-line no-console
+        console.error("[loupe-pdf] channel raster failed", err);
+        throw err;
       });
-      blobs.push(url);
-      heatmapUrls.set(key, url);
-      heatmapBuilds.delete(key);
-      notify();
-      return url;
-    })().catch((err) => {
-      heatmapBuilds.delete(key);
-      // eslint-disable-next-line no-console
-      console.error("[loupe-pdf] heatmap raster failed", err);
-      throw err;
+    channelBuilds.set(key, promise);
+    return promise;
+  }
+
+  async function buildHeatmapUrl(
+    pageNum: number,
+    tacLimit: number,
+  ): Promise<string> {
+    const raster = await getAnalysisRaster(pageNum);
+    const data = raster.rgba.data;
+    const url = await rasterizeBlobUrl(raster.widthPx, raster.heightPx, (i) => {
+      const r = data[i] ?? 255;
+      const g = data[i + 1] ?? 255;
+      const b = data[i + 2] ?? 255;
+      const { tac } = rgbToCmyk(r, g, b);
+      if (tac < 1) return [0, 0, 0, 0];
+      return heatmapColor(tac, tacLimit);
     });
+    blobs.push(url);
+    return url;
+  }
+
+  function ensureHeatmapUrl(pageNum: number, tacLimit: number): Promise<string> {
+    const key = `${pageNum}|${tacLimit}`;
+    const cached = heatmapUrls.get(key);
+    if (cached) return Promise.resolve(cached);
+    const inflight = heatmapBuilds.get(key);
+    if (inflight) return inflight;
+    const promise = buildHeatmapUrl(pageNum, tacLimit)
+      .then((url) => {
+        heatmapUrls.set(key, url);
+        heatmapBuilds.delete(key);
+        notify();
+        return url;
+      })
+      .catch((err) => {
+        heatmapBuilds.delete(key);
+        // eslint-disable-next-line no-console
+        console.error("[loupe-pdf] heatmap raster failed", err);
+        throw err;
+      });
     heatmapBuilds.set(key, promise);
+    return promise;
+  }
+
+  // ── Layer rendering (single OCG with transparent bg) ─────────────────
+
+  async function getOcgIds(pageNum: number): Promise<string[]> {
+    const cached = ocgIdsPerPage.get(pageNum);
+    if (cached) return cached;
+    try {
+      const doc = await getDoc();
+      const config = await doc.getOptionalContentConfig();
+      const groups = (config?.getGroups?.() ?? {}) as Record<
+        string,
+        { name?: string }
+      >;
+      const ids = Object.keys(groups);
+      ocgIdsPerPage.set(pageNum, ids);
+      return ids;
+    } catch {
+      ocgIdsPerPage.set(pageNum, []);
+      return [];
+    }
+  }
+
+  async function buildLayerUrl(
+    pageNum: number,
+    layerIndex: number,
+    dpi: number,
+  ): Promise<string> {
+    const ids = await getOcgIds(pageNum);
+    if (layerIndex < 0 || layerIndex >= ids.length) {
+      throw new Error(`[loupe-pdf] layer ${layerIndex} out of range`);
+    }
+    const targetId = ids[layerIndex];
+    const doc = await getDoc();
+    const page = await doc.getPage(pageNum);
+
+    // pdf.js render() accepts a `optionalContentConfigPromise` so we
+    // can flip every other OCG off and render the chosen group in
+    // isolation. The base config exposes `setVisibility(id, visible)`
+    // mutators directly on the result of getOptionalContentConfig().
+    const config = await doc.getOptionalContentConfig();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const cfgAny = config as any;
+    if (typeof cfgAny.setVisibility === "function") {
+      for (const id of ids) cfgAny.setVisibility(id, id === targetId);
+    } else if (typeof cfgAny.setOCGState === "function") {
+      // older pdf.js: { state: [["set", id, visible], ...] }
+      const state = ids.map((id) => ["set", id, id === targetId]);
+      cfgAny.setOCGState({ state });
+    }
+
+    const scale = dpi / 72;
+    const viewport = page.getViewport({ scale });
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.ceil(viewport.width);
+    canvas.height = Math.ceil(viewport.height);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      throw new Error("[loupe-pdf] 2D context unavailable for layer raster.");
+    }
+    // No paper fill — caller composites layers over their own
+    // white-paper canvas via source-over blending. Transparent bg
+    // means hidden layers reveal the canvas underneath.
+    await page.render({
+      canvasContext: ctx,
+      viewport,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      optionalContentConfigPromise: Promise.resolve(config) as any,
+      background: "rgba(0,0,0,0)" as unknown as string,
+    } as Parameters<typeof page.render>[0]).promise;
+
+    const blob = await new Promise<Blob>((resolve, reject) =>
+      canvas.toBlob(
+        (b) => (b ? resolve(b) : reject(new Error("[loupe-pdf] layer toBlob null"))),
+        "image/png",
+      ),
+    );
+    const url = URL.createObjectURL(blob);
+    blobs.push(url);
+    return url;
+  }
+
+  function ensureLayerUrl(
+    pageNum: number,
+    layerIndex: number,
+    dpi: number,
+  ): Promise<string> {
+    const key = `${pageNum}|${layerIndex}@${dpi}`;
+    const cached = layerUrls.get(key);
+    if (cached) return Promise.resolve(cached);
+    const inflight = layerBuilds.get(key);
+    if (inflight) return inflight;
+    const promise = buildLayerUrl(pageNum, layerIndex, dpi)
+      .then((url) => {
+        layerUrls.set(key, url);
+        layerBuilds.delete(key);
+        notify();
+        return url;
+      })
+      .catch((err) => {
+        layerBuilds.delete(key);
+        // eslint-disable-next-line no-console
+        console.error("[loupe-pdf] layer raster failed", err);
+        throw err;
+      });
+    layerBuilds.set(key, promise);
+    return promise;
   }
 
   // ── Sample helpers ───────────────────────────────────────────────────
@@ -511,7 +684,18 @@ export function createBrowserViewerServices(
       },
     },
     layers: {
-      getLayerImageUrl: () => "",
+      getLayerImageUrl: ({ pageNum, layerIndex, dpi }) => {
+        const key = `${pageNum}|${layerIndex}@${dpi}`;
+        const cached = layerUrls.get(key);
+        if (cached) return cached;
+        // No placeholder — LayerCanvas caches the first-loaded image
+        // and never retries, so a placeholder would stick. Hosts
+        // should `await services.prepare(pageNum)` before mounting
+        // <LayerCanvas>; consumers calling cold get an empty string
+        // and the canvas just paints paper-white.
+        ensureLayerUrl(pageNum, layerIndex, dpi);
+        return "";
+      },
       listLayers: async () => {
         try {
           const doc = await getDoc();
@@ -521,6 +705,7 @@ export function createBrowserViewerServices(
             { name?: string }
           >;
           const ids = Object.keys(groups);
+          ocgIdsPerPage.set(1, ids);
           return ids.map((id, index) => ({
             name: groups[id]?.name ?? `Layer ${index + 1}`,
             ocg_index: index,
@@ -536,8 +721,10 @@ export function createBrowserViewerServices(
         const key = `${pageNum}|${channelName}`;
         const cached = channelUrls.get(key);
         if (cached) return cached;
+        // Same caching gotcha as layers — no placeholder. Hosts call
+        // `prepare(pageNum)` before mounting <SeparationCanvas>.
         ensureChannelUrl(pageNum, channelName);
-        return PLACEHOLDER_PNG;
+        return "";
       },
     },
     tacHeatmap: {
@@ -547,7 +734,7 @@ export function createBrowserViewerServices(
         const cached = heatmapUrls.get(key);
         if (cached) return cached;
         ensureHeatmapUrl(pageNum, limit);
-        return PLACEHOLDER_PNG;
+        return "";
       },
       // pdf.js renderer doesn't expose per-text-run bboxes the same
       // way poppler does, so the demo skips the run tooltips. The
@@ -612,7 +799,7 @@ export function createBrowserViewerServices(
           id: `browser-${pageNum}`,
           jobId: "browser",
           pageNum,
-          authorEmail,
+          authorEmail: authorEmail,
           authorName: "You",
           createdAt: now,
           updatedAt: now,
@@ -651,6 +838,27 @@ export function createBrowserViewerServices(
       const viewport = page.getViewport({ scale: 1 });
       return { widthPts: viewport.width, heightPts: viewport.height };
     },
+    async prepare(pageNum: number, prepareOpts?: { tacLimit?: number }) {
+      const limit = prepareOpts?.tacLimit ?? defaultTacLimit;
+      const raster = await getAnalysisRaster(pageNum);
+      const ids = await getOcgIds(pageNum);
+      // Channels + heatmap can run in parallel — they all read from
+      // the same analysis raster which is already cached above.
+      // Layers MUST be serialised because pdf.js's
+      // OptionalContentConfig has shared mutable state for visibility.
+      await Promise.all([
+        ...PROCESS_CHANNELS.map((c) => ensureChannelUrl(pageNum, c)),
+        ensureHeatmapUrl(pageNum, limit),
+      ]);
+      for (let layerIndex = 0; layerIndex < ids.length; layerIndex++) {
+        await ensureLayerUrl(pageNum, layerIndex, ANALYSIS_DPI);
+      }
+      return {
+        widthPts: raster.widthPts,
+        heightPts: raster.heightPts,
+        layerCount: ids.length,
+      };
+    },
     subscribe(listener: () => void) {
       subscribers.add(listener);
       return () => subscribers.delete(listener);
@@ -666,6 +874,9 @@ export function createBrowserViewerServices(
       channelBuilds.clear();
       heatmapUrls.clear();
       heatmapBuilds.clear();
+      layerUrls.clear();
+      layerBuilds.clear();
+      ocgIdsPerPage.clear();
       annotations.clear();
       subscribers.clear();
       docPromise = null;

@@ -7,15 +7,19 @@
  * `createBrowserViewerServices`, every viewer-only feature LoupePDF
  * ships works on any PDF the browser can fetch:
  *
- *   - PageCanvas + multi-page navigation
- *   - Multi-DPI tile cache for crisp zoom
+ *   - PageCanvas + multi-page navigation + multi-DPI tile cache
  *   - Color picker (RGB + TAC)
  *   - Densitometer (CMYK + TAC limit)
  *   - Measure tool (mm / in / pt)
  *   - TAC heatmap overlay
- *   - Per-ink CMYK separations (synthesised from RGB → CMYK)
- *   - PDF layers (OCG list)
+ *   - Per-ink CMYK separations preview (inks default ON, untick to
+ *     hide that plate — same UX as Acrobat's Output Preview)
+ *   - PDF layers (per-OCG isolated rendering, default all on)
  *   - Annotation canvas + toolbar + thread (in-memory)
+ *
+ * Three mutually-exclusive primary canvases — Page (default),
+ * Separation preview, Layer preview — match the lint-pdf reference
+ * viewer's UX so the same muscle memory carries over.
  *
  * Consumers provide configuration / branding and get a working demo:
  *
@@ -56,6 +60,7 @@ import { AnnotationThread } from "./AnnotationThread";
 import { AnnotationToolbar, type AnnotationTool } from "./AnnotationToolbar";
 import { ColorPickerTool } from "./ColorPickerTool";
 import { DensitometerTool } from "./DensitometerTool";
+import { LayerCanvas } from "./LayerCanvas";
 import { LayerPanel } from "./LayerPanel";
 import { MeasureTool } from "./MeasureTool";
 import { PageCanvas } from "./PageCanvas";
@@ -146,6 +151,8 @@ const PROCESS_SWATCH: Record<string, string> = {
   Yellow: "#fdd835",
   Black: "#111827",
 };
+
+type ViewerMode = "page" | "separation" | "layer";
 
 function formatMaxSize(bytes: number): string {
   return `${Math.round(bytes / (1024 * 1024))} MB`;
@@ -397,6 +404,50 @@ const stageInnerStyle: CSSProperties = {
   gap: 12,
 };
 
+function modeButtonGroupStyle(): CSSProperties {
+  return {
+    display: "flex",
+    width: "100%",
+    gap: 0,
+  };
+}
+
+function modeButtonStyle(
+  tokens: ThemeTokens,
+  active: boolean,
+  position: "left" | "middle" | "right",
+): CSSProperties {
+  return {
+    flex: 1,
+    padding: "6px 8px",
+    border: `1px solid ${active ? tokens.accent : tokens.border}`,
+    background: active ? tokens.accent : "transparent",
+    color: active ? "#fff" : tokens.fg,
+    fontSize: 12,
+    fontWeight: 600,
+    cursor: "pointer",
+    borderRadius:
+      position === "left"
+        ? "6px 0 0 6px"
+        : position === "right"
+          ? "0 6px 6px 0"
+          : "0",
+    marginLeft: position === "left" ? 0 : -1,
+  };
+}
+
+const preparingOverlayStyle: CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: "rgba(14, 10, 20, 0.7)",
+  fontSize: 13,
+  zIndex: 50,
+  color: "#cbd5e1",
+};
+
 // ---------------------------------------------------------------------------
 // Tool radio
 // ---------------------------------------------------------------------------
@@ -486,12 +537,16 @@ export function LoupePDFDemo({
   const [currentPage, setCurrentPage] = useState(initialPage);
 
   // -----------------------------------------------------------------------
-  // Tool / overlay state
+  // Viewer mode (mutually exclusive primary canvas) + tool overlay state
   // -----------------------------------------------------------------------
+  const [viewerMode, setViewerMode] = useState<ViewerMode>("page");
   const [activeTool, setActiveTool] = useState<PointerTool>("none");
   const [showHeatmap, setShowHeatmap] = useState(false);
+  const [allLayerIndices, setAllLayerIndices] = useState<number[]>([]);
   const [enabledLayers, setEnabledLayers] = useState<Set<number>>(new Set());
-  const [enabledChannels, setEnabledChannels] = useState<Set<string>>(new Set());
+  const [enabledChannels, setEnabledChannels] = useState<Set<string>>(
+    new Set(PROCESS_CHANNELS),
+  );
 
   // -----------------------------------------------------------------------
   // Annotation state
@@ -507,6 +562,7 @@ export function LoupePDFDemo({
   // -----------------------------------------------------------------------
   const [browserServices, setBrowserServices] =
     useState<BrowserViewerServices | null>(null);
+  const [preparing, setPreparing] = useState(false);
 
   // Reactive: re-render every time the services notify a new tile / channel
   // / heatmap is ready. PageCanvas / SeparationCanvas / TACHeatmapOverlay
@@ -533,7 +589,7 @@ export function LoupePDFDemo({
     return () => next.dispose();
   }, [pdfUrl, workerSrc, tacLimit, tokens, serviceOverrides]);
 
-  // Resolve page count + dimensions when services come online.
+  // Resolve page count + initial layer list when services come online.
   useEffect(() => {
     const svc = browserServices;
     if (!svc) {
@@ -553,9 +609,11 @@ export function LoupePDFDemo({
         setPage(pageInfoFromDimensions(next, dims.widthPts, dims.heightPts));
         const layers = await svc.layers.listLayers();
         if (cancelled) return;
-        setEnabledLayers(
-          new Set(layers.filter((l) => l.default_on).map((l) => l.ocg_index)),
-        );
+        const indices = layers.map((l) => l.ocg_index);
+        setAllLayerIndices(indices);
+        // Default all detected layers ON, matching the lint-pdf
+        // viewer's "Layers mode" default.
+        setEnabledLayers(new Set(indices));
         setError(null);
       } catch (err) {
         if (!cancelled) {
@@ -588,6 +646,34 @@ export function LoupePDFDemo({
       cancelled = true;
     };
   }, [browserServices, currentPage]);
+
+  // Pre-warm separations / heatmap / layer rasters whenever we enter a
+  // mode that needs them. Without this, <SeparationCanvas> /
+  // <LayerCanvas> latch onto the empty URL the lazy builder returns
+  // before the analysis raster lands and never retry.
+  useEffect(() => {
+    const svc = browserServices;
+    if (!svc) return;
+    if (viewerMode === "page" && !showHeatmap) return;
+    let cancelled = false;
+    setPreparing(true);
+    (async () => {
+      try {
+        await svc.prepare(currentPage, { tacLimit });
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error ? err.message : "Failed to prepare page.",
+          );
+        }
+      } finally {
+        if (!cancelled) setPreparing(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [browserServices, currentPage, viewerMode, showHeatmap, tacLimit]);
 
   const services: ViewerServices | null =
     serviceOverrides ?? browserServices ?? null;
@@ -638,6 +724,7 @@ export function LoupePDFDemo({
       setError(null);
       revokePreviousBlob();
       setCurrentPage(1);
+      setViewerMode("page");
       setPdfUrl(draftUrl.trim());
     },
     [draftUrl, revokePreviousBlob],
@@ -656,6 +743,7 @@ export function LoupePDFDemo({
       blobUrlRef.current = blobUrl;
       setDraftUrl(file.name);
       setCurrentPage(1);
+      setViewerMode("page");
       setPdfUrl(blobUrl);
     },
     [revokePreviousBlob, maxFileSize],
@@ -903,6 +991,47 @@ export function LoupePDFDemo({
                 </div>
               )}
 
+              {(showSeparations || showLayersControl) && (
+                <>
+                  <h2 style={headingStyle}>Mode</h2>
+                  <div style={modeButtonGroupStyle()}>
+                    <button
+                      type="button"
+                      style={modeButtonStyle(tokens, viewerMode === "page", "left")}
+                      onClick={() => setViewerMode("page")}
+                    >
+                      Page
+                    </button>
+                    {showSeparations && (
+                      <button
+                        type="button"
+                        style={modeButtonStyle(
+                          tokens,
+                          viewerMode === "separation",
+                          showLayersControl ? "middle" : "right",
+                        )}
+                        onClick={() => setViewerMode("separation")}
+                      >
+                        Separations
+                      </button>
+                    )}
+                    {showLayersControl && (
+                      <button
+                        type="button"
+                        style={modeButtonStyle(
+                          tokens,
+                          viewerMode === "layer",
+                          "right",
+                        )}
+                        onClick={() => setViewerMode("layer")}
+                      >
+                        Layers
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+
               {(showColorPicker ||
                 showDensitometer ||
                 showMeasure ||
@@ -963,9 +1092,9 @@ export function LoupePDFDemo({
                 </label>
               )}
 
-              {showSeparations && (
+              {showSeparations && viewerMode === "separation" && (
                 <>
-                  <h2 style={headingStyle}>Separations</h2>
+                  <h2 style={headingStyle}>Inks</h2>
                   <div
                     style={{
                       display: "flex",
@@ -1004,16 +1133,24 @@ export function LoupePDFDemo({
                         fontSize: 11,
                         padding: "5px 10px",
                       }}
-                      onClick={() => setEnabledChannels(new Set())}
-                      disabled={enabledChannels.size === 0}
+                      onClick={() =>
+                        setEnabledChannels(new Set(PROCESS_CHANNELS))
+                      }
+                      disabled={
+                        enabledChannels.size === PROCESS_CHANNELS.length
+                      }
                     >
-                      Hide separations
+                      Show all inks
                     </button>
                   </div>
+                  <p style={{ fontSize: 11, opacity: 0.5, lineHeight: 1.5 }}>
+                    Untick an ink to preview the page without that plate
+                    — same UX as Acrobat&rsquo;s Output Preview.
+                  </p>
                 </>
               )}
 
-              {showLayersControl && (
+              {showLayersControl && viewerMode === "layer" && (
                 <>
                   <h2 style={headingStyle}>Layers</h2>
                   <div
@@ -1025,28 +1162,37 @@ export function LoupePDFDemo({
                       overflowY: "auto",
                     }}
                   >
-                    <LayerPanel
-                      jobId="loupe-pdf-demo"
-                      enabledLayers={enabledLayers}
-                      onToggleLayer={(ocgIndex) => {
-                        setEnabledLayers((prev) => {
-                          const next = new Set(prev);
-                          if (next.has(ocgIndex)) next.delete(ocgIndex);
-                          else next.add(ocgIndex);
-                          return next;
-                        });
-                      }}
-                      onSetAllLayers={async (enabled) => {
-                        if (!services || !enabled) {
-                          setEnabledLayers(new Set());
-                          return;
-                        }
-                        const layers = await services.layers.listLayers();
-                        setEnabledLayers(
-                          new Set(layers.map((l) => l.ocg_index)),
-                        );
-                      }}
-                    />
+                    {allLayerIndices.length === 0 ? (
+                      <p
+                        style={{
+                          fontSize: 12,
+                          opacity: 0.55,
+                          padding: "8px 4px",
+                          margin: 0,
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        This PDF has no optional content groups (layers).
+                      </p>
+                    ) : (
+                      <LayerPanel
+                        jobId="loupe-pdf-demo"
+                        enabledLayers={enabledLayers}
+                        onToggleLayer={(ocgIndex) => {
+                          setEnabledLayers((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(ocgIndex)) next.delete(ocgIndex);
+                            else next.add(ocgIndex);
+                            return next;
+                          });
+                        }}
+                        onSetAllLayers={(enabled) => {
+                          setEnabledLayers(
+                            enabled ? new Set(allLayerIndices) : new Set(),
+                          );
+                        }}
+                      />
+                    )}
                   </div>
                 </>
               )}
@@ -1148,15 +1294,9 @@ export function LoupePDFDemo({
                     borderRadius: 4,
                   }}
                 >
-                  <PageCanvas
-                    jobId="loupe-pdf-demo"
-                    page={page}
-                    zoom={zoom}
-                    items={[]}
-                    selectedItem={null}
-                    onItemClick={() => {}}
-                  />
-                  {services && enabledChannels.size > 0 && (
+                  {/* Primary canvas — exactly one of Page / Separation /
+                      Layer is mounted at a time. */}
+                  {viewerMode === "separation" && services ? (
                     <SeparationCanvas
                       jobId="loupe-pdf-demo"
                       pageNum={page.page_num}
@@ -1165,7 +1305,26 @@ export function LoupePDFDemo({
                       width={canvasW}
                       height={canvasH}
                     />
+                  ) : viewerMode === "layer" && services ? (
+                    <LayerCanvas
+                      jobId="loupe-pdf-demo"
+                      pageNum={page.page_num}
+                      enabledLayers={enabledLayers}
+                      allLayers={allLayerIndices}
+                      width={canvasW}
+                      height={canvasH}
+                    />
+                  ) : (
+                    <PageCanvas
+                      jobId="loupe-pdf-demo"
+                      page={page}
+                      zoom={zoom}
+                      items={[]}
+                      selectedItem={null}
+                      onItemClick={() => {}}
+                    />
                   )}
+
                   {services && showHeatmap && (
                     <TACHeatmapOverlay
                       jobId="loupe-pdf-demo"
@@ -1231,6 +1390,13 @@ export function LoupePDFDemo({
                       canvasHeight={canvasH}
                     />
                   )}
+
+                  {preparing &&
+                    (viewerMode !== "page" || showHeatmap) && (
+                      <div style={preparingOverlayStyle}>
+                        Rasterising page &amp; computing CMYK…
+                      </div>
+                    )}
                 </div>
               </div>
             )}
