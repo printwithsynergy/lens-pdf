@@ -102,6 +102,7 @@ import {
   urlInputStyle,
 } from "./LoupePDFDemo.styles";
 import { AnnotationCanvas } from "./AnnotationCanvas";
+import { useIsMobile } from "./useIsMobile";
 import { AnnotationThread } from "./AnnotationThread";
 import { AnnotationToolbar, type AnnotationTool } from "./AnnotationToolbar";
 import { BoxOverlay } from "./BoxOverlay";
@@ -348,6 +349,16 @@ export function LoupePDFDemo({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [JSON.stringify(tokenOverrides)],
   );
+
+  // -----------------------------------------------------------------------
+  // Responsive layout
+  // -----------------------------------------------------------------------
+  // On mobile the tools sidebar collapses into a slide-in drawer
+  // anchored to the left edge; the densitometer / color-picker
+  // readouts switch to bottom sheets via `useIsMobile()` inside those
+  // components. Desktop keeps the persistent sidebar.
+  const isMobile = useIsMobile();
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // -----------------------------------------------------------------------
   // PDF state
@@ -806,10 +817,84 @@ export function LoupePDFDemo({
           </div>
         )}
 
-        <div style={layoutStyle}>
-          {/* Sidebar */}
+        <div style={{ ...layoutStyle, position: "relative" }}>
+          {/* Mobile-only floating "Tools" toggle. Renders over the
+              stage so the user can always pop the sidebar drawer back
+              open after closing it. Hidden on desktop because the
+              sidebar is always visible there. */}
+          {hasAnyTool && isMobile && (
+            <button
+              type="button"
+              aria-label={
+                mobileSidebarOpen ? "Close tools panel" : "Open tools panel"
+              }
+              aria-expanded={mobileSidebarOpen}
+              onClick={() => setMobileSidebarOpen((v) => !v)}
+              style={{
+                position: "absolute",
+                top: 12,
+                left: 12,
+                zIndex: 60,
+                width: 40,
+                height: 40,
+                borderRadius: 8,
+                border: `1px solid ${tokens.border}`,
+                background: "rgba(15, 12, 25, 0.92)",
+                color: tokens.fg,
+                cursor: "pointer",
+                fontSize: 20,
+                lineHeight: 1,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.4)",
+              }}
+            >
+              {mobileSidebarOpen ? "\u00D7" : "\u2630"}
+            </button>
+          )}
+
+          {/* Mobile drawer backdrop. Tap outside to dismiss. */}
+          {hasAnyTool && isMobile && mobileSidebarOpen && (
+            <div
+              onClick={() => setMobileSidebarOpen(false)}
+              style={{
+                position: "fixed",
+                inset: 0,
+                zIndex: 55,
+                background: "rgba(0, 0, 0, 0.5)",
+                backdropFilter: "blur(2px)",
+              }}
+            />
+          )}
+
+          {/* Sidebar — persistent on desktop, slide-in drawer on
+              mobile. The drawer animates `transform` so it stays
+              composited and doesn't re-layout the page on toggle. */}
           {hasAnyTool && (
-            <aside style={sidebarStyle(tokens)}>
+            <aside
+              style={
+                isMobile
+                  ? {
+                      ...sidebarStyle(tokens),
+                      position: "fixed",
+                      top: 0,
+                      left: 0,
+                      bottom: 0,
+                      width: "min(85vw, 320px)",
+                      zIndex: 56,
+                      transform: mobileSidebarOpen
+                        ? "translateX(0)"
+                        : "translateX(-100%)",
+                      transition: "transform 0.22s ease-out",
+                      borderRight: `1px solid ${tokens.border}`,
+                      boxShadow: mobileSidebarOpen
+                        ? "8px 0 24px rgba(0, 0, 0, 0.45)"
+                        : "none",
+                    }
+                  : sidebarStyle(tokens)
+              }
+            >
               <h2 style={headingStyle}>View</h2>
               <label style={rowStyle}>
                 <span style={{ width: 44 }}>Zoom</span>

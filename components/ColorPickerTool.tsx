@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useCallback, useEffect, useState } from "react";
 import type { ColorSample } from "../types";
 import {
@@ -8,6 +9,7 @@ import {
   useViewerHost,
   useViewerServices,
 } from "../host";
+import { useIsMobile } from "./useIsMobile";
 
 interface ColorPickerToolProps {
   jobId: string;
@@ -29,6 +31,7 @@ export function ColorPickerTool({
   const { colorSample } = useViewerServices();
   const { debug, pdfFallback } = useViewerHost();
   const mode = useFallbackMode(colorSample);
+  const isMobile = useIsMobile();
   const [sample, setSample] = useState<ColorSample | null>(null);
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
   const [loading, setLoading] = useState(false);
@@ -79,6 +82,44 @@ export function ColorPickerTool({
     [pickAt],
   );
 
+  // Readout placement: floating tooltip on desktop (anchored near the
+  // click), bottom sheet on mobile so the readout never falls behind
+  // the user's finger or off-screen.
+  const readoutStyle: CSSProperties = isMobile
+    ? {
+        position: "fixed",
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 60,
+        pointerEvents: "none",
+        padding: "12px 16px 16px",
+        background: "rgba(10, 8, 16, 0.96)",
+        borderTop: "1px solid rgba(255, 255, 255, 0.12)",
+        color: "#fff",
+        boxShadow: "0 -8px 24px rgba(0, 0, 0, 0.45)",
+        fontSize: 13,
+      }
+    : {
+        position: "absolute",
+        left: position
+          ? Math.min(position.x + 16, canvasWidth - 230)
+          : 0,
+        top: position
+          ? Math.min(position.y + 16, canvasHeight - 200)
+          : 0,
+        zIndex: 30,
+        pointerEvents: "none",
+        minWidth: 200,
+        padding: "8px 12px",
+        borderRadius: 8,
+        border: "1px solid rgba(255, 255, 255, 0.2)",
+        background: "rgba(0, 0, 0, 0.92)",
+        color: "#fff",
+        boxShadow: "0 12px 32px rgba(0, 0, 0, 0.55)",
+        fontSize: 12,
+      };
+
   return (
     <div
       style={{
@@ -92,56 +133,118 @@ export function ColorPickerTool({
       onTouchStart={handleTouch}
     >
       {position && sample && (
-        <div
-          className="pointer-events-none absolute z-30 rounded-lg border border-white/20 bg-black/90 px-3 py-2 text-xs text-white shadow-xl"
-          style={{
-            left: Math.min(position.x + 16, canvasWidth - 230),
-            top: Math.min(position.y + 16, canvasHeight - 200),
-            minWidth: 200,
-          }}
-        >
-          <div className="mb-1 flex items-center gap-2">
+        <div style={readoutStyle}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              marginBottom: 4,
+            }}
+          >
             <div
-              className="h-4 w-4 rounded border border-white/30"
-              style={{ backgroundColor: sample.hex }}
+              style={{
+                width: 16,
+                height: 16,
+                borderRadius: 3,
+                border: "1px solid rgba(255, 255, 255, 0.3)",
+                backgroundColor: sample.hex,
+              }}
             />
-            <span className="font-mono font-bold">{sample.hex.toUpperCase()}</span>
+            <span
+              style={{
+                fontFamily:
+                  "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                fontWeight: 700,
+              }}
+            >
+              {sample.hex.toUpperCase()}
+            </span>
           </div>
-          <div className="space-y-0.5 text-[10px] text-gray-300">
+          <div style={{ fontSize: 10, color: "#cbd5e1", lineHeight: 1.5 }}>
             <div>
               RGB: {sample.rgb[0]}, {sample.rgb[1]}, {sample.rgb[2]}
             </div>
             {sample.tac !== null && <div>TAC: {sample.tac.toFixed(1)}%</div>}
           </div>
           {sample.inks && sample.inks.length > 0 && (
-            <div className="mt-1.5 border-t border-white/10 pt-1.5 font-mono text-[10px]">
-              {/* Process inks: 2-up grid */}
-              <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
-                {sample.inks.filter((i) => i.type === "process").map((ink) => (
-                  <div key={ink.name} className="flex items-center justify-between">
-                    <span className="text-slate-300">
-                      {ink.name.charAt(0)}
-                    </span>
-                    <span className="tabular-nums text-slate-100">
-                      {ink.percent.toFixed(1)}%
-                    </span>
-                  </div>
-                ))}
+            <div
+              style={{
+                marginTop: 6,
+                paddingTop: 6,
+                borderTop: "1px solid rgba(255, 255, 255, 0.1)",
+                fontFamily:
+                  "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                fontSize: 10,
+              }}
+            >
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  columnGap: 8,
+                  rowGap: 2,
+                }}
+              >
+                {sample.inks
+                  .filter((i) => i.type === "process")
+                  .map((ink) => (
+                    <div
+                      key={ink.name}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <span style={{ color: "#cbd5e1" }}>
+                        {ink.name.charAt(0)}
+                      </span>
+                      <span
+                        style={{ fontVariantNumeric: "tabular-nums", color: "#f1f5f9" }}
+                      >
+                        {ink.percent.toFixed(1)}%
+                      </span>
+                    </div>
+                  ))}
               </div>
-              {/* Spot inks: full names */}
               {sample.inks.some((i) => i.type === "spot") && (
-                <div className="mt-1 space-y-0.5 border-t border-white/10 pt-1">
+                <div
+                  style={{
+                    marginTop: 4,
+                    paddingTop: 4,
+                    borderTop: "1px solid rgba(255, 255, 255, 0.1)",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 2,
+                  }}
+                >
                   {sample.inks
                     .filter((i) => i.type === "spot")
                     .map((ink) => (
                       <div
                         key={ink.name}
-                        className="flex items-center justify-between gap-2"
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: 8,
+                        }}
                       >
-                        <span className="truncate text-slate-200" title={ink.name}>
+                        <span
+                          style={{
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                            color: "#e2e8f0",
+                          }}
+                          title={ink.name}
+                        >
                           {ink.name}
                         </span>
-                        <span className="tabular-nums text-slate-100">
+                        <span
+                          style={{ fontVariantNumeric: "tabular-nums", color: "#f1f5f9" }}
+                        >
                           {ink.percent.toFixed(1)}%
                         </span>
                       </div>
@@ -152,21 +255,35 @@ export function ColorPickerTool({
           )}
         </div>
       )}
-      {position && loading && (
+      {position && loading && !sample && (
         <div
-          className="pointer-events-none absolute z-30 rounded border bg-black/80 px-2 py-1 text-[10px] text-white"
-          style={{ left: position.x + 16, top: position.y + 16 }}
+          style={{
+            position: isMobile ? "fixed" : "absolute",
+            left: isMobile ? 16 : position.x + 16,
+            ...(isMobile
+              ? { bottom: 16, right: 16 }
+              : { top: position.y + 16 }),
+            zIndex: 60,
+            pointerEvents: "none",
+            padding: "4px 10px",
+            borderRadius: 4,
+            background: "rgba(0, 0, 0, 0.85)",
+            color: "#fff",
+            fontSize: 11,
+            border: "1px solid rgba(255, 255, 255, 0.15)",
+          }}
         >
           Sampling...
         </div>
       )}
-      {/* Crosshair cursor indicator */}
       {position && (
         <div
-          className="pointer-events-none absolute z-20"
           style={{
+            position: "absolute",
             left: position.x - 8,
             top: position.y - 8,
+            zIndex: 20,
+            pointerEvents: "none",
             width: 16,
             height: 16,
             border: "2px solid white",

@@ -1,8 +1,10 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useCallback, useEffect, useState } from "react";
 import type { DensitometerSample } from "../types";
 import { isUnwired, logUnwiredHide, useViewerHost, useViewerServices } from "../host";
+import { useIsMobile } from "./useIsMobile";
 
 interface DensitometerToolProps {
   jobId: string;
@@ -39,6 +41,7 @@ export function DensitometerTool({
   const { densitometer } = useViewerServices();
   const { debug } = useViewerHost();
   const hidden = isUnwired(densitometer);
+  const isMobile = useIsMobile();
   const [sample, setSample] = useState<DensitometerSample | null>(null);
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
   const [loading, setLoading] = useState(false);
@@ -129,6 +132,47 @@ export function DensitometerTool({
 
   if (hidden) return null;
 
+  const monoFont =
+    "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
+
+  // Floating tooltip on desktop, bottom sheet on mobile.
+  const readoutStyle: CSSProperties = isMobile
+    ? {
+        position: "fixed",
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 60,
+        pointerEvents: "none",
+        padding: "12px 16px 16px",
+        background: "rgba(10, 8, 16, 0.96)",
+        borderTop: "1px solid rgba(255, 255, 255, 0.12)",
+        color: "#fff",
+        boxShadow: "0 -8px 24px rgba(0, 0, 0, 0.45)",
+        fontSize: 13,
+        maxHeight: "55vh",
+        overflowY: "auto",
+      }
+    : {
+        position: "absolute",
+        left: position
+          ? Math.min(position.x + 16, canvasWidth - 230)
+          : 0,
+        top: position
+          ? Math.min(position.y + 16, canvasHeight - 140)
+          : 0,
+        zIndex: 30,
+        pointerEvents: "none",
+        minWidth: 200,
+        padding: "8px 12px",
+        borderRadius: 8,
+        border: "1px solid rgba(255, 255, 255, 0.2)",
+        background: "rgba(0, 0, 0, 0.92)",
+        color: "#fff",
+        boxShadow: "0 12px 32px rgba(0, 0, 0, 0.55)",
+        fontSize: 12,
+      };
+
   return (
     <div
       style={{
@@ -142,82 +186,185 @@ export function DensitometerTool({
       onTouchStart={handleTouch}
     >
       {position && (sample || loading || error) && (
-        <div
-          className="pointer-events-none absolute z-30 rounded-lg border border-white/20 bg-black/90 px-3 py-2 text-xs text-white shadow-xl"
-          style={{
-            left: Math.min(position.x + 16, canvasWidth - 230),
-            top: Math.min(position.y + 16, canvasHeight - 140),
-            minWidth: 200,
-          }}
-        >
-          {loading && <div className="text-[11px] text-slate-300">Sampling separations…</div>}
+        <div style={readoutStyle}>
+          {loading && (
+            <div style={{ fontSize: 11, color: "#cbd5e1" }}>
+              Sampling separations…
+            </div>
+          )}
           {error && !loading && (
-            <div className="space-y-1">
-              <div className="font-semibold text-amber-300">Densitometer</div>
-              <div className="text-[11px] text-slate-300">{error}</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <div style={{ fontWeight: 600, color: "#fcd34d" }}>Densitometer</div>
+              <div style={{ fontSize: 11, color: "#cbd5e1" }}>{error}</div>
             </div>
           )}
           {sample && !loading && (
             <>
-              <div className="mb-1.5 flex items-center justify-between">
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-300">
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: 6,
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    textTransform: "uppercase",
+                    letterSpacing: 1,
+                    color: "#cbd5e1",
+                  }}
+                >
                   Densitometer
                 </span>
-                <span className="text-[10px] text-slate-400">@{sample.dpi}dpi</span>
+                <span style={{ fontSize: 10, color: "#94a3b8" }}>
+                  @{sample.dpi}dpi
+                </span>
               </div>
-              {/* Process inks compact 2-up grid */}
-              <div className="mb-2 grid grid-cols-2 gap-x-3 gap-y-1 font-mono text-[11px]">
-                {sample.channels.filter((ch) => isProcess(ch.name)).map((ch) => {
-                  const lbl = labelFor(ch.name);
-                  return (
-                    <div key={ch.name} className="flex items-center gap-1.5" title={lbl.full}>
-                      <span
-                        className="inline-block h-2.5 w-2.5 rounded-sm border border-white/30"
-                        style={{ backgroundColor: swatchFor(ch.name) }}
-                      />
-                      <span className="w-6 text-slate-300">{lbl.abbr}</span>
-                      <span className="flex-1 text-right tabular-nums">
-                        {ch.percent.toFixed(1)}%
-                      </span>
-                    </div>
-                  );
-                })}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  columnGap: 12,
+                  rowGap: 4,
+                  marginBottom: 8,
+                  fontFamily: monoFont,
+                  fontSize: 11,
+                }}
+              >
+                {sample.channels
+                  .filter((ch) => isProcess(ch.name))
+                  .map((ch) => {
+                    const lbl = labelFor(ch.name);
+                    return (
+                      <div
+                        key={ch.name}
+                        style={{ display: "flex", alignItems: "center", gap: 6 }}
+                        title={lbl.full}
+                      >
+                        <span
+                          style={{
+                            display: "inline-block",
+                            width: 10,
+                            height: 10,
+                            borderRadius: 2,
+                            border: "1px solid rgba(255, 255, 255, 0.3)",
+                            backgroundColor: swatchFor(ch.name),
+                          }}
+                        />
+                        <span style={{ width: 24, color: "#cbd5e1" }}>
+                          {lbl.abbr}
+                        </span>
+                        <span
+                          style={{
+                            flex: 1,
+                            textAlign: "right",
+                            fontVariantNumeric: "tabular-nums",
+                          }}
+                        >
+                          {ch.percent.toFixed(1)}%
+                        </span>
+                      </div>
+                    );
+                  })}
               </div>
-              {/* Spot inks — full name + percent. Only rendered if the
-                  PDF declared spot color spaces. */}
               {sample.channels.some((ch) => !isProcess(ch.name)) && (
-                <div className="mb-2 space-y-1 border-t border-white/10 pt-1.5 font-mono text-[11px]">
-                  <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                <div
+                  style={{
+                    marginBottom: 8,
+                    paddingTop: 6,
+                    borderTop: "1px solid rgba(255, 255, 255, 0.1)",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 4,
+                    fontFamily: monoFont,
+                    fontSize: 11,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 600,
+                      textTransform: "uppercase",
+                      letterSpacing: 1,
+                      color: "#94a3b8",
+                    }}
+                  >
                     Spots
                   </div>
-                  {sample.channels.filter((ch) => !isProcess(ch.name)).map((ch) => (
-                    <div key={ch.name} className="flex items-center gap-1.5">
-                      <span
-                        className="inline-block h-2.5 w-2.5 shrink-0 rounded-sm border border-white/30"
-                        style={{ backgroundColor: swatchFor(ch.name) }}
-                      />
-                      <span className="flex-1 truncate text-slate-200" title={ch.name}>
-                        {ch.name}
-                      </span>
-                      <span className="tabular-nums text-slate-300">
-                        {ch.percent.toFixed(1)}%
-                      </span>
-                    </div>
-                  ))}
+                  {sample.channels
+                    .filter((ch) => !isProcess(ch.name))
+                    .map((ch) => (
+                      <div
+                        key={ch.name}
+                        style={{ display: "flex", alignItems: "center", gap: 6 }}
+                      >
+                        <span
+                          style={{
+                            display: "inline-block",
+                            width: 10,
+                            height: 10,
+                            flexShrink: 0,
+                            borderRadius: 2,
+                            border: "1px solid rgba(255, 255, 255, 0.3)",
+                            backgroundColor: swatchFor(ch.name),
+                          }}
+                        />
+                        <span
+                          style={{
+                            flex: 1,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                            color: "#e2e8f0",
+                          }}
+                          title={ch.name}
+                        >
+                          {ch.name}
+                        </span>
+                        <span
+                          style={{
+                            fontVariantNumeric: "tabular-nums",
+                            color: "#cbd5e1",
+                          }}
+                        >
+                          {ch.percent.toFixed(1)}%
+                        </span>
+                      </div>
+                    ))}
                 </div>
               )}
-              <div className="border-t border-white/15 pt-1.5">
-                <div className="flex items-center justify-between font-mono text-[11px]">
-                  <span className="text-slate-300">TAC</span>
+              <div
+                style={{
+                  paddingTop: 6,
+                  borderTop: "1px solid rgba(255, 255, 255, 0.15)",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    fontFamily: monoFont,
+                    fontSize: 11,
+                  }}
+                >
+                  <span style={{ color: "#cbd5e1" }}>TAC</span>
                   <span
-                    className={`tabular-nums font-bold ${
-                      sample.limit_exceeded ? "text-rose-400" : "text-emerald-300"
-                    }`}
+                    style={{
+                      fontVariantNumeric: "tabular-nums",
+                      fontWeight: 700,
+                      color: sample.limit_exceeded ? "#fb7185" : "#6ee7b7",
+                    }}
                   >
                     {sample.tac.toFixed(1)}%
                   </span>
                 </div>
-                <div className="text-right text-[10px] text-slate-400">
+                <div
+                  style={{ textAlign: "right", fontSize: 10, color: "#94a3b8" }}
+                >
                   {sample.limit_exceeded
                     ? `over ${sample.tac_limit}% limit`
                     : `under ${sample.tac_limit}% limit`}
@@ -227,13 +374,14 @@ export function DensitometerTool({
           )}
         </div>
       )}
-      {/* Crosshair at last-clicked point */}
       {position && (
         <div
-          className="pointer-events-none absolute z-20"
           style={{
+            position: "absolute",
             left: position.x - 8,
             top: position.y - 8,
+            zIndex: 20,
+            pointerEvents: "none",
             width: 16,
             height: 16,
             border: "2px solid white",

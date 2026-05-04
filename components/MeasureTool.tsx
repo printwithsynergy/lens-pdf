@@ -186,17 +186,33 @@ export function MeasureTool({
         </svg>
       )}
 
-      {/* Measurement label */}
+      {/* Measurement label — opaque dark background so the readout
+          stays legible over light artwork, dark backgrounds, photos,
+          ruler tick marks, etc. */}
       {measurement && (
         <div
-          className="pointer-events-none absolute z-30 rounded bg-green-900/90 px-2 py-1 text-xs font-mono text-green-100 shadow-lg"
-          style={{ left: midX + 8, top: midY - 24 }}
+          style={{
+            position: "absolute",
+            left: midX + 8,
+            top: midY - 24,
+            zIndex: 30,
+            pointerEvents: "none",
+            padding: "4px 8px",
+            borderRadius: 4,
+            border: "1px solid rgba(34, 197, 94, 0.6)",
+            background: "rgba(15, 23, 42, 0.95)",
+            color: "#bbf7d0",
+            fontSize: 12,
+            fontFamily:
+              "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+            fontWeight: 500,
+            whiteSpace: "nowrap",
+            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.4)",
+          }}
         >
           {units
             .map((u) => {
               const value = u.fromPoints(measurement.distancePts);
-              // Round to 2 decimals for compact units (mm, pt, pc, ag),
-              // 3 for inches where small fractions matter visually.
               const rounded =
                 u.id === "in"
                   ? Math.round(value * 1000) / 1000
@@ -207,10 +223,28 @@ export function MeasureTool({
         </div>
       )}
 
-      {/* Drag hint */}
+      {/* Drag hint — inline-styled so it always renders even when the
+          host application doesn't include Tailwind utilities. */}
       {!start && (
-        <div className="pointer-events-none absolute left-1/2 top-4 -translate-x-1/2 rounded bg-black/70 px-3 py-1 text-xs text-white">
-          {isTouch ? "Tap and drag to measure distance." : "Click and drag to measure distance. Hold Shift to snap."}
+        <div
+          style={{
+            position: "absolute",
+            left: "50%",
+            top: 16,
+            transform: "translateX(-50%)",
+            zIndex: 30,
+            pointerEvents: "none",
+            padding: "4px 12px",
+            borderRadius: 4,
+            background: "rgba(0, 0, 0, 0.75)",
+            color: "#fff",
+            fontSize: 12,
+            whiteSpace: "nowrap",
+          }}
+        >
+          {isTouch
+            ? "Tap and drag to measure distance."
+            : "Click and drag to measure distance. Hold Shift to snap."}
         </div>
       )}
     </div>
