@@ -19,12 +19,34 @@ whose backing service the host hasn't wired. AGPL-3.0-or-later.
 
 ## Install
 
-```sh
-npm install @printwithsynergy/loupe-pdf
+LoupePDF is published to **GitHub Packages**. Add a `.npmrc` to your
+host project pointing the `@printwithsynergy` scope at the GitHub
+registry, then install:
+
+```ini
+# .npmrc
+@printwithsynergy:registry=https://npm.pkg.github.com
 ```
 
-(Or use a git-ref dep against this repo:
-`npm install github:Printwithsynergy/loupe-pdf#main`.)
+```sh
+# stable
+npm install @printwithsynergy/loupe-pdf
+
+# pre-release (current)
+npm install @printwithsynergy/loupe-pdf@beta
+```
+
+GitHub Packages requires an auth token to read public packages from
+some clients — see [the GitHub docs][gh-pkg-auth] for the one-line
+`~/.npmrc` setup. CI environments can use the built-in `GITHUB_TOKEN`.
+
+You can also use a git-ref dep against this repo (no auth required):
+
+```sh
+npm install github:Printwithsynergy/loupe-pdf#main
+```
+
+[gh-pkg-auth]: https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-npm-registry#authenticating-to-github-packages
 
 Peer dependencies you provide in your host app:
 

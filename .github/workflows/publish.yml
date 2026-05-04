@@ -1,0 +1,61 @@
+name: publish
+
+# Publishes @printwithsynergy/loupe-pdf to GitHub Packages on every
+# tag push that looks like a release tag (`v*`). The package metadata
+# in package.json points its publishConfig.registry at
+# npm.pkg.github.com; auth uses the workflow's built-in GITHUB_TOKEN
+# scoped to write:packages, so no extra repo secrets are required.
+#
+# Pre-release tags (e.g. v0.1.0-beta.1) publish with the npm
+# `--tag beta` so a bare `npm install @printwithsynergy/loupe-pdf`
+# doesn't pick them up; consumers opt in with `npm install
+# @printwithsynergy/loupe-pdf@beta`.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    name: Publish to GitHub Packages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://npm.pkg.github.com
+          scope: "@printwithsynergy"
+
+      - name: Install
+        run: npm install --no-audit --no-fund
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Determine npm dist-tag
+        id: tag
+        run: |
+          ref="${GITHUB_REF#refs/tags/v}"
+          if [[ "$ref" == *-* ]]; then
+            echo "tag=beta" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm publish --tag ${{ steps.tag.outputs.tag }}
