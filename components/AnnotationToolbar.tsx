@@ -40,15 +40,61 @@ interface AnnotationToolbarProps {
   saving: boolean;
 }
 
-const TOOLS: { id: AnnotationTool; label: string; icon: string }[] = [
-  { id: "pointer", label: "Select", icon: "\u25B3" },
-  { id: "pen", label: "Pen", icon: "\u270E" },
-  { id: "arrow", label: "Arrow", icon: "\u2192" },
-  { id: "rectangle", label: "Rectangle", icon: "\u25A1" },
-  { id: "ellipse", label: "Ellipse", icon: "\u25CB" },
-  { id: "text", label: "Text", icon: "T" },
-  { id: "highlight", label: "Highlight", icon: "\u2588" },
-  { id: "sticky", label: "Sticky note", icon: "\u25A4" },
+const TOOLS: {
+  id: AnnotationTool;
+  label: string;
+  tooltip: string;
+  icon: string;
+}[] = [
+  {
+    id: "pointer",
+    label: "Select",
+    tooltip: "Select / move existing annotations (click to pick, drag to move)",
+    icon: "\u25B3",
+  },
+  {
+    id: "pen",
+    label: "Pen",
+    tooltip: "Free-hand pen — draw freely with the active colour",
+    icon: "\u270E",
+  },
+  {
+    id: "arrow",
+    label: "Arrow",
+    tooltip: "Arrow — drag from start to end to draw a line + arrowhead",
+    icon: "\u2192",
+  },
+  {
+    id: "rectangle",
+    label: "Rectangle",
+    tooltip: "Rectangle — drag to draw an outlined box",
+    icon: "\u25A1",
+  },
+  {
+    id: "ellipse",
+    label: "Ellipse",
+    tooltip: "Ellipse — drag to draw an outlined oval / circle",
+    icon: "\u25CB",
+  },
+  {
+    id: "text",
+    label: "Text",
+    tooltip: "Text — click to drop an editable text label",
+    icon: "T",
+  },
+  {
+    id: "highlight",
+    label: "Highlight",
+    tooltip:
+      "Highlight — drag to draw a semi-transparent fill in the active colour",
+    icon: "\u2588",
+  },
+  {
+    id: "sticky",
+    label: "Sticky note",
+    tooltip: "Sticky note — click to drop an editable tinted note card",
+    icon: "\u25A4",
+  },
 ];
 
 const PRESET_COLORS = [
@@ -180,7 +226,7 @@ export function AnnotationToolbar({
           type="button"
           onClick={() => onToolChange(tool.id)}
           style={toolButtonStyle(activeTool === tool.id)}
-          title={tool.label}
+          title={tool.tooltip}
           aria-label={tool.label}
           aria-pressed={activeTool === tool.id}
         >
@@ -196,7 +242,7 @@ export function AnnotationToolbar({
           type="button"
           onClick={() => onStrokeColorChange(color)}
           style={swatchStyle(color, strokeColor.toLowerCase() === color)}
-          title={color}
+          title={`Use ${color} as the active stroke / fill colour`}
           aria-label={`Use color ${color}`}
         />
       ))}
@@ -205,7 +251,7 @@ export function AnnotationToolbar({
         value={strokeColor}
         onChange={(e) => onStrokeColorChange(e.target.value)}
         style={customColorInputStyle}
-        title="Custom color"
+        title="Pick a custom colour from a colour wheel"
         aria-label="Custom color"
       />
 
@@ -216,7 +262,7 @@ export function AnnotationToolbar({
         onClick={onUndo}
         disabled={!canUndo}
         style={actionButtonStyle(!canUndo)}
-        title="Undo"
+        title="Undo the last annotation change"
       >
         Undo
       </button>
@@ -225,12 +271,21 @@ export function AnnotationToolbar({
         onClick={onRedo}
         disabled={!canRedo}
         style={actionButtonStyle(!canRedo)}
-        title="Redo"
+        title="Redo the last undone annotation change"
       >
         Redo
       </button>
 
-      <span style={savingLabelStyle}>{saving ? "Saving…" : "Saved"}</span>
+      <span
+        style={savingLabelStyle}
+        title={
+          saving
+            ? "Persisting your annotations…"
+            : "All annotation changes are saved"
+        }
+      >
+        {saving ? "Saving…" : "Saved"}
+      </span>
     </div>
   );
 }

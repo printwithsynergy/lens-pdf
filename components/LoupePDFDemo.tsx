@@ -1342,17 +1342,26 @@ export function LoupePDFDemo({
             ) : (
               <div style={stageInnerStyle}>
                 {showAnnotate && activeTool === "annotate" && (
-                  <AnnotationToolbar
-                    activeTool={annotationTool}
-                    onToolChange={setAnnotationTool}
-                    strokeColor={strokeColor}
-                    onStrokeColorChange={setStrokeColor}
-                    onUndo={triggerUndo}
-                    onRedo={triggerRedo}
-                    canUndo={canUndo}
-                    canRedo={canRedo}
-                    saving={savingAnnotation}
-                  />
+                  <div
+                    style={{
+                      position: "sticky",
+                      top: 0,
+                      zIndex: 30,
+                      alignSelf: "center",
+                    }}
+                  >
+                    <AnnotationToolbar
+                      activeTool={annotationTool}
+                      onToolChange={setAnnotationTool}
+                      strokeColor={strokeColor}
+                      onStrokeColorChange={setStrokeColor}
+                      onUndo={triggerUndo}
+                      onRedo={triggerRedo}
+                      canUndo={canUndo}
+                      canRedo={canRedo}
+                      saving={savingAnnotation}
+                    />
+                  </div>
                 )}
                 <div
                   style={{

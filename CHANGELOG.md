@@ -8,6 +8,31 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 _Nothing yet._
 
+## [0.3.0-beta.15] — 2026-05-04
+
+### Fixed
+- **Pen tool drew nothing on fabric v6** — fabric v6 stopped
+  auto-instantiating `canvas.freeDrawingBrush`, so toggling pen
+  mode set `isDrawingMode = true` against an undefined brush and
+  the `if (canvas.freeDrawingBrush)` colour / width branch silently
+  no-opped. `AnnotationCanvas` now constructs a `PencilBrush` at
+  init so the pen, free-hand strokes, and the existing
+  colour-on-stroke-change effect all work.
+- **Annotation toolbar scrolled away with the page** — the toolbar
+  was a flow sibling of the canvas inside the stage scroll
+  container, so zooming / scrolling pushed it out of reach.
+  Wrapped it in a `position: sticky; top: 0; z-index: 30` div so
+  it stays pinned while the canvas scrolls underneath.
+
+### Changed
+- **Descriptive tool tooltips** — every annotation toolbar control
+  now carries a self-explanatory `title`: per-tool descriptions
+  (e.g. "Free-hand pen — draw freely with the active colour",
+  "Sticky note — click to drop an editable tinted note card"),
+  per-swatch "Use #ef4444 as the active stroke / fill colour", a
+  custom-colour-wheel hint, undo / redo verbs, and a saving-state
+  status line.
+
 ## [0.3.0-beta.14] — 2026-05-04
 
 ### Fixed

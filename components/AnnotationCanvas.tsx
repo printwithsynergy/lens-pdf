@@ -136,6 +136,19 @@ export function AnnotationCanvas({
       });
       fabricRef.current = canvas;
 
+      // fabric v6 no longer auto-instantiates freeDrawingBrush. Without
+      // this, switching to the pen tool sets isDrawingMode=true but the
+      // brush is undefined so nothing renders. Instantiate a PencilBrush
+      // up-front and the tool effect below configures colour / width.
+      try {
+        const PencilBrush = (fabric as any).PencilBrush;
+        if (PencilBrush && !canvas.freeDrawingBrush) {
+          canvas.freeDrawingBrush = new PencilBrush(canvas);
+        }
+      } catch {
+        // Fall through — older fabric builds will already have a brush.
+      }
+
       // Load existing annotations through the AnnotationService.
       // getForPage returns null on no-saved-drawing or any error,
       // so the canvas falls back to a blank slate.
