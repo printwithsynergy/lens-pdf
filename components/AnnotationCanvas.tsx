@@ -13,7 +13,32 @@ interface AnnotationCanvasProps {
   strokeColor: string;
   onSavingChange?: (saving: boolean) => void;
   onHistoryChange?: (canUndo: boolean, canRedo: boolean) => void;
+  /** When `false`, every sticky-note annotation on the canvas is
+   * hidden (without being deleted). Default: `true`. */
+  showStickyNotes?: boolean;
 }
+
+/**
+ * Convert a hex (`#RRGGBB`) to a pastel by mixing it `amount` toward
+ * white. Returns the resulting `rgb()` triple. Used to derive the
+ * paper colour of a sticky note from the user's chosen stroke
+ * colour while keeping the note opaque and readable.
+ */
+function pastelize(hex: string, amount = 0.72): string {
+  const m = hex.replace("#", "");
+  if (m.length !== 6) return "#fef3c7";
+  const r = parseInt(m.slice(0, 2), 16);
+  const g = parseInt(m.slice(2, 4), 16);
+  const b = parseInt(m.slice(4, 6), 16);
+  const blend = (channel: number) =>
+    Math.round(channel + (255 - channel) * amount);
+  return `rgb(${blend(r)}, ${blend(g)}, ${blend(b)})`;
+}
+
+/** Marker we tag onto fabric objects so the visibility toggle can
+ *  filter them later. Keeps "show / hide notes" cheap regardless of
+ *  how many other annotations exist on the canvas. */
+const STICKY_NOTE_FLAG = "__loupeStickyNote";
 
 // Undo/redo state kept per-component instance
 interface HistoryState {
@@ -30,6 +55,7 @@ export function AnnotationCanvas({
   strokeColor,
   onSavingChange,
   onHistoryChange,
+  showStickyNotes = true,
 }: AnnotationCanvasProps) {
   const { readOnly, debug } = useViewerHost();
   const { annotations } = useViewerServices();
@@ -202,6 +228,25 @@ export function AnnotationCanvas({
     canvas.renderAll();
   }, [width, height]);
 
+  // ── Sticky-note visibility toggle ────────────────────────────
+
+  useEffect(() => {
+    const canvas = fabricRef.current;
+    if (!canvas || !loaded) return;
+    const objects = canvas.getObjects();
+    let dirty = false;
+    for (const obj of objects) {
+      const isSticky =
+        (obj as Record<string, unknown>)[STICKY_NOTE_FLAG] === true;
+      if (!isSticky) continue;
+      if (obj.visible !== showStickyNotes) {
+        obj.visible = showStickyNotes;
+        dirty = true;
+      }
+    }
+    if (dirty) canvas.requestRenderAll();
+  }, [showStickyNotes, loaded]);
+
   // ── Tool switching ───────────────────────────────────────────
 
   useEffect(() => {
@@ -270,31 +315,56 @@ export function AnnotationCanvas({
       }
 
       if (activeTool === "sticky") {
-        // Sticky note = a Textbox with a tinted background and a thin
-        // border in the active stroke colour. Single click places the
-        // card and immediately enters edit mode so reviewers can type
-        // straight away.
-        const NOTE_WIDTH = 180;
-        const note = new fabric.Textbox("Note", {
-          left: startX,
-          top: startY,
+        // Sticky note = an opaque pastel "paper" rect (derived from the
+        // active stroke colour, blended toward white so it never goes
+        // see-through) with a Textbox glued on top. Grouped together
+        // so dragging / scaling the card moves both pieces, with a
+        // soft drop-shadow for the paper-on-page feel.
+        const NOTE_WIDTH = 200;
+        const NOTE_HEIGHT = 140;
+        const PAD = 14;
+        const paper = pastelize(strokeColor);
+        const paperRect = new fabric.Rect({
+          left: 0,
+          top: 0,
           width: NOTE_WIDTH,
+          height: NOTE_HEIGHT,
+          fill: paper,
+          stroke: strokeColor,
+          strokeWidth: 1,
+          rx: 4,
+          ry: 4,
+          shadow: new (fabric as any).Shadow({
+            color: "rgba(0,0,0,0.28)",
+            blur: 10,
+            offsetX: 2,
+            offsetY: 4,
+          }),
+        });
+        const text = new fabric.Textbox("Note", {
+          left: PAD,
+          top: PAD,
+          width: NOTE_WIDTH - PAD * 2,
           fontSize: 14,
+          lineHeight: 1.35,
           fill: "#1f1f1f",
           fontFamily: "sans-serif",
           textAlign: "left",
-          backgroundColor: strokeColor + "55",
-          padding: 8,
-          borderColor: strokeColor,
-          cornerColor: strokeColor,
           editable: true,
-          lockScalingFlip: true,
           splitByGrapheme: false,
         });
-        canvas.add(note);
-        canvas.setActiveObject(note);
-        note.enterEditing();
-        if (typeof note.selectAll === "function") note.selectAll();
+        const group = new fabric.Group([paperRect, text], {
+          left: startX,
+          top: startY,
+          subTargetCheck: true,
+          // Tag so showStickyNotes / hide-notes can find this group
+          // later without serialising every object.
+          [STICKY_NOTE_FLAG]: true,
+        } as any);
+        canvas.add(group);
+        canvas.setActiveObject(group);
+        // Keep group selected; double-click drills into the textbox
+        // for editing thanks to subTargetCheck.
         isDrawing = false;
         return;
       }

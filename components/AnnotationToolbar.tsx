@@ -38,6 +38,12 @@ interface AnnotationToolbarProps {
   canUndo: boolean;
   canRedo: boolean;
   saving: boolean;
+  /** Whether sticky-note annotations are currently visible. */
+  stickyNotesVisible?: boolean;
+  /** Toggle sticky-note visibility (notes are not deleted, just
+   *  hidden — toggling back restores them). When omitted the
+   *  visibility button doesn't render. */
+  onToggleStickyNotes?: () => void;
 }
 
 const TOOLS: {
@@ -217,6 +223,8 @@ export function AnnotationToolbar({
   canUndo,
   canRedo,
   saving,
+  stickyNotesVisible = true,
+  onToggleStickyNotes,
 }: AnnotationToolbarProps) {
   return (
     <div style={wrapperStyle}>
@@ -275,6 +283,22 @@ export function AnnotationToolbar({
       >
         Redo
       </button>
+
+      {onToggleStickyNotes && (
+        <button
+          type="button"
+          onClick={onToggleStickyNotes}
+          style={actionButtonStyle(false)}
+          title={
+            stickyNotesVisible
+              ? "Hide every sticky note on the page (toggle back to restore)"
+              : "Show all hidden sticky notes"
+          }
+          aria-pressed={!stickyNotesVisible}
+        >
+          {stickyNotesVisible ? "Hide notes" : "Show notes"}
+        </button>
+      )}
 
       <span
         style={savingLabelStyle}

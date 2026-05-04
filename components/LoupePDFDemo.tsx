@@ -486,6 +486,7 @@ export function LoupePDFDemo({
   const [savingAnnotation, setSavingAnnotation] = useState(false);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
+  const [stickyNotesVisible, setStickyNotesVisible] = useState(true);
 
   // -----------------------------------------------------------------------
   // Services
@@ -1360,6 +1361,10 @@ export function LoupePDFDemo({
                       canUndo={canUndo}
                       canRedo={canRedo}
                       saving={savingAnnotation}
+                      stickyNotesVisible={stickyNotesVisible}
+                      onToggleStickyNotes={() =>
+                        setStickyNotesVisible((v) => !v)
+                      }
                     />
                   </div>
                 )}
@@ -1465,6 +1470,7 @@ export function LoupePDFDemo({
                           setCanUndo(canU);
                           setCanRedo(canR);
                         }}
+                        showStickyNotes={stickyNotesVisible}
                       />
                     </div>
                   )}

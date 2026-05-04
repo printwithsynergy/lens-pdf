@@ -8,6 +8,37 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 _Nothing yet._
 
+## [0.3.0-beta.16] — 2026-05-04
+
+### Fixed
+- **`LayerPanel` rendered borked in non-Tailwind hosts** — the
+  layer list was using shadcn-style classes (`flex`, `space-y-3`,
+  `text-slate-200`, `hover:bg-slate-800`, `text-destructive`) which
+  silently dropped in hosts whose Tailwind config doesn't scan the
+  package. The "All On / All Off" buttons collapsed and checkbox
+  rows lost their alignment so toggling individual layers felt
+  broken even though the underlying OCG enumeration was correct.
+  Rewrote with inline styles matching the rest of the sidebar
+  (sticky-style header, padded toggle rows, scoped spinner
+  keyframes, italic muted empty-state copy).
+
+### Added
+- **Sticky-note redesign** — sticky notes are now grouped paper
+  cards: an opaque pastel rect derived from the active stroke
+  colour (mixed 72 % toward white so the note never goes
+  see-through), stroked in the active colour, with a 14 px inner
+  padding, rounded corners, and a soft drop-shadow that lifts the
+  card off the page. The body Textbox sits inside the rect and
+  the whole thing moves / scales as one Fabric `Group`.
+- **Show / hide sticky notes** — the annotation toolbar gained a
+  toggle button (`Hide notes` ↔ `Show notes`) that flips the
+  `visible` flag on every sticky-note group on the canvas.
+  Notes are not deleted; toggling back restores them. New
+  `showStickyNotes` prop on `<AnnotationCanvas>` and matching
+  `stickyNotesVisible` / `onToggleStickyNotes` props on
+  `<AnnotationToolbar>` expose the same control to custom
+  compositions.
+
 ## [0.3.0-beta.15] — 2026-05-04
 
 ### Fixed

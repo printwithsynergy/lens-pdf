@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import type { CSSProperties } from "react";
 import type { LayerInfo } from "../types";
 import {
   logUnwiredHide,
@@ -15,6 +16,109 @@ interface LayerPanelProps {
   onToggleLayer: (ocgIndex: number) => void;
   onSetAllLayers: (enabled: boolean) => void;
 }
+
+const containerStyle: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 10,
+  padding: 8,
+  fontSize: 12,
+  color: "#e2e8f0",
+};
+
+const headerRowStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 8,
+};
+
+const headerTitleStyle: CSSProperties = {
+  margin: 0,
+  fontSize: 12,
+  fontWeight: 600,
+  color: "#f8fafc",
+  letterSpacing: "0.04em",
+  textTransform: "uppercase",
+};
+
+const headerActionsStyle: CSSProperties = {
+  display: "flex",
+  gap: 6,
+};
+
+const allButtonStyle: CSSProperties = {
+  background: "transparent",
+  border: "1px solid rgba(255,255,255,0.12)",
+  borderRadius: 4,
+  color: "#cbd5e1",
+  fontSize: 11,
+  padding: "2px 6px",
+  cursor: "pointer",
+};
+
+const layerListStyle: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 4,
+};
+
+const layerRowStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
+  padding: "4px 6px",
+  borderRadius: 4,
+  cursor: "pointer",
+  color: "#e2e8f0",
+  fontSize: 12,
+  background: "transparent",
+  transition: "background 0.12s ease",
+};
+
+const layerNameStyle: CSSProperties = {
+  flex: 1,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+};
+
+const messageStyle: CSSProperties = {
+  margin: 0,
+  padding: "8px 6px",
+  fontSize: 12,
+  color: "rgba(226,232,240,0.55)",
+  fontStyle: "italic",
+};
+
+const errorStyle: CSSProperties = {
+  ...messageStyle,
+  color: "#fca5a5",
+  fontStyle: "normal",
+};
+
+const loadingRowStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
+  padding: "8px 6px",
+  fontSize: 12,
+  color: "rgba(226,232,240,0.55)",
+  fontStyle: "italic",
+};
+
+const spinnerStyle: CSSProperties = {
+  width: 14,
+  height: 14,
+  borderRadius: "50%",
+  border: "2px solid rgba(255,255,255,0.18)",
+  borderTopColor: "rgba(255,255,255,0.65)",
+  animation: "loupe-pdf-layer-spin 0.85s linear infinite",
+};
+
+const SPINNER_KEYFRAMES = `@keyframes loupe-pdf-layer-spin {
+  to { transform: rotate(360deg); }
+}`;
 
 export function LayerPanel({
   jobId: _jobId,
@@ -55,58 +159,65 @@ export function LayerPanel({
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center gap-2 p-6">
-        <svg className="h-6 w-6 animate-spin text-slate-400" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-        <span className="text-xs text-slate-500">Loading layers</span>
-      </div>
+      <>
+        <style>{SPINNER_KEYFRAMES}</style>
+        <div style={loadingRowStyle}>
+          <span aria-hidden style={spinnerStyle} />
+          <span>Loading layers…</span>
+        </div>
+      </>
     );
   }
 
   if (error) {
-    return <div className="p-3 text-xs text-destructive">{error}</div>;
+    return <div style={errorStyle}>{error}</div>;
   }
 
   if (layers.length === 0) {
     return (
-      <div className="p-3 text-xs text-slate-400">
+      <p style={messageStyle}>
         This PDF has no optional content layers (OCGs).
-      </div>
+      </p>
     );
   }
 
   return (
-    <div className="space-y-3 p-3 text-slate-200">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-white">Layers</h3>
-        <div className="flex gap-1">
+    <div style={containerStyle}>
+      <div style={headerRowStyle}>
+        <h3 style={headerTitleStyle}>Layers ({layers.length})</h3>
+        <div style={headerActionsStyle}>
           <button
+            type="button"
             onClick={() => onSetAllLayers(true)}
-            className="rounded border border-white/10 px-2 py-0.5 text-xs text-slate-300 hover:bg-slate-800"
+            style={allButtonStyle}
+            title="Show every layer"
           >
-            All On
+            All on
           </button>
           <button
+            type="button"
             onClick={() => onSetAllLayers(false)}
-            className="rounded border border-white/10 px-2 py-0.5 text-xs text-slate-300 hover:bg-slate-800"
+            style={allButtonStyle}
+            title="Hide every layer"
           >
-            All Off
+            All off
           </button>
         </div>
       </div>
 
-      <div className="space-y-1">
+      <div style={layerListStyle}>
         {layers.map((layer) => (
           <label
             key={layer.ocg_index}
-            className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-slate-200 hover:bg-slate-800"
+            style={layerRowStyle}
+            title={`Toggle "${layer.name}"`}
           >
             <input
               type="checkbox"
               checked={enabledLayers.has(layer.ocg_index)}
               onChange={() => onToggleLayer(layer.ocg_index)}
-              className="rounded border-white/10"
             />
-            <span className="truncate text-xs">{layer.name}</span>
+            <span style={layerNameStyle}>{layer.name}</span>
           </label>
         ))}
       </div>
