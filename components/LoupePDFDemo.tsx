@@ -496,9 +496,11 @@ export function LoupePDFDemo({
   const [preparing, setPreparing] = useState(false);
 
   // Reactive: re-render every time the services notify a new tile / channel
-  // / heatmap is ready. PageCanvas / SeparationCanvas / TACHeatmapOverlay
-  // re-read the synchronous URL builders and pick up the fresh blob URL.
-  useBrowserViewerServicesVersion(browserServices);
+  // / heatmap / annotation has landed. PageCanvas / SeparationCanvas /
+  // TACHeatmapOverlay re-read the synchronous URL builders and pick up the
+  // fresh blob URL. AnnotationThread reads it as `refreshKey` so the
+  // sidebar list re-fetches after AnnotationCanvas persists a drawing.
+  const servicesVersion = useBrowserViewerServicesVersion(browserServices);
 
   // Build / dispose services whenever the PDF URL changes.
   useEffect(() => {
@@ -1278,6 +1280,7 @@ export function LoupePDFDemo({
                     jobId="loupe-pdf-demo"
                     currentUserEmail="you@browser.local"
                     onJumpToPage={(p) => setCurrentPage(p)}
+                    refreshKey={servicesVersion}
                   />
                 </>
               )}

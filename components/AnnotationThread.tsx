@@ -14,6 +14,14 @@ interface AnnotationThreadProps {
   jobId: string;
   currentUserEmail?: string;
   onJumpToPage?: (pageNum: number) => void;
+  /**
+   * Bumped by the host whenever a fresh annotation has been
+   * persisted by `<AnnotationCanvas>` so the thread re-reads
+   * `annotationService.list()`. With browser-only services this is
+   * the version tick from {@link useBrowserViewerServicesVersion};
+   * with a wired backend hosts can reuse any monotonic counter.
+   */
+  refreshKey?: number;
 }
 
 const containerStyle: CSSProperties = {
@@ -113,6 +121,7 @@ export function AnnotationThread({
   jobId: _jobId,
   currentUserEmail,
   onJumpToPage,
+  refreshKey,
 }: AnnotationThreadProps) {
   const { readOnly, debug } = useViewerHost();
   const { annotations: annotationService } = useViewerServices();
@@ -135,7 +144,7 @@ export function AnnotationThread({
       return;
     }
     load();
-  }, [load, hidden, debug]);
+  }, [load, hidden, debug, refreshKey]);
 
   const handleDelete = useCallback(
     async (annotationId: string) => {

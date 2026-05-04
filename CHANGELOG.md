@@ -8,6 +8,21 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 _Nothing yet._
 
+## [0.3.0-beta.17] — 2026-05-04
+
+### Fixed
+- **Annotation list never updated after a drawing was saved** —
+  `AnnotationThread` only loaded `annotationService.list()` once on
+  mount, so even though `<AnnotationCanvas>` was correctly
+  persisting fabric JSON via `saveForPage` and the browser service
+  was firing `notify()`, the sidebar list stayed stuck on
+  "No annotations yet." Added a `refreshKey?: number` prop on
+  `<AnnotationThread>` (covered as a `useEffect` dependency) and
+  wired it up in `<LoupePDFDemo>` to the version tick from
+  `useBrowserViewerServicesVersion`. Hosts using a wired backend
+  can pass any monotonic counter — when annotations land, bump it
+  and the thread re-fetches.
+
 ## [0.3.0-beta.16] — 2026-05-04
 
 ### Fixed
