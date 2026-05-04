@@ -1,0 +1,25 @@
+{
+  "name": "loupe-pdf-server",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Reference HTTP backend for LoupePDF — provides ink separations, densitometer, TAC heatmap, color sampling via Ghostscript.",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx --watch src/index.ts",
+    "start": "node dist/index.js",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "morgan": "^1.10.0",
+    "sharp": "^0.33.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/morgan": "^1.9.9",
+    "@types/node": "^22.7.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0"
+  }
+}

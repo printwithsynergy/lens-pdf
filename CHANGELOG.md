@@ -7,6 +7,12 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Reference server**: optional Node + Ghostscript backend under `server/`.
+  Exposes the HTTP contract that `services.separations` /
+  `services.densitometer` / `services.tacHeatmap` /
+  `services.colorSample` / `services.pageImages` map onto. Driven by
+  Ghostscript's `tiffsep` device for real CMYK + spot-ink rendering.
+  Dockerfile and deploy notes included.
 - **Capability detection**: `markUnwired` / `isUnwired` helpers on every
   no-op default service, plus a `useFallbackMode(service)` hook returning
   `"wired" | "fallback" | "hidden"`. Components self-hide when their

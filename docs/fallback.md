@@ -99,6 +99,12 @@ can produce. pdf.js renders to RGB; there's no path to reconstruct CMYK
 from the resulting raster. Those components stay hidden when their
 dedicated services are unwired, fallback or no fallback.
 
+For the preflight-grade tools, deploy the optional reference server
+under [`server/`](https://github.com/Printwithsynergy/loupe-pdf/tree/main/server)
+or wire `services.separations` / `services.densitometer` /
+`services.tacHeatmap` to your own backend. See
+[server.md](./server.md) for the contract and a wiring example.
+
 ### Debug logging
 
 Set `debug: true` on the host context (typically `import.meta.env.DEV` or

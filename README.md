@@ -115,6 +115,22 @@ cd demo && npm install && npm run dev
 
 See [demo/README.md](./demo/README.md) for the smoke-check checklist.
 
+## Optional reference server
+
+For preflight-grade ink separations, densitometer readings, and TAC
+heatmap, deploy the small Node + Ghostscript service in
+[`server/`](./server). Wire its endpoints into your `ViewerServices`
+and the corresponding components light up. The pdf.js fallback covers
+everything else; the reference server covers what pdf.js can't.
+
+```sh
+cd server && docker build -t loupe-pdf-server .
+docker run -p 3000:3000 -v loupe-jobs:/var/lib/loupe-pdf/jobs loupe-pdf-server
+```
+
+See [docs/server.md](./docs/server.md) for the HTTP contract,
+deployment notes, and security caveats.
+
 ## Documentation
 
 | Topic | Doc |
@@ -122,6 +138,7 @@ See [demo/README.md](./demo/README.md) for the smoke-check checklist.
 | How the contexts, components, and plugins fit together | [docs/architecture.md](./docs/architecture.md) |
 | Wiring `ViewerServices` (page images, layers, separations, TAC, color, densitometer, annotations, reports) | [docs/services.md](./docs/services.md) |
 | Capability detection, debug logging, and the in-browser PDF fallback | [docs/fallback.md](./docs/fallback.md) |
+| Optional Node + Ghostscript backend for preflight-grade tools | [docs/server.md](./docs/server.md) |
 | Per-component props and usage | [docs/components.md](./docs/components.md) |
 | Plugin slots, registration, and the `replaces` mechanism | [docs/plugins.md](./docs/plugins.md) |
 | Built-in `MeasurementUnit`s + custom-unit Protocol | [docs/measurement-units.md](./docs/measurement-units.md) |

@@ -128,12 +128,19 @@ process ink (`"Cyan"`, `"Magenta"`, `"Yellow"`, `"Black"`) or a spot ink
 (`"Pantone Reflex Blue C"`, etc.). Your service is responsible for
 percent-encoding the channel name in whatever URL it returns.
 
+> Real ink separations require a server-side renderer (Ghostscript,
+> MuPDF, etc.) — the in-browser pdf.js fallback can't produce them.
+> See [server.md](./server.md) for a deployable reference.
+
 ### `tacHeatmap`
 
 `getHeatmapImageUrl` returns a per-pixel RGBA tint over the page.
 `listRuns` returns per-text-run TAC readings used for the hover-tooltip
 layer. Run coordinates use a **top-left origin** to match poppler's
 `pdftotext -bbox` output (the rest of the API uses lower-left).
+
+> Like `separations`, the heatmap is computed from per-ink rasters and
+> is server-side only. See [server.md](./server.md).
 
 ### `colorSample`
 
@@ -150,6 +157,8 @@ Distinct error messages your `sampleAt` can throw to drive the tool's UI:
 - `"Network error"` — fetch rejected.
 
 The tool reads `Error.message` verbatim — keep messages user-facing.
+
+> Server-side only — see [server.md](./server.md).
 
 ### `annotations`
 

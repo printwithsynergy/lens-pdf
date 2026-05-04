@@ -46,7 +46,8 @@
         { "title": "Component reference", "href": "/docs/components" },
         { "title": "Plugin model", "href": "/docs/plugins" },
         { "title": "Measurement units", "href": "/docs/measurement-units" },
-        { "title": "Theme, i18n, telemetry, read-only mode", "href": "/docs/theming" }
+        { "title": "Theme, i18n, telemetry, read-only mode", "href": "/docs/theming" },
+        { "title": "Reference server", "href": "/docs/server" }
       ]
     },
     {

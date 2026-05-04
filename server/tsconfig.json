@@ -3,17 +3,17 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "jsx": "preserve",
+    "lib": ["ES2022"],
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
     "forceConsistentCasingInFileNames": true,
-    "declaration": true
+    "declaration": false,
+    "sourceMap": true
   },
-  "include": ["index.ts", "components", "host", "plugin", "types", "units"],
-  "exclude": ["node_modules", "dist", "demo", "server", "**/*.test.ts", "**/*.test.tsx"]
+  "include": ["src"]
 }
