@@ -1,0 +1,72 @@
+CHANGELOG.md
+  h_c7de008b7ad428 11-50
+host/LoupePDFProvider.tsx
+  8b22daee3a953e0a 1-47
+docs/architecture.md
+  h_c7de008b7ad428 55-57,59-60
+docs/theming.md
+  h_c7de008b7ad428 42-58
+host/index.ts
+  h_c7de008b7ad428 235-247,250-261
+package.json
+  h_c7de008b7ad428 3,63-72
+docs/services.md
+  h_c7de008b7ad428 17-41
+docs/fallback.md
+  h_c7de008b7ad428 31-39
+docs/share-links.md
+  8b22daee3a953e0a 1-111
+docs/loupe-pdf-viewer.md
+  h_c7de008b7ad428 49-51,74-98,107-114
+components/LoupePDFViewer.tsx
+  h_c7de008b7ad428 38-58,78-89
+plugin/services.ts
+  h_c7de008b7ad428 382-395
+plugin/index.ts
+  h_c7de008b7ad428 37
+host/useLoupePDF.ts
+  8b22daee3a953e0a 1-308
+docs/components.md
+  h_c7de008b7ad428 15,23-69
+host/pdfValidation.ts
+  8b22daee3a953e0a 1-95
+types/index.ts
+  h_c7de008b7ad428 39-62
+host/shareLink.ts
+  8b22daee3a953e0a 1-165
+index.ts
+  h_c7de008b7ad428 23-46,59
+docs/validation.md
+  8b22daee3a953e0a 1-83
+components/LoupePDFDemo.tsx
+  8b22daee3a953e0a 1-689
+components/index.ts
+  h_c7de008b7ad428 19
+README.md
+  h_c7de008b7ad428 65,67-73,76-87,89,92,96-114,116-123,125-149,152,154-160,209-210
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "1995df1079032b6c72bcd46b73f3e6dff60698a4",
+  "prompts": {
+    "8b22daee3a953e0a": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "124be9b1-c653-4034-99c0-ef0f1411ef7b",
+        "model": "Claude Opus 4.6 Thinking"
+      },
+      "human_author": "Quincy Adams",
+      "messages": [],
+      "total_additions": 1498,
+      "total_deletions": 0,
+      "accepted_lines": 1498,
+      "overriden_lines": 0
+    }
+  },
+  "humans": {
+    "h_c7de008b7ad428": {
+      "author": "Quincy Adams"
+    }
+  }
+}
