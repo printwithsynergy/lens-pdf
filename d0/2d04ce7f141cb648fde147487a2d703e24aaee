@@ -1,0 +1,12 @@
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "d02d04ce7f141cb648fde147487a2d703e24aaee",
+  "prompts": {},
+  "humans": {
+    "h_c7de008b7ad428": {
+      "author": "Quincy Adams"
+    }
+  }
+}
