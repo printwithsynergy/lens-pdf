@@ -34,13 +34,14 @@
     {
       "group": "Getting started",
       "pages": [
-        { "title": "Overview", "href": "/" }
+        { "title": "Overview", "href": "/" },
+        { "title": "Architecture", "href": "/docs/architecture" },
+        { "title": "LoupePDFViewer (one-line viewer)", "href": "/docs/loupe-pdf-viewer" }
       ]
     },
     {
       "group": "Reference",
       "pages": [
-        { "title": "Architecture", "href": "/docs/architecture" },
         { "title": "Wiring ViewerServices", "href": "/docs/services" },
         { "title": "Fallback & capability detection", "href": "/docs/fallback" },
         { "title": "Component reference", "href": "/docs/components" },

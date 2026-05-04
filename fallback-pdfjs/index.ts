@@ -1,15 +1,24 @@
 /**
- * In-browser PDF fallback adapter built on pdf.js.
+ * `@printwithsynergy/loupe-pdf/fallback-pdfjs`
  *
- * Provides "minimum data" for the fallback-capable tools (PageCanvas,
- * PageNavigator, MeasureTool, LayerPanel, ColorPickerTool) when a host
- * hasn't wired richer services. Hosts pass the returned adapter as
- * ``pdfFallback`` on the host context.
+ * In-browser PDF fallback adapter built on pdf.js. Provides "minimum
+ * data" (page count, dimensions, page rasters, OCG layers, RGB color
+ * sampling) for the fallback-capable tools when a host hasn't wired
+ * richer services.
  *
- * pdf.js is loaded lazily via dynamic ``import("pdfjs-dist")`` so it
- * stays out of the bundle for hosts that don't use this fallback. Add
- * ``pdfjs-dist`` to your app's dependencies (it's an optional peer dep
- * of ``@printwithsynergy/loupe-pdf``).
+ * Distinct from the deprecated `createPdfJsFallback` re-export in
+ * `/host`: this subpath imports `pdfjs-dist` statically, so bundlers
+ * trace it correctly without the host having to side-effect-import
+ * the dep themselves. Hosts that never use the fallback never import
+ * this subpath and never pay the bundle cost.
+ *
+ * ```ts
+ * import { createPdfJsFallback } from "@printwithsynergy/loupe-pdf/fallback-pdfjs";
+ * const fallback = createPdfJsFallback({ pdfUrl: "/proofs/abc.pdf" });
+ * ```
+ *
+ * Usually you don't import this directly — `<LoupePDFViewer>` uses
+ * it internally and is the one-liner most hosts want.
  *
  * **Security**: this adapter fetches whatever URL the host hands it.
  * Sign / scope / expire the URL the same way you would any other PDF
@@ -19,75 +28,49 @@
  * @public
  */
 
+import * as pdfjs from "pdfjs-dist";
 import type { ColorSample } from "../types";
 import type { PdfFallbackAdapter } from "../plugin/services";
 
-interface PdfJsLoader {
-  // Minimal subset of the pdf.js v4 API we touch. Typed as `any` to
-  // avoid pulling pdfjs-dist's types into core's dep tree.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  getDocument(args: { url: string }): { promise: Promise<any> };
-  GlobalWorkerOptions: { workerSrc: string };
-}
-
-interface PdfJsModule {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  default?: PdfJsLoader & Record<string, any>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any;
-}
-
-async function loadPdfJs(): Promise<PdfJsLoader> {
-  // Dynamic import keeps pdfjs-dist out of the bundle for hosts that
-  // don't use the fallback. The string literal is split so bundlers
-  // that try to statically resolve the spec don't fail loudly when
-  // pdfjs-dist isn't installed.
-  const spec = "pdfjs" + "-dist";
-  let mod: PdfJsModule;
-  try {
-    mod = (await import(/* @vite-ignore */ spec)) as PdfJsModule;
-  } catch (err) {
-    throw new Error(
-      "[loupe-pdf] createPdfJsFallback requires `pdfjs-dist` to be installed. " +
-        "Add it to your app's dependencies, or omit `pdfFallback` from the host context.",
-      { cause: err },
-    );
-  }
-  const api = (mod.default ?? mod) as PdfJsLoader;
-  if (!api.getDocument) {
-    throw new Error("[loupe-pdf] Loaded `pdfjs-dist` does not expose getDocument.");
-  }
-  return api;
-}
+/**
+ * Default URL for the pdf.js worker, served via unpkg pinned to the
+ * exact `pdfjs-dist` version this package was built against. Hosts
+ * that don't want a runtime CDN dep can override via the
+ * `workerSrc` option, set `pdfjs.GlobalWorkerOptions.workerSrc`
+ * directly before constructing the adapter, or self-host the file.
+ *
+ * @public
+ */
+export const defaultPdfWorkerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 interface PdfJsFallbackOptions {
   /** Raw PDF URL. Must be reachable from the user's browser. */
   pdfUrl: string;
   /**
-   * Optional override for the pdf.js worker URL. When omitted, the
-   * adapter assumes the bundler / host has already configured
-   * ``GlobalWorkerOptions.workerSrc``.
+   * Optional override for the pdf.js worker URL. Default:
+   * {@link defaultPdfWorkerSrc}, an unpkg URL pinned to the bundled
+   * pdfjs-dist version.
    */
   workerSrc?: string;
 }
 
+const sampleCanvases = new Map<string, HTMLCanvasElement>();
+
 /**
  * Build a {@link PdfFallbackAdapter} backed by pdf.js. The returned
- * adapter caches the parsed document and per-page rasters so repeated
- * calls don't re-parse or re-render.
- *
- * @deprecated Use ``createPdfJsFallback`` from
- *   ``@printwithsynergy/loupe-pdf/fallback-pdfjs`` instead. The
- *   subpath imports pdfjs-dist statically so bundlers trace it
- *   correctly without consumers having to side-effect-import the
- *   dep. This `/host` export uses a dynamic ``await import("...")``
- *   that bundlers don't trace; works at runtime only when
- *   pdfjs-dist is also installed and resolvable from the consuming
- *   app's module graph. New code should not use this entry point.
+ * adapter caches the parsed document and per-page rasters so
+ * repeated calls don't re-parse or re-render.
  *
  * @public
  */
 export function createPdfJsFallback(opts: PdfJsFallbackOptions): PdfFallbackAdapter {
+  // Configure the worker once. Idempotent — repeated calls with the
+  // same value are no-ops.
+  const workerSrc = opts.workerSrc ?? defaultPdfWorkerSrc;
+  if (pdfjs.GlobalWorkerOptions.workerSrc !== workerSrc) {
+    pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let docPromise: Promise<any> | null = null;
   const renderCache = new Map<string, string>();
@@ -95,11 +78,7 @@ export function createPdfJsFallback(opts: PdfJsFallbackOptions): PdfFallbackAdap
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async function getDoc(): Promise<any> {
     if (!docPromise) {
-      docPromise = (async () => {
-        const api = await loadPdfJs();
-        if (opts.workerSrc) api.GlobalWorkerOptions.workerSrc = opts.workerSrc;
-        return api.getDocument({ url: opts.pdfUrl }).promise;
-      })();
+      docPromise = pdfjs.getDocument({ url: opts.pdfUrl }).promise;
     }
     return docPromise;
   }
@@ -208,5 +187,3 @@ export function createPdfJsFallback(opts: PdfJsFallbackOptions): PdfFallbackAdap
     },
   };
 }
-
-const sampleCanvases = new Map<string, HTMLCanvasElement>();

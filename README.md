@@ -54,76 +54,40 @@ Peer dependencies you provide in your host app:
 npm install react react-dom
 # Optional — only if you mount AnnotationCanvas / AnnotationThread:
 npm install fabric
-# Optional — only if you wire the in-browser PDF fallback (see docs/fallback.md):
-npm install pdfjs-dist
 ```
 
-Requires `react@^19` and `react-dom@^19`. `fabric@^6` and `pdfjs-dist@^4` are
-optional peers used by the annotation components and the pdf.js fallback
-adapter respectively. The package ships ESM only.
+Requires `react@^19` and `react-dom@^19`. `fabric@^6` is an optional peer
+used by the annotation components. `pdfjs-dist@^4` is now a regular
+dependency — it comes along automatically and is loaded by the
+in-browser fallback adapter at `/fallback-pdfjs`. The package ships ESM
+only.
 
 ## Quick start
 
-A single-page viewer with a zoom control and a tile canvas.
-`ZoomControls` exposes zoom as a percentage (`100`); `PageCanvas` expects a
-multiplier (`1.0`). Convert at the boundary as shown.
-
 ```tsx
-import { useState } from "react";
-import {
-  PageCanvas,
-  ZoomControls,
-} from "@printwithsynergy/loupe-pdf/components";
-import {
-  ViewerHostContext,
-  ViewerServicesContext,
-} from "@printwithsynergy/loupe-pdf/host";
-import type { ViewerServices } from "@printwithsynergy/loupe-pdf/plugin";
-import type { PageInfo } from "@printwithsynergy/loupe-pdf/types";
-
-const services = {
-  pageImages: {
-    getPageImageUrl: ({ pageNum, dpi }) =>
-      `/api/pdf/${pageNum}.png?dpi=${dpi}`,
-  },
-} as ViewerServices;
-
-const page: PageInfo = {
-  page_num: 1,
-  width_pts: 612,
-  height_pts: 792,
-  media_box: { x0: 0, y0: 0, x1: 612, y1: 792 },
-  crop_box: null,
-  trim_box: null,
-  bleed_box: null,
-  rotation: 0,
-};
+import { LoupePDFViewer } from "@printwithsynergy/loupe-pdf";
 
 export function MyViewer() {
-  const [zoom, setZoom] = useState(100);
-  return (
-    <ViewerHostContext.Provider
-      value={{ apiBase: "/api/pdf", jobApiBase: "/api/pdf", readOnly: false }}
-    >
-      <ViewerServicesContext.Provider value={services}>
-        <ZoomControls zoom={zoom} onZoomChange={setZoom} />
-        <PageCanvas
-          jobId="demo"
-          page={page}
-          zoom={zoom / 100}
-          items={[]}
-          selectedItem={null}
-          onItemClick={() => {}}
-        />
-      </ViewerServicesContext.Provider>
-    </ViewerHostContext.Provider>
-  );
+  return <LoupePDFViewer pdfUrl="https://example.com/file.pdf" />;
 }
 ```
 
-That's enough to render a page tile. From here, wire whichever
-`ViewerServices` fields your host supports and mount more components — see
-the docs below for everything else.
+That's the whole thing. `<LoupePDFViewer>` auto-discovers page count,
+dimensions, and OCG layers from the PDF; renders all pages in a
+scrollable list (or one at a time with `mode="single"`); ships a
+responsive default toolbar with zoom, layers, color picker, and measure
+tool; reflows to a bottom-drawer layout under 768 px wide.
+
+For more control, swap `<LoupePDFViewer>` for the lower-level surface
+(`PageCanvas`, `LayerPanel`, `MeasureTool`, etc.) and wire your own
+`ViewerHostContext` + `ViewerServicesContext` providers — every
+individual component remains exported and unchanged.
+
+For preflight-grade tools (real ink separations, densitometer, TAC
+heatmap), pass a `services` prop wired to your backend; the matching
+components auto-mount when their service is wired. See
+[docs/services.md](./docs/services.md) and the optional reference
+server below.
 
 ## Demo
 
@@ -157,6 +121,7 @@ deployment notes, and security caveats.
 
 | Topic | Doc |
 | --- | --- |
+| The one-line `<LoupePDFViewer>` composition | [docs/loupe-pdf-viewer.md](./docs/loupe-pdf-viewer.md) |
 | How the contexts, components, and plugins fit together | [docs/architecture.md](./docs/architecture.md) |
 | Wiring `ViewerServices` (page images, layers, separations, TAC, color, densitometer, annotations, reports) | [docs/services.md](./docs/services.md) |
 | Capability detection, debug logging, and the in-browser PDF fallback | [docs/fallback.md](./docs/fallback.md) |

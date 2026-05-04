@@ -29,6 +29,11 @@ export { DensitometerTool } from "./components/DensitometerTool";
 export { DielineOverlay } from "./components/DielineOverlay";
 export { LayerCanvas } from "./components/LayerCanvas";
 export { LayerPanel } from "./components/LayerPanel";
+export { LoupePDFViewer } from "./components/LoupePDFViewer";
+export type {
+  LoupePDFViewerProps,
+  LoupePDFViewerTool,
+} from "./components/LoupePDFViewer";
 export { MeasureTool } from "./components/MeasureTool";
 export { MobileBottomSheet } from "./components/MobileBottomSheet";
 export { MobileDrawer } from "./components/MobileDrawer";

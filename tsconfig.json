@@ -14,6 +14,6 @@
     "forceConsistentCasingInFileNames": true,
     "declaration": true
   },
-  "include": ["index.ts", "components", "host", "plugin", "types", "units"],
+  "include": ["index.ts", "components", "fallback-pdfjs", "host", "plugin", "types", "units"],
   "exclude": ["node_modules", "dist", "demo", "server", "**/*.test.ts", "**/*.test.tsx"]
 }
