@@ -8,6 +8,18 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 _Nothing yet._
 
+## [0.3.0-beta.13] — 2026-05-04
+
+### Changed
+- **Tool labels** — sidebar entries renamed from "Color picker (RGB
+  + TAC)" / "Densitometer (CMYK)" to "Color picker" / "Densitometer".
+  Both tools work on every detected ink (CMYK + spots) so the
+  parenthetical limitation was misleading.
+- **Tool swatches** — added inline colour swatches next to each
+  tool name. Color picker shows a rainbow conic ring (samples any
+  colour); densitometer shows a CMYK quadrant chip (process + spot
+  density readout).
+
 ## [0.3.0-beta.12] — 2026-05-04
 
 ### Changed

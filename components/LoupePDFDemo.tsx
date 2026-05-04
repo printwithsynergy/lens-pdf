@@ -20,8 +20,8 @@
  * ships works on any PDF the browser can fetch:
  *
  *   - PageCanvas + multi-page navigation + multi-DPI tile cache
- *   - Color picker (RGB + TAC, CMYK + every detected spot ink)
- *   - Densitometer (CMYK + spots + TAC limit)
+ *   - Color picker (RGB + CMYK + every detected spot ink + TAC)
+ *   - Densitometer (CMYK + every detected spot ink + TAC limit)
  *   - Measure tool (mm / in / pt)
  *   - TAC heatmap overlay (CMYK + spots)
  *   - Per-ink CMYK + spot separations preview (inks default ON,
@@ -273,18 +273,71 @@ function ToolRadio({
   label,
   active,
   onToggle,
+  swatch,
 }: {
   label: string;
   active: boolean;
   onToggle: () => void;
+  swatch?: ReactNode;
 }) {
   return (
     <label style={rowStyle}>
       <input type="radio" checked={active} onChange={onToggle} />
+      {swatch ? (
+        <span
+          aria-hidden
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 14,
+            height: 14,
+            flex: "0 0 auto",
+          }}
+        >
+          {swatch}
+        </span>
+      ) : null}
       <span>{label}</span>
     </label>
   );
 }
+
+/** Rainbow ring — represents "samples any colour". */
+const COLOR_PICKER_SWATCH = (
+  <span
+    style={{
+      display: "block",
+      width: 14,
+      height: 14,
+      borderRadius: "50%",
+      background:
+        "conic-gradient(#ef4444, #f59e0b, #eab308, #22c55e, #06b6d4, #3b82f6, #8b5cf6, #ec4899, #ef4444)",
+      boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.25)",
+    }}
+  />
+);
+
+/** CMYK quadrant — represents process + spot density. */
+const DENSITOMETER_SWATCH = (
+  <span
+    style={{
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gridTemplateRows: "1fr 1fr",
+      width: 14,
+      height: 14,
+      borderRadius: 2,
+      overflow: "hidden",
+      boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.25)",
+    }}
+  >
+    <span style={{ background: "#00aeef" }} />
+    <span style={{ background: "#ec008c" }} />
+    <span style={{ background: "#fff200" }} />
+    <span style={{ background: "#000000" }} />
+  </span>
+);
 
 // ---------------------------------------------------------------------------
 // Main component
@@ -1002,7 +1055,8 @@ export function LoupePDFDemo({
                 showHeatmapToggle) && <h2 style={headingStyle}>Tools</h2>}
               {showColorPicker && (
                 <ToolRadio
-                  label="Color picker (RGB + TAC)"
+                  label="Color picker"
+                  swatch={COLOR_PICKER_SWATCH}
                   active={activeTool === "color-picker"}
                   onToggle={() =>
                     setActiveTool((t) =>
@@ -1013,7 +1067,8 @@ export function LoupePDFDemo({
               )}
               {showDensitometer && (
                 <ToolRadio
-                  label="Densitometer (CMYK)"
+                  label="Densitometer"
+                  swatch={DENSITOMETER_SWATCH}
                   active={activeTool === "densitometer"}
                   onToggle={() =>
                     setActiveTool((t) =>
