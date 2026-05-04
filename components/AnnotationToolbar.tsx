@@ -1,20 +1,22 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import { createPortal } from "react-dom";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 
 /**
  * Annotation tools the toolbar can put into "active" mode. Each
- * value maps 1:1 to a render branch in {@link AnnotationCanvas}:
+ * value maps 1:1 to a render branch in {@link AnnotationCanvas}.
  *
- *   - `pointer`   — select / move existing objects
- *   - `pen`       — free-hand fabric brush
- *   - `arrow`     — line + arrowhead grouped on mouse-up
- *   - `rectangle` — outlined rect dragged from corner to corner
- *   - `ellipse`   — outlined ellipse inscribed in the drag box
- *   - `text`      — IText click-to-place, edit-on-create
- *   - `highlight` — semi-transparent filled rect (hue from `strokeColor`)
- *   - `sticky`    — sticky-note card: tinted Textbox dropped at click
- *                  point, immediately enters editing mode
+ * Pen is listed first so the leftmost tool draws immediately; Select
+ * only affects annotations you've already placed (empty canvas =
+ * nothing to grab — not broken).
  *
  * @public
  */
@@ -38,67 +40,83 @@ interface AnnotationToolbarProps {
   canUndo: boolean;
   canRedo: boolean;
   saving: boolean;
-  /** Whether sticky-note annotations are currently visible. */
   stickyNotesVisible?: boolean;
-  /** Toggle sticky-note visibility (notes are not deleted, just
-   *  hidden — toggling back restores them). When omitted the
-   *  visibility button doesn't render. */
   onToggleStickyNotes?: () => void;
+}
+
+/** Mouse-pointer silhouette — reads as “select” better than a lone △. */
+function SelectToolIcon() {
+  return (
+    <svg
+      width={15}
+      height={15}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden
+    >
+      <path d="M6 3l12 8.5L13 14l2 7-7-5.5L6 21V3z" />
+    </svg>
+  );
 }
 
 const TOOLS: {
   id: AnnotationTool;
   label: string;
+  /** Short line for the hover chip; `title` fallback on narrow hosts */
   tooltip: string;
-  icon: string;
+  icon: ReactNode;
 }[] = [
-  {
-    id: "pointer",
-    label: "Select",
-    tooltip: "Select / move existing annotations (click to pick, drag to move)",
-    icon: "\u25B3",
-  },
   {
     id: "pen",
     label: "Pen",
-    tooltip: "Free-hand pen — draw freely with the active colour",
+    tooltip:
+      "Pen — click and drag to draw freehand strokes in the active colour.",
     icon: "\u270E",
+  },
+  {
+    id: "pointer",
+    label: "Select & move",
+    tooltip:
+      "Select — click a stroke, shape, text box, or sticky note you added, then drag to move or resize. Does nothing on empty artwork until you draw something else first.",
+    icon: <SelectToolIcon />,
   },
   {
     id: "arrow",
     label: "Arrow",
-    tooltip: "Arrow — drag from start to end to draw a line + arrowhead",
+    tooltip:
+      "Arrow — press, drag, release to draw a line with an arrowhead at the end.",
     icon: "\u2192",
   },
   {
     id: "rectangle",
     label: "Rectangle",
-    tooltip: "Rectangle — drag to draw an outlined box",
+    tooltip: "Rectangle — drag diagonally to draw an outlined rectangle.",
     icon: "\u25A1",
   },
   {
     id: "ellipse",
     label: "Ellipse",
-    tooltip: "Ellipse — drag to draw an outlined oval / circle",
+    tooltip: "Ellipse — drag diagonally to draw an outlined ellipse or circle.",
     icon: "\u25CB",
   },
   {
     id: "text",
     label: "Text",
-    tooltip: "Text — click to drop an editable text label",
+    tooltip: "Text — click once to place an editable text label.",
     icon: "T",
   },
   {
     id: "highlight",
     label: "Highlight",
     tooltip:
-      "Highlight — drag to draw a semi-transparent fill in the active colour",
+      "Highlight — drag diagonally to fill a translucent rectangle (uses active colour).",
     icon: "\u2588",
   },
   {
     id: "sticky",
     label: "Sticky note",
-    tooltip: "Sticky note — click to drop an editable tinted note card",
+    tooltip:
+      "Sticky note — click to drop an opaque note card; double-click the text to edit.",
     icon: "\u25A4",
   },
 ];
@@ -128,6 +146,7 @@ const wrapperStyle: CSSProperties = {
   fontSize: 13,
   boxShadow: "0 6px 18px rgba(0, 0, 0, 0.45)",
   flexWrap: "wrap",
+  position: "relative",
 };
 
 function toolButtonStyle(active: boolean): CSSProperties {
@@ -205,11 +224,28 @@ const customColorInputStyle: CSSProperties = {
   marginLeft: 2,
 };
 
+const floatingTipStyle: CSSProperties = {
+  position: "fixed",
+  zIndex: 10000,
+  maxWidth: 280,
+  padding: "8px 10px",
+  borderRadius: 6,
+  fontSize: 12,
+  lineHeight: 1.4,
+  fontWeight: 500,
+  color: "#f1f5f9",
+  background: "rgba(15, 12, 25, 0.98)",
+  border: "1px solid rgba(255,255,255,0.12)",
+  boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+  pointerEvents: "none",
+  textAlign: "left",
+};
+
 /**
  * Self-styled annotation toolbar — works in any host with no Tailwind
- * config required. Styles are inlined so it renders correctly even
- * when the embedding application doesn't define shadcn-style CSS
- * variables.
+ * config required. Shows a visible floating tooltip on hover / focus
+ * (not only the native `title` attribute) so touch and fast users
+ * still discover what each control does.
  *
  * @public
  */
@@ -226,8 +262,71 @@ export function AnnotationToolbar({
   stickyNotesVisible = true,
   onToggleStickyNotes,
 }: AnnotationToolbarProps) {
+  const [tip, setTip] = useState<{
+    text: string;
+    left: number;
+    top: number;
+  } | null>(null);
+  const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearLeaveTimer = useCallback(() => {
+    if (leaveTimer.current) {
+      clearTimeout(leaveTimer.current);
+      leaveTimer.current = null;
+    }
+  }, []);
+
+  const showTip = useCallback(
+    (text: string, el: HTMLElement) => {
+      clearLeaveTimer();
+      const r = el.getBoundingClientRect();
+      setTip({
+        text,
+        left: r.left + r.width / 2,
+        top: r.top,
+      });
+    },
+    [clearLeaveTimer],
+  );
+
+  const hideTipDelayed = useCallback(() => {
+    clearLeaveTimer();
+    leaveTimer.current = setTimeout(() => setTip(null), 120);
+  }, [clearLeaveTimer]);
+
+  const hideTip = useCallback(() => {
+    clearLeaveTimer();
+    setTip(null);
+  }, [clearLeaveTimer]);
+
+  useEffect(
+    () => () => {
+      clearLeaveTimer();
+    },
+    [clearLeaveTimer],
+  );
+
+  const tipNode =
+    tip &&
+    typeof document !== "undefined" &&
+    createPortal(
+      <div
+        style={{
+          ...floatingTipStyle,
+          left: tip.left,
+          top: tip.top,
+          transform: "translate(-50%, calc(-100% - 6px))",
+        }}
+        role="tooltip"
+      >
+        {tip.text}
+      </div>,
+      document.body,
+    );
+
   return (
     <div style={wrapperStyle}>
+      {tipNode}
       {TOOLS.map((tool) => (
         <button
           key={tool.id}
@@ -237,6 +336,10 @@ export function AnnotationToolbar({
           title={tool.tooltip}
           aria-label={tool.label}
           aria-pressed={activeTool === tool.id}
+          onMouseEnter={(e) => showTip(tool.tooltip, e.currentTarget)}
+          onMouseLeave={hideTipDelayed}
+          onFocus={(e) => showTip(tool.tooltip, e.currentTarget)}
+          onBlur={hideTip}
         >
           {tool.icon}
         </button>
@@ -250,8 +353,22 @@ export function AnnotationToolbar({
           type="button"
           onClick={() => onStrokeColorChange(color)}
           style={swatchStyle(color, strokeColor.toLowerCase() === color)}
-          title={`Use ${color} as the active stroke / fill colour`}
-          aria-label={`Use color ${color}`}
+          title={`${color} — click to use as stroke / fill colour`}
+          aria-label={`Use colour ${color}`}
+          onMouseEnter={(e) =>
+            showTip(
+              `Stroke / fill: ${color} — click to make it the active colour for pen, shapes, and notes.`,
+              e.currentTarget,
+            )
+          }
+          onMouseLeave={hideTipDelayed}
+          onFocus={(e) =>
+            showTip(
+              `Stroke / fill: ${color} — click to make it the active colour for pen, shapes, and notes.`,
+              e.currentTarget,
+            )
+          }
+          onBlur={hideTip}
         />
       ))}
       <input
@@ -259,8 +376,22 @@ export function AnnotationToolbar({
         value={strokeColor}
         onChange={(e) => onStrokeColorChange(e.target.value)}
         style={customColorInputStyle}
-        title="Pick a custom colour from a colour wheel"
-        aria-label="Custom color"
+        title="Open the system colour picker for a custom colour"
+        aria-label="Custom colour"
+        onMouseEnter={(e) =>
+          showTip(
+            "Custom colour — opens the system colour wheel (browser / OS).",
+            e.currentTarget,
+          )
+        }
+        onMouseLeave={hideTipDelayed}
+        onFocus={(e) =>
+          showTip(
+            "Custom colour — opens the system colour wheel (browser / OS).",
+            e.currentTarget,
+          )
+        }
+        onBlur={hideTip}
       />
 
       <span style={dividerStyle} />
@@ -270,7 +401,17 @@ export function AnnotationToolbar({
         onClick={onUndo}
         disabled={!canUndo}
         style={actionButtonStyle(!canUndo)}
-        title="Undo the last annotation change"
+        title="Undo the last change to annotations on this page"
+        onMouseEnter={(e) => {
+          if (!canUndo) return;
+          showTip("Undo — step back one change (draw, move, delete, etc.).", e.currentTarget);
+        }}
+        onMouseLeave={hideTipDelayed}
+        onFocus={(e) => {
+          if (!canUndo) return;
+          showTip("Undo — step back one change (draw, move, delete, etc.).", e.currentTarget);
+        }}
+        onBlur={hideTip}
       >
         Undo
       </button>
@@ -279,7 +420,17 @@ export function AnnotationToolbar({
         onClick={onRedo}
         disabled={!canRedo}
         style={actionButtonStyle(!canRedo)}
-        title="Redo the last undone annotation change"
+        title="Redo the last change you undid"
+        onMouseEnter={(e) => {
+          if (!canRedo) return;
+          showTip("Redo — re-apply the last undone change.", e.currentTarget);
+        }}
+        onMouseLeave={hideTipDelayed}
+        onFocus={(e) => {
+          if (!canRedo) return;
+          showTip("Redo — re-apply the last undone change.", e.currentTarget);
+        }}
+        onBlur={hideTip}
       >
         Redo
       </button>
@@ -291,9 +442,27 @@ export function AnnotationToolbar({
           style={actionButtonStyle(false)}
           title={
             stickyNotesVisible
-              ? "Hide every sticky note on the page (toggle back to restore)"
-              : "Show all hidden sticky notes"
+              ? "Hide all sticky notes (they stay saved; show again when you like)"
+              : "Show all sticky notes again"
           }
+          onMouseEnter={(e) =>
+            showTip(
+              stickyNotesVisible
+                ? "Hide notes — all sticky notes disappear from view until you show them again (not deleted)."
+                : "Show notes — bring hidden sticky notes back on the page.",
+              e.currentTarget,
+            )
+          }
+          onMouseLeave={hideTipDelayed}
+          onFocus={(e) =>
+            showTip(
+              stickyNotesVisible
+                ? "Hide notes — all sticky notes disappear from view until you show them again (not deleted)."
+                : "Show notes — bring hidden sticky notes back on the page.",
+              e.currentTarget,
+            )
+          }
+          onBlur={hideTip}
           aria-pressed={!stickyNotesVisible}
         >
           {stickyNotesVisible ? "Hide notes" : "Show notes"}
@@ -304,9 +473,18 @@ export function AnnotationToolbar({
         style={savingLabelStyle}
         title={
           saving
-            ? "Persisting your annotations…"
-            : "All annotation changes are saved"
+            ? "Writing your annotations to the in-memory store…"
+            : "Last change is saved in this session (browser tab only)"
         }
+        onMouseEnter={(e) =>
+          showTip(
+            saving
+              ? "Saving — writing the canvas to the browser store…"
+              : "Saved — annotations for this page are kept in this tab until you close or reload.",
+            e.currentTarget,
+          )
+        }
+        onMouseLeave={hideTipDelayed}
       >
         {saving ? "Saving…" : "Saved"}
       </span>

@@ -481,7 +481,10 @@ export function LoupePDFDemo({
   // -----------------------------------------------------------------------
   // Annotation state
   // -----------------------------------------------------------------------
-  const [annotationTool, setAnnotationTool] = useState<AnnotationTool>("pointer");
+  // Pen first — draws immediately. Select (second in toolbar) only
+  // grabs existing annotations; defaulting to pointer felt "broken" on
+  // an empty page.
+  const [annotationTool, setAnnotationTool] = useState<AnnotationTool>("pen");
   const [strokeColor, setStrokeColor] = useState(tokens.accent);
   const [savingAnnotation, setSavingAnnotation] = useState(false);
   const [canUndo, setCanUndo] = useState(false);

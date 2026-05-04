@@ -8,6 +8,23 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 _Nothing yet._
 
+## [0.3.0-beta.20] — 2026-05-04
+
+### Added
+- **Visible annotation tooltips** — hover / keyboard focus on every
+  toolbar control opens a fixed-position tooltip chip (`role="tooltip"`)
+  near the control, not only the delayed native `title` attribute.
+  Applies to tools, colour swatches, custom-colour input, undo/redo,
+  hide-notes, and the Saved label.
+
+### Changed
+- **Toolbar tool order** — Pen is now the leftmost tool so drawing
+  works immediately; Select ("pointer") is second with a mouse-pointer
+  SVG icon and explicit copy that it only grabs annotations you've
+  already placed (empty canvas = nothing to select — not broken).
+- **Default annotation mode** — `<LoupePDFDemo>` starts with the pen
+  tool active instead of select, matching the new order.
+
 ## [0.3.0-beta.19] — 2026-05-04
 
 ### Changed
