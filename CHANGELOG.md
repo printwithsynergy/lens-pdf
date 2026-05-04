@@ -8,7 +8,21 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 _Nothing yet._
 
-## [0.3.0-beta.13] — 2026-05-04
+## [0.3.0-beta.14] — 2026-05-04
+
+### Fixed
+- **`AnnotationThread` rendered as a malformed pill** in hosts
+  without the package's Tailwind classes — empty state collapsed
+  into an oddly-shaped capsule because every layout class
+  (`flex`, `gap-2`, `p-4`, `text-slate-400`, `text-primary`,
+  `text-destructive`) silently dropped. Replaced with inline
+  styling that matches the rest of the sidebar (border, dark
+  fill, italic muted empty-state copy, scoped spinner keyframes).
+- **Nested scroll in the demo sidebar** — the annotations panel
+  wrapped `AnnotationThread` in its own `maxHeight: 200;
+  overflow-y: auto`, while the sidebar itself already scrolled.
+  Removed the inner scroll region so the thread expands inline
+  and the sidebar handles all scrolling.
 
 ### Changed
 - **Tool labels** — sidebar entries renamed from "Color picker (RGB

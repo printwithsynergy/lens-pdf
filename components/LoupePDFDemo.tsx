@@ -1273,21 +1273,11 @@ export function LoupePDFDemo({
               {showAnnotate && (
                 <>
                   <h2 style={headingStyle}>Annotations</h2>
-                  <div
-                    style={{
-                      border: `1px solid ${tokens.border}`,
-                      borderRadius: 8,
-                      padding: 6,
-                      maxHeight: 200,
-                      overflowY: "auto",
-                    }}
-                  >
-                    <AnnotationThread
-                      jobId="loupe-pdf-demo"
-                      currentUserEmail="you@browser.local"
-                      onJumpToPage={(p) => setCurrentPage(p)}
-                    />
-                  </div>
+                  <AnnotationThread
+                    jobId="loupe-pdf-demo"
+                    currentUserEmail="you@browser.local"
+                    onJumpToPage={(p) => setCurrentPage(p)}
+                  />
                 </>
               )}
 
