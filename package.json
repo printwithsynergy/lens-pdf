@@ -74,11 +74,11 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && node scripts/rename-jsx-to-js.mjs",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "prepare": "tsc -p tsconfig.build.json"
+    "prepare": "tsc -p tsconfig.build.json && node scripts/rename-jsx-to-js.mjs"
   },
   "dependencies": {
     "pdfjs-dist": "^4.0.0"
