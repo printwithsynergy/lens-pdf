@@ -1,6 +1,7 @@
 {
   "name": "@printwithsynergy/loupe-pdf",
-  "version": "0.2.0-beta.4",
+  "version": "0.2.0-beta.5",
+  "type": "module",
   "description": "LoupePDF \u2014 host-agnostic OSS PDF viewer core. Plugin-driven canvas viewer with overlay / panel / toolbar slots.",
   "license": "AGPL-3.0-or-later",
   "author": "Think Neverland LLC",
@@ -75,11 +76,11 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && node scripts/fix-import-extensions.mjs",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "prepare": "tsc -p tsconfig.build.json"
+    "prepare": "tsc -p tsconfig.build.json && node scripts/fix-import-extensions.mjs"
   },
   "dependencies": {
     "pdfjs-dist": "^4.0.0"
