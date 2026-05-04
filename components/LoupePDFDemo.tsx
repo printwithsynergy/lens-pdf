@@ -1072,8 +1072,11 @@ export function LoupePDFDemo({
                     — same UX as Acrobat&rsquo;s Output Preview.
                     {detectedInks.some((i) => i.type === "spot") && (
                       <>
-                        {" "}Spot plates are RGB-derived approximations;
-                        wire a backend for ICC-correct readings.
+                        {" "}This demo plates each ink from the RGB
+                        raster as a fallback. Wiring a backend (server
+                        prop) replaces this with true ICC-correct
+                        per-plate output for every detected CMYK + spot
+                        — no approximation.
                       </>
                     )}
                   </p>
@@ -1156,11 +1159,16 @@ export function LoupePDFDemo({
                   lineHeight: 1.5,
                 }}
               >
-                CMYK / TAC are RGB-derived approximations for showcase
-                purposes; production hosts wire a backend for
-                ICC-correct readings. Annotations live in this tab only
-                and are discarded on reload. Max upload{" "}
-                {formatMaxSize(maxFileSize)}.
+                LoupePDF supports <strong>full CMYK + spot inks</strong>
+                {" "}with no approximation when a backend (Ghostscript /
+                MuPDF + ICC profiles) is wired through the
+                {" "}<code>services</code> prop — the densitometer, TAC
+                heatmap, and color picker read true plate values
+                straight from the host. The RGB-derived path is only
+                used as the fallback when no backend data is supplied,
+                which is the mode this demo runs in. Annotations live
+                in this tab only and are discarded on reload. Max
+                upload {formatMaxSize(maxFileSize)}.
               </p>
             </aside>
           )}
