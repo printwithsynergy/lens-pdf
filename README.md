@@ -19,14 +19,8 @@ whose backing service the host hasn't wired. AGPL-3.0-or-later.
 
 ## Install
 
-LoupePDF is published to **GitHub Packages**. Add a `.npmrc` to your
-host project pointing the `@printwithsynergy` scope at the GitHub
-registry, then install:
-
-```ini
-# .npmrc
-@printwithsynergy:registry=https://npm.pkg.github.com
-```
+LoupePDF is published to the public **npm registry** under the
+`@printwithsynergy` scope.
 
 ```sh
 # stable
@@ -35,18 +29,6 @@ npm install @printwithsynergy/loupe-pdf
 # pre-release (current)
 npm install @printwithsynergy/loupe-pdf@beta
 ```
-
-GitHub Packages requires an auth token to read public packages from
-some clients — see [the GitHub docs][gh-pkg-auth] for the one-line
-`~/.npmrc` setup. CI environments can use the built-in `GITHUB_TOKEN`.
-
-You can also use a git-ref dep against this repo (no auth required):
-
-```sh
-npm install github:Printwithsynergy/loupe-pdf#main
-```
-
-[gh-pkg-auth]: https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-npm-registry#authenticating-to-github-packages
 
 Peer dependencies you provide in your host app:
 
@@ -57,10 +39,10 @@ npm install fabric
 ```
 
 Requires `react@^19` and `react-dom@^19`. `fabric@^6` is an optional peer
-used by the annotation components. `pdfjs-dist@^4` is now a regular
-dependency — it comes along automatically and is loaded by the
-in-browser fallback adapter at `/fallback-pdfjs`. The package ships ESM
-only.
+used by the annotation components. `pdfjs-dist@^4` is a regular
+dependency — it comes along automatically and powers the
+`createBrowserViewerServices` factory exposed at `/browser`. The package
+ships ESM only.
 
 ## Quick start — pick your tier
 
@@ -69,16 +51,26 @@ down only when you need more control.
 
 ### Tier 1 — Zero boilerplate demo (~5 lines)
 
-File upload, URL paste, drag-drop, validation, sidebar, fullscreen —
-all built in. Config and data, nothing else.
+Every viewer-only feature LoupePDF ships, wired to pdf.js out of the
+box: page raster (with multi-DPI zoom), color picker (RGB + TAC),
+densitometer (CMYK + TAC limit), measure tool, TAC heatmap, per-ink
+CMYK separations, layers (OCG list), and the annotation toolbar /
+canvas / thread (in-memory). Plus file upload, URL paste, drag-drop,
+validation, multi-page navigation, sidebar, and fullscreen.
 
 ```tsx
-import { LoupePDFDemo } from "@printwithsynergy/loupe-pdf/components";
+import { LoupePDFDemo } from "@printwithsynergy/loupe-pdf";
 
 export function DemoPage() {
   return <LoupePDFDemo brand="MyApp" brandLogoUrl="/logo.svg" />;
 }
 ```
+
+No backend required — the PDF never leaves the browser. Server-only
+features (HTML/PDF report exports, ICC-correct preflight separations,
+server-persisted annotations) self-hide because their dedicated
+services are intentionally `markUnwired`. Hosts with a backend pass
+`services` to override.
 
 ### Tier 2 — One-liner viewer (~5 lines)
 
@@ -159,11 +151,34 @@ import { validatePdfFile, validatePdfUrl } from "@printwithsynergy/loupe-pdf/hos
 const result = await validatePdfFile(file); // { valid: true } or { valid: false, error: "..." }
 ```
 
-For preflight-grade tools (real ink separations, densitometer, TAC
-heatmap), pass a `services` prop wired to your backend; the matching
-components auto-mount when their service is wired. See
-[docs/services.md](./docs/services.md) and the optional reference
-server below.
+### Browser-only services (full feature surface, no backend)
+
+`createBrowserViewerServices` returns a complete `ViewerServices`
+backed by pdf.js — every viewer-only feature works on any PDF the
+browser can fetch:
+
+```tsx
+import { createBrowserViewerServices } from "@printwithsynergy/loupe-pdf/browser";
+import { ViewerServicesContext, ViewerHostContext } from "@printwithsynergy/loupe-pdf/host";
+
+const services = createBrowserViewerServices({ pdfUrl: "/proof.pdf" });
+
+<ViewerHostContext.Provider value={{ apiBase: "", jobApiBase: "", readOnly: false }}>
+  <ViewerServicesContext.Provider value={services}>
+    <PageCanvas ... />
+    <SeparationCanvas ... />
+    <TACHeatmapOverlay ... />
+    {/* etc. */}
+  </ViewerServicesContext.Provider>
+</ViewerHostContext.Provider>;
+
+services.dispose(); // free blob URLs / pdf.js doc on unmount
+```
+
+CMYK / TAC are RGB-derived approximations — good for visual showcase
+and casual review, **not** press-grade. For ICC-correct readings
+deploy the optional reference server below and pass its `services`
+overrides to override the browser implementations.
 
 ## Demo
 
@@ -179,11 +194,12 @@ See [demo/README.md](./demo/README.md) for the smoke-check checklist.
 
 ## Optional reference server
 
-For preflight-grade ink separations, densitometer readings, and TAC
-heatmap, deploy the small Node + Ghostscript service in
-[`server/`](./server). Wire its endpoints into your `ViewerServices`
-and the corresponding components light up. The pdf.js fallback covers
-everything else; the reference server covers what pdf.js can't.
+For **press-grade ICC-correct** ink separations, densitometer readings,
+and TAC heatmap (the browser services use an RGB→CMYK approximation —
+fine for showcase, not for prepress sign-off), deploy the small
+Node + Ghostscript service in [`server/`](./server). Wire its
+endpoints into your `ViewerServices` and the corresponding components
+swap from the browser approximation to ICC-derived data.
 
 ```sh
 cd server && docker build -t loupe-pdf-server .
