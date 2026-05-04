@@ -1,0 +1,30 @@
+package.json
+  e4ff528387c0f56d 3,74,78,82
+tsconfig.build.json
+  e4ff528387c0f56d 6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "df4b8df3e803fc18314657aa91d791eea6d4fce7",
+  "prompts": {
+    "e4ff528387c0f56d": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "a5a7d1a5-2859-4254-a584-2e5b7b3f2b6d",
+        "model": "default"
+      },
+      "human_author": "Quincy Adams",
+      "messages": [],
+      "total_additions": 5,
+      "total_deletions": 4,
+      "accepted_lines": 5,
+      "overriden_lines": 0
+    }
+  },
+  "humans": {
+    "h_c7de008b7ad428": {
+      "author": "Quincy Adams"
+    }
+  }
+}
