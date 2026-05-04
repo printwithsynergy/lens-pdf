@@ -1,0 +1,27 @@
+components/AnnotationToolbar.tsx
+  e4ff528387c0f56d 16-17,28-29,51
+components/AnnotationCanvas.tsx
+  e4ff528387c0f56d 259-288
+package.json
+  e4ff528387c0f56d 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "6bda3d9d51e908c2901cee1ffc48e8f6895f6b92",
+  "prompts": {
+    "e4ff528387c0f56d": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "a5a7d1a5-2859-4254-a584-2e5b7b3f2b6d",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Quincy Adams",
+      "messages": [],
+      "total_additions": 36,
+      "total_deletions": 2,
+      "accepted_lines": 36,
+      "overriden_lines": 0
+    }
+  }
+}
