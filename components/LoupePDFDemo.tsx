@@ -1,19 +1,32 @@
 "use client";
 
 /**
- * `<LoupePDFDemo>` — drop-in interactive demo component.
+ * `<LoupePDFDemo>` — kitchen-sink interactive demo component.
+ *
+ * **Most consumers should not import this directly.** Use
+ * {@link LoupePDF} instead — it's a one-liner production drop-in:
+ *
+ * ```tsx
+ * <LoupePDF pdfUrl="/proofs/abc.pdf" workerSrc={pdfWorkerSrc} />
+ * ```
+ *
+ * `<LoupePDFDemo>` is the same renderer with the marketing chrome
+ * (URL bar, drag-and-drop upload, file picker, empty state) turned
+ * on; it powers the public showcase at loupepdf.com so reviewers
+ * can drop arbitrary PDFs into the page without a host.
  *
  * One mount, full feature surface. Backed by
  * `createBrowserViewerServices`, every viewer-only feature LoupePDF
  * ships works on any PDF the browser can fetch:
  *
  *   - PageCanvas + multi-page navigation + multi-DPI tile cache
- *   - Color picker (RGB + TAC)
- *   - Densitometer (CMYK + TAC limit)
+ *   - Color picker (RGB + TAC, CMYK + every detected spot ink)
+ *   - Densitometer (CMYK + spots + TAC limit)
  *   - Measure tool (mm / in / pt)
- *   - TAC heatmap overlay
- *   - Per-ink CMYK separations preview (inks default ON, untick to
- *     hide that plate — same UX as Acrobat's Output Preview)
+ *   - TAC heatmap overlay (CMYK + spots)
+ *   - Per-ink CMYK + spot separations preview (inks default ON,
+ *     untick to hide that plate — same UX as Acrobat's Output
+ *     Preview)
  *   - PDF layers (per-OCG isolated rendering, default all on)
  *   - Annotation canvas + toolbar + thread (in-memory)
  *
@@ -21,16 +34,21 @@
  * Separation preview, Layer preview — match the lint-pdf reference
  * viewer's UX so the same muscle memory carries over.
  *
- * Consumers provide configuration / branding and get a working demo:
- *
- * ```tsx
- * <LoupePDFDemo brand="MyApp" brandLogoUrl="/logo.svg" />
- * ```
- *
  * Server-only features (true ICC separations, preflight findings,
  * server-persisted annotations, PDF report exports) self-hide because
  * their dedicated services are intentionally `markUnwired`. Hosts
  * that have a backend pass `services` to override.
+ *
+ * Internal organisation:
+ *
+ *   - Inline CSS-in-JS lives in `LoupePDFDemo.styles.ts` (so this
+ *     file focuses on the React tree, not 270 lines of styling).
+ *   - Smaller building blocks (`PageCanvas`, `SeparationCanvas`,
+ *     `LayerCanvas`, `AnnotationCanvas`, `AnnotationToolbar`,
+ *     `AnnotationThread`, `LayerPanel`, `BoxOverlay`,
+ *     `DielineOverlay`, `TACHeatmapOverlay`, `ColorPickerTool`,
+ *     `DensitometerTool`, `MeasureTool`) each ship as their own
+ *     component file and are composed here.
  *
  * @public
  */
@@ -57,6 +75,32 @@ import type { DielineResult, PageInfo } from "../types";
 import { DEFAULT_DPI, pageInfoFromDimensions } from "../types";
 import { ViewerHostContext, ViewerServicesContext } from "../host";
 import { validatePdfFile, validatePdfUrl } from "../host/pdfValidation";
+import {
+  brandStyle,
+  btnStyle,
+  channelSwatchStyle,
+  dropOverlayStyle,
+  emptyStateStyle,
+  errorStyle,
+  exitFsStyle,
+  footerStyle,
+  ghostBtnStyle,
+  headingStyle,
+  layoutStyle,
+  modeButtonGroupStyle,
+  modeButtonStyle,
+  pageNavBtnStyle,
+  pageNavStyle,
+  preparingOverlayStyle,
+  rowStyle,
+  shellStyle,
+  sidebarStyle,
+  stageInnerStyle,
+  stageStyle,
+  topbarStyle,
+  urlBarStyle,
+  urlInputStyle,
+} from "./LoupePDFDemo.styles";
 import { AnnotationCanvas } from "./AnnotationCanvas";
 import { AnnotationThread } from "./AnnotationThread";
 import { AnnotationToolbar, type AnnotationTool } from "./AnnotationToolbar";
@@ -212,296 +256,6 @@ type ViewerMode = "page" | "separation" | "layer";
 function formatMaxSize(bytes: number): string {
   return `${Math.round(bytes / (1024 * 1024))} MB`;
 }
-
-// ---------------------------------------------------------------------------
-// Style helpers (inlined so the demo is zero-config for consumers — no
-// Tailwind / CSS framework needed in the host app)
-// ---------------------------------------------------------------------------
-
-function shellStyle(tokens: ThemeTokens, fullscreen: boolean): CSSProperties {
-  const base: CSSProperties = {
-    display: "flex",
-    flexDirection: "column",
-    width: "100%",
-    height: "100%",
-    minHeight: 0,
-    background: tokens.bg,
-    color: tokens.fg,
-    fontFamily: "system-ui, -apple-system, sans-serif",
-    fontSize: 14,
-    position: "relative",
-    overflow: "hidden",
-    colorScheme: "dark",
-  };
-  if (fullscreen) {
-    return { ...base, position: "fixed", inset: 0, zIndex: 9999 };
-  }
-  return base;
-}
-
-const topbarStyle: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 12,
-  padding: "10px 16px",
-  borderBottom: "1px solid var(--lpd-border, #2b2138)",
-  flexShrink: 0,
-};
-
-const brandStyle: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 8,
-  fontWeight: 700,
-  fontSize: 15,
-  whiteSpace: "nowrap" as const,
-};
-
-const urlBarStyle: CSSProperties = {
-  display: "flex",
-  flex: 1,
-  minWidth: 0,
-  gap: 6,
-};
-
-function urlInputStyle(tokens: ThemeTokens): CSSProperties {
-  return {
-    flex: 1,
-    minWidth: 0,
-    padding: "7px 10px",
-    borderRadius: 6,
-    border: `1px solid ${tokens.border}`,
-    background: "rgba(255, 255, 255, 0.04)",
-    color: tokens.fg,
-    fontSize: 13,
-    outline: "none",
-  };
-}
-
-function btnStyle(tokens: ThemeTokens): CSSProperties {
-  return {
-    padding: "7px 16px",
-    borderRadius: 6,
-    border: `1px solid ${tokens.accent}`,
-    background: tokens.accent,
-    color: "#fff",
-    cursor: "pointer",
-    fontSize: 13,
-    fontWeight: 600,
-    whiteSpace: "nowrap" as const,
-  };
-}
-
-function ghostBtnStyle(tokens: ThemeTokens): CSSProperties {
-  return {
-    padding: "7px 14px",
-    borderRadius: 6,
-    border: `1px solid ${tokens.border}`,
-    background: "rgba(255, 255, 255, 0.04)",
-    color: tokens.fg,
-    cursor: "pointer",
-    fontSize: 13,
-    fontWeight: 500,
-    whiteSpace: "nowrap" as const,
-  };
-}
-
-const layoutStyle: CSSProperties = {
-  display: "flex",
-  flex: 1,
-  minHeight: 0,
-  overflow: "hidden",
-};
-
-function sidebarStyle(tokens: ThemeTokens): CSSProperties {
-  return {
-    width: 280,
-    flexShrink: 0,
-    borderRight: `1px solid ${tokens.border}`,
-    padding: 16,
-    overflowY: "auto" as const,
-    display: "flex",
-    flexDirection: "column" as const,
-    gap: 10,
-  };
-}
-
-const stageStyle: CSSProperties = {
-  flex: 1,
-  overflow: "auto",
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  padding: 24,
-  gap: 12,
-};
-
-function errorStyle(): CSSProperties {
-  return {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: "8px 16px",
-    background: "#7f1d1d",
-    color: "#fecaca",
-    fontSize: 13,
-    flexShrink: 0,
-  };
-}
-
-function footerStyle(tokens: ThemeTokens): CSSProperties {
-  return {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: "8px 16px",
-    borderTop: `1px solid ${tokens.border}`,
-    fontSize: 12,
-    opacity: 0.7,
-    flexShrink: 0,
-  };
-}
-
-const dropOverlayStyle: CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  zIndex: 100,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  background: "rgba(0,0,0,0.6)",
-  backdropFilter: "blur(4px)",
-  fontSize: 24,
-  fontWeight: 700,
-  color: "#fff",
-  pointerEvents: "none",
-};
-
-const emptyStateStyle: CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: 12,
-  padding: 48,
-  textAlign: "center",
-  opacity: 0.85,
-  margin: "auto",
-};
-
-const rowStyle: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 8,
-  fontSize: 13,
-  cursor: "pointer",
-  padding: "3px 0",
-};
-
-const headingStyle: CSSProperties = {
-  fontSize: 11,
-  fontWeight: 700,
-  textTransform: "uppercase" as const,
-  letterSpacing: 1,
-  opacity: 0.6,
-  margin: "8px 0 4px",
-};
-
-const exitFsStyle: CSSProperties = {
-  position: "absolute",
-  top: 8,
-  right: 8,
-  zIndex: 10001,
-  padding: "4px 12px",
-  borderRadius: 6,
-  border: "1px solid rgba(255,255,255,0.3)",
-  background: "rgba(0,0,0,0.5)",
-  color: "#fff",
-  cursor: "pointer",
-  fontSize: 12,
-};
-
-const channelSwatchStyle: CSSProperties = {
-  width: 14,
-  height: 14,
-  borderRadius: 3,
-  border: "1px solid rgba(255, 255, 255, 0.18)",
-  flexShrink: 0,
-};
-
-const pageNavStyle: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: 6,
-  padding: "6px 0",
-};
-
-function pageNavBtnStyle(tokens: ThemeTokens, disabled: boolean): CSSProperties {
-  return {
-    width: 28,
-    height: 28,
-    borderRadius: 6,
-    border: `1px solid ${tokens.border}`,
-    background: "transparent",
-    color: tokens.fg,
-    cursor: disabled ? "not-allowed" : "pointer",
-    opacity: disabled ? 0.35 : 1,
-    fontSize: 16,
-    lineHeight: 1,
-  };
-}
-
-const stageInnerStyle: CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  gap: 12,
-};
-
-function modeButtonGroupStyle(): CSSProperties {
-  return {
-    display: "flex",
-    width: "100%",
-    gap: 0,
-  };
-}
-
-function modeButtonStyle(
-  tokens: ThemeTokens,
-  active: boolean,
-  position: "left" | "middle" | "right",
-): CSSProperties {
-  return {
-    flex: 1,
-    padding: "6px 8px",
-    border: `1px solid ${active ? tokens.accent : tokens.border}`,
-    background: active ? tokens.accent : "transparent",
-    color: active ? "#fff" : tokens.fg,
-    fontSize: 12,
-    fontWeight: 600,
-    cursor: "pointer",
-    borderRadius:
-      position === "left"
-        ? "6px 0 0 6px"
-        : position === "right"
-          ? "0 6px 6px 0"
-          : "0",
-    marginLeft: position === "left" ? 0 : -1,
-  };
-}
-
-const preparingOverlayStyle: CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  background: "rgba(14, 10, 20, 0.7)",
-  fontSize: 13,
-  zIndex: 50,
-  color: "#cbd5e1",
-};
 
 // ---------------------------------------------------------------------------
 // Tool radio
