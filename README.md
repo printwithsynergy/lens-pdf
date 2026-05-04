@@ -46,17 +46,59 @@ ships ESM only.
 
 ## Quick start — pick your tier
 
-LoupePDF ships four integration levels. Start with Tier 1 and drop
+LoupePDF ships five integration levels. Start with Tier 1 and drop
 down only when you need more control.
 
-### Tier 1 — Zero boilerplate demo (~5 lines)
+### Tier 1 — Drop-in production viewer (~3 lines)
 
-Every viewer-only feature LoupePDF ships, wired to pdf.js out of the
-box: page raster (with multi-DPI zoom), color picker (RGB + TAC),
-densitometer (CMYK + TAC limit), measure tool, TAC heatmap, per-ink
-CMYK separations, layers (OCG list), and the annotation toolbar /
-canvas / thread (in-memory). Plus file upload, URL paste, drag-drop,
-validation, multi-page navigation, sidebar, and fullscreen.
+`<LoupePDF>` is the recommended single-component entry point. One
+mount, every viewer-only feature wired to pdf.js out of the box: page
+raster (with multi-DPI zoom), color picker (RGB + TAC), densitometer
+(CMYK + spot inks + TAC limit), measure tool, TAC heatmap, per-ink
+separations (CMYK + any spots the PDF declares), layers (OCG list),
+and the annotation toolbar / canvas / thread (in-memory).
+
+```tsx
+import { LoupePDF } from "@printwithsynergy/loupe-pdf";
+import pdfWorkerSrc from "pdfjs-dist/build/pdf.worker.mjs?url";
+
+export function ProofPage() {
+  return <LoupePDF pdfUrl="/proofs/abc.pdf" workerSrc={pdfWorkerSrc} />;
+}
+```
+
+Hosts with a preflight engine plug findings + dieline + box overlays
+in directly:
+
+```tsx
+<LoupePDF
+  pdfUrl="/proofs/abc.pdf"
+  workerSrc={pdfWorkerSrc}
+  items={findings}            // OverlayItem[] — error / warning / advisory bboxes
+  selectedItem={selected}
+  onItemSelect={setSelected}
+  dieline={dielineForCurrentPage}
+  showBoxOverlays              // trim / bleed / crop popovers
+  cropToTrim                   // clip the canvas to TrimBox
+  tools={["color-picker", "densitometer", "annotate", "tac-heatmap"]}
+  onPageChange={setCurrentPage}
+  tokens={{ accent: "#e50c6a" }}
+  brand="MyApp"
+  brandLogoUrl="/logo.svg"
+/>
+```
+
+No backend required for the viewer side. Server-only features (HTML /
+PDF report exports, ICC-correct preflight separations, server-
+persisted annotations) self-hide because their dedicated services are
+intentionally `markUnwired`. Hosts with a backend pass `services` to
+override the in-browser ones.
+
+### Tier 1b — Demo / showcase viewer
+
+Same component, with an upload bar + drag-drop + URL paste — useful
+for marketing pages and internal sandboxes where users bring their
+own files.
 
 ```tsx
 import { LoupePDFDemo } from "@printwithsynergy/loupe-pdf";
@@ -65,12 +107,6 @@ export function DemoPage() {
   return <LoupePDFDemo brand="MyApp" brandLogoUrl="/logo.svg" />;
 }
 ```
-
-No backend required — the PDF never leaves the browser. Server-only
-features (HTML/PDF report exports, ICC-correct preflight separations,
-server-persisted annotations) self-hide because their dedicated
-services are intentionally `markUnwired`. Hosts with a backend pass
-`services` to override.
 
 ### Tier 2 — One-liner viewer (~5 lines)
 

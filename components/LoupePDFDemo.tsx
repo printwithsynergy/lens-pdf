@@ -52,15 +52,18 @@ import {
 } from "../browser";
 import type { ThemeTokens, ViewerServices } from "../plugin/services";
 import { darkThemeTokens } from "../plugin/services";
-import type { PageInfo } from "../types";
+import type { OverlayItem } from "../plugin/types";
+import type { DielineResult, PageInfo } from "../types";
 import { pageInfoFromDimensions } from "../types";
 import { ViewerHostContext, ViewerServicesContext } from "../host";
 import { validatePdfFile, validatePdfUrl } from "../host/pdfValidation";
 import { AnnotationCanvas } from "./AnnotationCanvas";
 import { AnnotationThread } from "./AnnotationThread";
 import { AnnotationToolbar, type AnnotationTool } from "./AnnotationToolbar";
+import { BoxOverlay } from "./BoxOverlay";
 import { ColorPickerTool } from "./ColorPickerTool";
 import { DensitometerTool } from "./DensitometerTool";
+import { DielineOverlay } from "./DielineOverlay";
 import { LayerCanvas } from "./LayerCanvas";
 import { LayerPanel } from "./LayerPanel";
 import { MeasureTool } from "./MeasureTool";
@@ -136,6 +139,52 @@ export interface LoupePDFDemoProps {
   initialPdfUrl?: string;
   /** Initial page number (1-indexed). Default: 1. */
   initialPage?: number;
+  /**
+   * When true, hides the upload chrome (URL bar, file picker, drag &
+   * drop, empty state) and renders as an embedded production viewer.
+   * `initialPdfUrl` becomes effectively required. Used internally by
+   * `<LoupePDF>` to expose a clean drop-in surface.
+   */
+  embedded?: boolean;
+  // ── Optional preflight integration ─────────────────────────────────────
+  /**
+   * Findings to flag on the page raster. Hosts convert their domain
+   * records (engine findings, brand-spec violations, etc.) into
+   * `OverlayItem`s. PageCanvas draws the bbox tinted by `tier`,
+   * PageNavigator badges errors / warnings per page.
+   */
+  items?: readonly OverlayItem[];
+  /** Currently-selected finding (controlled). Drives the canvas
+   *  highlight + tooltip. */
+  selectedItem?: OverlayItem | null;
+  /** Fires when the user clicks a finding's bbox or the page background
+   *  (in which case the argument is `null`). */
+  onItemSelect?: (item: OverlayItem | null) => void;
+  /**
+   * Dieline payload for the current page. When non-null, mounts
+   * `<DielineOverlay>` so each detected artwork region gets a
+   * size-popover info chip at its centroid (mm + inches).
+   */
+  dieline?: DielineResult | null;
+  /**
+   * When true, mounts `<BoxOverlay>` so trim / bleed / crop boxes
+   * defined in the PDF render with size popovers. Hosts that don't
+   * carry box geometry can leave this off (default).
+   */
+  showBoxOverlays?: boolean;
+  /**
+   * When true, the canvas is clipped to the page's TrimBox (falls
+   * back to BleedBox, then CropBox). Hides the white bleed strip
+   * outside the trim line. Default false.
+   */
+  cropToTrim?: boolean;
+  // ── Lifecycle callbacks ────────────────────────────────────────────────
+  /** Fires after the active page changes (1-indexed). */
+  onPageChange?: (page: number) => void;
+  /** Fires after the zoom level changes (percentage). */
+  onZoomChange?: (zoom: number) => void;
+  /** Fires when the viewer raises a recoverable error. */
+  onError?: (message: string) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -505,7 +554,33 @@ export function LoupePDFDemo({
   fullscreen: initialFullscreen = false,
   initialPdfUrl,
   initialPage = 1,
+  embedded = false,
+  items,
+  selectedItem,
+  onItemSelect,
+  dieline,
+  showBoxOverlays = false,
+  cropToTrim = false,
+  onPageChange: onPageChangeProp,
+  onZoomChange: onZoomChangeProp,
+  onError: onErrorProp,
 }: LoupePDFDemoProps) {
+  const overlayItems = useMemo<readonly OverlayItem[]>(
+    () => items ?? [],
+    [items],
+  );
+  // Selection: controlled when onItemSelect is supplied, uncontrolled otherwise.
+  const [internalSelected, setInternalSelected] =
+    useState<OverlayItem | null>(null);
+  const effectiveSelected =
+    onItemSelect !== undefined ? (selectedItem ?? null) : internalSelected;
+  const handleItemClick = useCallback(
+    (item: OverlayItem) => {
+      if (onItemSelect) onItemSelect(item);
+      else setInternalSelected(item);
+    },
+    [onItemSelect],
+  );
   // -----------------------------------------------------------------------
   // Tokens
   // -----------------------------------------------------------------------
@@ -525,6 +600,21 @@ export function LoupePDFDemo({
   const [fullscreen, setFullscreen] = useState(initialFullscreen);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Embedded mode treats `initialPdfUrl` as a controlled prop — when
+  // it changes, swap the loaded PDF and reset to page 1. Demo mode
+  // ignores subsequent changes (the user drives the URL via the
+  // upload bar) so behaviour stays unsurprising.
+  useEffect(() => {
+    if (!embedded) return;
+    const next = initialPdfUrl ?? "";
+    setPdfUrl((prev) => (prev === next ? prev : next));
+    setDraftUrl(next);
+    if (next) setCurrentPage(initialPage);
+    // initialPage intentionally read once via closure; the page-reset
+    // belongs to URL change only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [embedded, initialPdfUrl]);
+
   // -----------------------------------------------------------------------
   // Page / zoom state
   // -----------------------------------------------------------------------
@@ -536,6 +626,21 @@ export function LoupePDFDemo({
   );
   const [pageCount, setPageCount] = useState(1);
   const [currentPage, setCurrentPage] = useState(initialPage);
+
+  // Lifecycle callbacks: fire host listeners whenever core state moves.
+  // Wrapped in effects rather than threading through every setter
+  // callsite (zoom slider / arrow keys / wheel pinch / page nav buttons /
+  // "jump to page" from annotation thread, etc.) so behaviour stays in
+  // one place.
+  useEffect(() => {
+    onPageChangeProp?.(currentPage);
+  }, [currentPage, onPageChangeProp]);
+  useEffect(() => {
+    onZoomChangeProp?.(zoom);
+  }, [zoom, onZoomChangeProp]);
+  useEffect(() => {
+    if (error) onErrorProp?.(error);
+  }, [error, onErrorProp]);
 
   // -----------------------------------------------------------------------
   // Viewer mode (mutually exclusive primary canvas) + tool overlay state
@@ -856,9 +961,9 @@ export function LoupePDFDemo({
       <div
         className={className}
         style={shellStyle(tokens, fullscreen)}
-        onDragOver={onDragOver}
-        onDragLeave={onDragLeave}
-        onDrop={onDrop}
+        onDragOver={embedded ? undefined : onDragOver}
+        onDragLeave={embedded ? undefined : onDragLeave}
+        onDrop={embedded ? undefined : onDrop}
       >
         {fullscreen && (
           <button
@@ -870,9 +975,13 @@ export function LoupePDFDemo({
           </button>
         )}
 
-        {dragging && <div style={dropOverlayStyle}>Drop your PDF here</div>}
+        {!embedded && dragging && (
+          <div style={dropOverlayStyle}>Drop your PDF here</div>
+        )}
 
-        {/* Top bar */}
+        {/* Top bar — hidden in embedded mode so hosts can supply their
+            own chrome around `<LoupePDF>`. */}
+        {!embedded && (
         <header style={topbarStyle}>
           <div style={brandStyle}>
             {brandLogoUrl && (
@@ -916,6 +1025,7 @@ export function LoupePDFDemo({
             onChange={onFileChange}
           />
         </header>
+        )}
 
         {error && (
           <div style={errorStyle()}>
@@ -1299,7 +1409,11 @@ export function LoupePDFDemo({
 
           {/* Stage */}
           <section style={stageStyle}>
-            {!pdfUrl ? (
+            {!pdfUrl && embedded ? (
+              <div style={emptyStateStyle}>
+                <p style={{ margin: 0, opacity: 0.6 }}>Loading…</p>
+              </div>
+            ) : !pdfUrl ? (
               <div style={emptyStateStyle}>
                 {brandLogoUrl && (
                   <img
@@ -1384,9 +1498,32 @@ export function LoupePDFDemo({
                       jobId="loupe-pdf-demo"
                       page={page}
                       zoom={zoom}
-                      items={[]}
-                      selectedItem={null}
-                      onItemClick={() => {}}
+                      items={overlayItems}
+                      selectedItem={effectiveSelected}
+                      onItemClick={handleItemClick}
+                      cropToTrim={cropToTrim}
+                    />
+                  )}
+
+                  {/* Trim / Bleed / Crop boxes — only for the Page mode
+                      so they don't fight the separation / layer canvases. */}
+                  {viewerMode === "page" && showBoxOverlays && (
+                    <BoxOverlay
+                      page={page}
+                      canvasWidth={canvasW}
+                      canvasHeight={canvasH}
+                      dieline={dieline ?? null}
+                    />
+                  )}
+                  {/* Dieline region size chips — independent of BoxOverlay
+                      so hosts can flip on dieline-only without trim/bleed
+                      clutter. */}
+                  {viewerMode === "page" && dieline && !showBoxOverlays && (
+                    <DielineOverlay
+                      page={page}
+                      canvasWidth={canvasW}
+                      canvasHeight={canvasH}
+                      dieline={dieline}
                     />
                   )}
 

@@ -47,6 +47,12 @@ export type {
   LoupePDFDemoTool,
 } from "./components/LoupePDFDemo";
 
+// Drop-in production viewer — same feature surface as <LoupePDFDemo>
+// without the upload chrome. The recommended single-component entry
+// point for hosts integrating LoupePDF.
+export { LoupePDF } from "./components/LoupePDF";
+export type { LoupePDFProps } from "./components/LoupePDF";
+
 // Browser-only ViewerServices factory — gives consumers a one-liner
 // path to a fully wired viewer without a server backend.
 export {
