@@ -8,6 +8,13 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 _Nothing yet._
 
+## [0.2.0-beta.2] — 2026-05-04
+
+### Fixed
+- **ESM compatibility** — added post-build script to rename `.jsx` files to `.js`
+  for Node.js ESM compatibility. Component files are now resolvable without
+  explicit extensions in imports.
+
 ## [0.2.0-beta.1] — 2026-05-04
 
 ### Fixed
