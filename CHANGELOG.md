@@ -8,6 +8,16 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 _Nothing yet._
 
+## [0.3.0-beta.18] — 2026-05-04
+
+### Changed
+- **Demo disclaimer relocated** — the long "LoupePDF supports full
+  CMYK + spot inks…" footer in the sidebar was eating vertical
+  space on every active session, even though the message is only
+  useful before a PDF is loaded. Moved the entire paragraph onto
+  the empty / upload screen so it greets new visitors once and
+  the working sidebar stays compact.
+
 ## [0.3.0-beta.17] — 2026-05-04
 
 ### Fixed

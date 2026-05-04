@@ -1285,25 +1285,6 @@ export function LoupePDFDemo({
                 </>
               )}
 
-              <p
-                style={{
-                  fontSize: 11,
-                  opacity: 0.5,
-                  marginTop: "auto",
-                  lineHeight: 1.5,
-                }}
-              >
-                LoupePDF supports <strong>full CMYK + spot inks</strong>
-                {" "}with no approximation when a backend (Ghostscript /
-                MuPDF + ICC profiles) is wired through the
-                {" "}<code>services</code> prop — the densitometer, TAC
-                heatmap, and color picker read true plate values
-                straight from the host. The RGB-derived path is only
-                used as the fallback when no backend data is supplied,
-                which is the mode this demo runs in. Annotations live
-                in this tab only and are discarded on reload. Max
-                upload {formatMaxSize(maxFileSize)}.
-              </p>
             </aside>
           )}
 
@@ -1339,8 +1320,25 @@ export function LoupePDFDemo({
                 >
                   Choose a file
                 </button>
-                <p style={{ fontSize: 11, opacity: 0.5 }}>
-                  Max upload {formatMaxSize(maxFileSize)}.
+                <p
+                  style={{
+                    fontSize: 11,
+                    opacity: 0.55,
+                    maxWidth: 460,
+                    lineHeight: 1.55,
+                    margin: 0,
+                  }}
+                >
+                  LoupePDF supports <strong>full CMYK + spot inks</strong>
+                  {" "}with no approximation when a backend (Ghostscript
+                  / MuPDF + ICC profiles) is wired through the
+                  {" "}<code>services</code> prop — the densitometer, TAC
+                  heatmap, and color picker read true plate values
+                  straight from the host. The RGB-derived path is only
+                  used as the fallback when no backend data is supplied,
+                  which is the mode this demo runs in. Annotations live
+                  in this tab only and are discarded on reload. Max
+                  upload {formatMaxSize(maxFileSize)}.
                 </p>
               </div>
             ) : (
