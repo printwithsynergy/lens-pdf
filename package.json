@@ -25,7 +25,6 @@
     "pdfjs"
   ],
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
     "access": "public"
   },
   "main": "./dist/index.js",
