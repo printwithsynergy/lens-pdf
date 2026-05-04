@@ -8,6 +8,27 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 _Nothing yet._
 
+## [0.1.0-beta.3] — 2026-05-04
+
+### Fixed
+- **`<LoupePDFViewer>` mobile chrome**: at viewports under 768 px the
+  toolbar overflowed and the tools clipped off-screen, leaving no way
+  to reach color picker / measure / layers. Replaced with a hamburger
+  that opens a left-sliding drawer (matching the existing
+  `MobileDrawer`'s design language: `bg-slate-900`,
+  `border-white/[0.06]`, `DrawerSection` / `DrawerItem` styling).
+  Layers gets its own separate slide-in drawer so toggling layers
+  doesn't dismiss the tools menu.
+- **Toolbar look** brought into agreement with the rest of the
+  package — Tailwind `bg-slate-900` / `text-slate-300` /
+  `hover:bg-slate-800` instead of the inline-styled neutral chrome
+  that `0.1.0-beta.2` shipped. Active tool buttons honour
+  `tokens.accent` for brand colour.
+- **`LoupePDFViewer` `brand` prop** added — optional label rendered
+  in the top-left of the toolbar and as the mobile drawer header.
+- **Layers control hides** when the PDF has no OCGs (was rendering
+  the toggle button anyway, then showing an empty layer list).
+
 ## [0.1.0-beta.2] — 2026-05-04
 
 The first published version. Public API may still change before

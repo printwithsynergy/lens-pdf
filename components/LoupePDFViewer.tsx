@@ -8,7 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import type { PageInfo } from "../types";
 import type { PdfFallbackAdapter, ThemeTokens, ViewerServices } from "../plugin/services";
 import { defaultThemeTokens } from "../plugin/services";
@@ -38,38 +38,22 @@ export type LoupePDFViewerTool = "zoom" | "color-picker" | "measure" | "layers";
 export interface LoupePDFViewerProps {
   /** PDF URL the viewer fetches. Sign / scope upstream. */
   pdfUrl: string;
-  /**
-   * Optional override for the pdf.js worker URL. Defaults to the
-   * unpkg CDN URL pinned to the bundled pdfjs-dist version (see
-   * {@link defaultPdfWorkerSrc} from
-   * `@printwithsynergy/loupe-pdf/fallback-pdfjs`).
-   */
+  /** Optional override for the pdf.js worker URL. */
   workerSrc?: string;
-  /**
-   * Optional services to override the pdf.js fallback path. When
-   * omitted, the viewer wires only the pdf.js fallback adapter; the
-   * components that need richer services (`SeparationCanvas`,
-   * `DensitometerTool`, `TACHeatmapOverlay`, `AnnotationCanvas`,
-   * etc.) self-hide.
-   */
+  /** Optional services to override the pdf.js fallback path. */
   services?: ViewerServices;
-  /** Optional theme tokens. Defaults to {@link defaultThemeTokens}. */
+  /** Optional theme tokens. */
   tokens?: ThemeTokens;
   /** Optional className hook for hosts that want to restyle the chrome. */
   className?: string;
-  /**
-   * "scroll" (default) renders every page in a scrollable list;
-   * "single" renders one page at a time with prev/next controls.
-   */
+  /** Page rendering mode. */
   mode?: "scroll" | "single";
-  /**
-   * Tools shown in the top toolbar. Order matters. Defaults to all
-   * four. Pass `[]` to render an empty toolbar (zoom is then
-   * available only via wheel / pinch).
-   */
+  /** Tools shown in the toolbar / mobile drawer. */
   tools?: ReadonlyArray<LoupePDFViewerTool>;
   /** Initial zoom percentage. Default `100`. */
   initialZoom?: number;
+  /** Optional brand label rendered in the top-left of the toolbar. */
+  brand?: string;
 }
 
 const DEFAULT_TOOLS: ReadonlyArray<LoupePDFViewerTool> = [
@@ -88,22 +72,6 @@ const MOBILE_BREAKPOINT_PX = 768;
  * <LoupePDFViewer pdfUrl="https://example.com/file.pdf" />
  * ```
  *
- * Auto-discovers page count, dimensions, and OCG layers from the
- * PDF. Renders every page in a virtualized scrollable list (or one
- * at a time with `mode="single"`). Default toolbar surfaces zoom,
- * layers, color picker, and measure tool — drop tools by passing a
- * shorter `tools` array.
- *
- * Hosts that need separations, densitometer, TAC heatmap, or
- * annotations pass a `services` prop wired to their backend (see
- * `docs/services.md`). The corresponding components auto-mount when
- * their service is wired and self-hide otherwise.
- *
- * For bespoke layouts use the lower-level surface (`PageCanvas`,
- * `LayerPanel`, `MeasureTool`, etc.) directly with your own
- * `ViewerHostContext` + `ViewerServicesContext` providers — this
- * composition is purely additive.
- *
  * @public
  */
 export function LoupePDFViewer(props: LoupePDFViewerProps) {
@@ -116,6 +84,7 @@ export function LoupePDFViewer(props: LoupePDFViewerProps) {
     mode = "scroll",
     tools = DEFAULT_TOOLS,
     initialZoom = 100,
+    brand,
   } = props;
 
   const fallback = useMemo<PdfFallbackAdapter>(
@@ -130,14 +99,15 @@ export function LoupePDFViewer(props: LoupePDFViewerProps) {
   const [zoom, setZoom] = useState(initialZoom);
   const [enabledLayers, setEnabledLayers] = useState<Set<number>>(new Set());
   const [layersDiscovered, setLayersDiscovered] = useState(false);
+  const [hasLayers, setHasLayers] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTool, setActiveTool] = useState<"none" | "color-picker" | "measure">("none");
   const [layersOpen, setLayersOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const isMobile = useMediaQueryMaxWidth(MOBILE_BREAKPOINT_PX - 1);
 
-  // Page-count discovery.
   useEffect(() => {
     let cancelled = false;
     fallback
@@ -153,11 +123,11 @@ export function LoupePDFViewer(props: LoupePDFViewerProps) {
     };
   }, [fallback]);
 
-  // Layer discovery + default-on seeding.
   useEffect(() => {
     let cancelled = false;
     fallback.listLayers().then((layers) => {
       if (cancelled) return;
+      setHasLayers(layers.length > 0);
       setEnabledLayers(
         new Set(layers.filter((l) => l.default_on).map((l) => l.ocg_index)),
       );
@@ -168,7 +138,10 @@ export function LoupePDFViewer(props: LoupePDFViewerProps) {
     };
   }, [fallback]);
 
-  const showLayersControl = layersDiscovered && tools.includes("layers");
+  const showLayersControl = layersDiscovered && hasLayers && tools.includes("layers");
+  const showColorPicker = tools.includes("color-picker");
+  const showMeasure = tools.includes("measure");
+  const showZoom = tools.includes("zoom");
 
   const onToggleLayer = useCallback((ocgIndex: number) => {
     setEnabledLayers((prev) => {
@@ -182,8 +155,6 @@ export function LoupePDFViewer(props: LoupePDFViewerProps) {
   const onSetAllLayers = useCallback(
     (enabled: boolean) => {
       if (enabled) {
-        // Re-discover and enable everything; needs the layers list,
-        // which is on the fallback adapter.
         fallback.listLayers().then((layers) => {
           setEnabledLayers(new Set(layers.map((l) => l.ocg_index)));
         });
@@ -205,7 +176,7 @@ export function LoupePDFViewer(props: LoupePDFViewerProps) {
     [pdfUrl, fallback],
   );
 
-  const styles = useMemo(() => themedStyles(tokens), [tokens]);
+  const accent = tokens.accent;
 
   const stage = (
     <Stage
@@ -219,7 +190,6 @@ export function LoupePDFViewer(props: LoupePDFViewerProps) {
       onCurrentPageChange={setCurrentPage}
       activeTool={activeTool}
       errorMessage={errorMessage}
-      tokens={tokens}
     />
   );
 
@@ -232,84 +202,189 @@ export function LoupePDFViewer(props: LoupePDFViewerProps) {
     />
   ) : null;
 
-  const content = (
-    <div className={`loupe-pdf-viewer ${className ?? ""}`} style={styles.shell}>
-      <header style={styles.header}>
-        <div style={styles.headerLeft}>
-          <strong style={styles.title}>PDF</strong>
-          {mode === "single" && pageCount !== null && (
-            <PageNav
-              page={currentPage}
-              total={pageCount}
-              onChange={setCurrentPage}
-              tokens={tokens}
-            />
-          )}
-        </div>
-        <div style={styles.headerRight}>
-          {tools.includes("zoom") && (
-            <ZoomControls zoom={zoom} onZoomChange={setZoom} compact dark />
-          )}
-          {tools.includes("color-picker") && (
-            <ToolButton
-              label="Color"
-              active={activeTool === "color-picker"}
-              onClick={() =>
-                setActiveTool((t) => (t === "color-picker" ? "none" : "color-picker"))
-              }
-              tokens={tokens}
-            />
-          )}
-          {tools.includes("measure") && (
-            <ToolButton
-              label="Measure"
-              active={activeTool === "measure"}
-              onClick={() =>
-                setActiveTool((t) => (t === "measure" ? "none" : "measure"))
-              }
-              tokens={tokens}
-            />
-          )}
-          {showLayersControl && (
-            <ToolButton
-              label="Layers"
-              active={layersOpen}
-              onClick={() => setLayersOpen((v) => !v)}
-              tokens={tokens}
-            />
-          )}
-        </div>
-      </header>
-      <div style={isMobile ? styles.bodyMobile : styles.body}>
-        {!isMobile && layersOpen && layersBody && (
-          <aside style={styles.panel}>{layersBody}</aside>
-        )}
-        <main style={styles.stage}>{stage}</main>
-      </div>
-      {isMobile && layersOpen && layersBody && (
-        <div style={styles.drawerOverlay} onClick={() => setLayersOpen(false)}>
-          <div style={styles.drawer} onClick={(e) => e.stopPropagation()}>
-            <div style={styles.drawerHeader}>
-              <span>Layers</span>
-              <button
-                type="button"
-                onClick={() => setLayersOpen(false)}
-                style={styles.drawerClose}
-                aria-label="Close layers"
-              >
-                ×
-              </button>
-            </div>
-            <div style={styles.drawerBody}>{layersBody}</div>
-          </div>
-        </div>
+  // Selecting a tool from the mobile drawer should close the drawer
+  // so the page is visible to actually use the tool.
+  const handleToolPick = useCallback(
+    (next: "color-picker" | "measure") => {
+      setActiveTool((t) => (t === next ? "none" : next));
+      setMenuOpen(false);
+    },
+    [],
+  );
+
+  const handleLayersPick = useCallback(() => {
+    setLayersOpen((v) => !v);
+    setMenuOpen(false);
+  }, []);
+
+  // Desktop toolbar — show all tools inline.
+  const desktopToolbarRight = (
+    <div className="flex items-center gap-1.5">
+      {showZoom && <ZoomControls zoom={zoom} onZoomChange={setZoom} compact dark />}
+      {showColorPicker && (
+        <ToolButton
+          label="Color"
+          active={activeTool === "color-picker"}
+          accent={accent}
+          onClick={() => setActiveTool((t) => (t === "color-picker" ? "none" : "color-picker"))}
+        />
+      )}
+      {showMeasure && (
+        <ToolButton
+          label="Measure"
+          active={activeTool === "measure"}
+          accent={accent}
+          onClick={() => setActiveTool((t) => (t === "measure" ? "none" : "measure"))}
+        />
+      )}
+      {showLayersControl && (
+        <ToolButton
+          label="Layers"
+          active={layersOpen}
+          accent={accent}
+          onClick={() => setLayersOpen((v) => !v)}
+        />
       )}
     </div>
   );
 
-  // Wrap with both contexts. Services context is only mounted when
-  // the host supplied one — otherwise components use the no-op
-  // defaults and self-hide as needed.
+  // Mobile toolbar — collapse to a hamburger + zoom-only inline.
+  // ZoomControls is small enough at compact size to keep on the bar
+  // for one-tap zoom; everything else goes into the drawer.
+  const mobileToolbarRight = (
+    <div className="flex items-center gap-1.5">
+      {showZoom && <ZoomControls zoom={zoom} onZoomChange={setZoom} compact dark />}
+      <button
+        type="button"
+        onClick={() => setMenuOpen(true)}
+        className="flex h-8 w-8 items-center justify-center rounded-md border border-white/10 text-slate-300 hover:bg-slate-800 hover:text-white"
+        aria-label="Open tools menu"
+      >
+        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+    </div>
+  );
+
+  const headerLeft = (
+    <div className="flex min-w-0 items-center gap-3">
+      {brand !== undefined && (
+        <span className="truncate text-sm font-bold text-white">{brand}</span>
+      )}
+      {mode === "single" && pageCount !== null && (
+        <PageNav page={currentPage} total={pageCount} onChange={setCurrentPage} />
+      )}
+    </div>
+  );
+
+  const content = (
+    <div
+      className={`flex h-full min-h-[480px] flex-col bg-slate-900 text-slate-100 ${className ?? ""}`}
+    >
+      {/* Toolbar */}
+      <header className="flex h-12 flex-shrink-0 items-center justify-between gap-2 border-b border-white/[0.06] bg-slate-900 px-3">
+        {headerLeft}
+        {isMobile ? mobileToolbarRight : desktopToolbarRight}
+      </header>
+
+      {/* Body */}
+      <div className="flex min-h-0 flex-1">
+        {/* Desktop layers panel */}
+        {!isMobile && layersOpen && layersBody && (
+          <aside className="w-[260px] flex-shrink-0 overflow-y-auto border-r border-white/[0.06] bg-slate-900">
+            {layersBody}
+          </aside>
+        )}
+        <main className="min-h-0 flex-1 bg-slate-800">{stage}</main>
+      </div>
+
+      {/* Mobile tools drawer (hamburger) */}
+      {isMobile && menuOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-50 bg-black/50 transition-opacity duration-300"
+            onClick={() => setMenuOpen(false)}
+          />
+          <div className="fixed inset-y-0 left-0 z-[60] flex w-[280px] flex-col bg-slate-900 shadow-xl">
+            <div className="flex h-12 flex-shrink-0 items-center justify-between border-b border-white/[0.06] px-4">
+              <span className="text-sm font-bold text-white">{brand ?? "Tools"}</span>
+              <button
+                type="button"
+                onClick={() => setMenuOpen(false)}
+                className="rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-white"
+                aria-label="Close menu"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="flex flex-1 flex-col overflow-y-auto py-2">
+              {(showColorPicker || showMeasure) && (
+                <DrawerSection title="Tools">
+                  {showColorPicker && (
+                    <DrawerItem
+                      label="Color picker"
+                      icon={<ColorPickerIcon />}
+                      active={activeTool === "color-picker"}
+                      onClick={() => handleToolPick("color-picker")}
+                    />
+                  )}
+                  {showMeasure && (
+                    <DrawerItem
+                      label="Measure"
+                      icon={<RulerIcon />}
+                      active={activeTool === "measure"}
+                      onClick={() => handleToolPick("measure")}
+                    />
+                  )}
+                </DrawerSection>
+              )}
+              {showLayersControl && (
+                <DrawerSection title="View">
+                  <DrawerItem
+                    label="Layers"
+                    icon={<LayersIcon />}
+                    active={layersOpen}
+                    onClick={handleLayersPick}
+                  />
+                </DrawerSection>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Mobile layers drawer (separate from the tools drawer so layers
+          can stay open while the user interacts with the page) */}
+      {isMobile && layersOpen && layersBody && (
+        <>
+          <div
+            className="fixed inset-0 z-50 bg-black/50 transition-opacity duration-300"
+            onClick={() => setLayersOpen(false)}
+          />
+          <div className="fixed inset-y-0 left-0 z-[60] flex w-[280px] flex-col bg-slate-900 shadow-xl">
+            <div className="flex h-12 flex-shrink-0 items-center justify-between border-b border-white/[0.06] px-4">
+              <span className="text-sm font-bold text-white">Layers</span>
+              <button
+                type="button"
+                onClick={() => setLayersOpen(false)}
+                className="rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-white"
+                aria-label="Close layers"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto">{layersBody}</div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+
   return (
     <ViewerHostContext.Provider value={hostValue}>
       {services ? (
@@ -340,7 +415,6 @@ interface StageProps {
   onCurrentPageChange: (n: number) => void;
   activeTool: "none" | "color-picker" | "measure";
   errorMessage: string | null;
-  tokens: ThemeTokens;
 }
 
 function Stage({
@@ -354,37 +428,21 @@ function Stage({
   onCurrentPageChange,
   activeTool,
   errorMessage,
-  tokens,
 }: StageProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   if (errorMessage) {
-    return (
-      <div
-        style={{
-          padding: 24,
-          color: "#dc2626",
-          fontFamily: "system-ui, sans-serif",
-          fontSize: 13,
-        }}
-      >
-        Failed to load PDF: {errorMessage}
-      </div>
-    );
+    return <div className="p-6 text-sm text-red-400">Failed to load PDF: {errorMessage}</div>;
   }
 
   if (pageCount === null) {
     return (
-      <div
-        style={{
-          padding: 24,
-          color: tokens.fg,
-          opacity: 0.6,
-          fontFamily: "system-ui, sans-serif",
-          fontSize: 13,
-        }}
-      >
-        Loading…
+      <div className="flex h-full items-center justify-center text-xs text-slate-400">
+        <svg className="mr-2 h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
+        Loading PDF…
       </div>
     );
   }
@@ -395,24 +453,8 @@ function Stage({
       : Array.from({ length: pageCount }, (_, i) => i + 1);
 
   return (
-    <div
-      ref={containerRef}
-      style={{
-        height: "100%",
-        overflow: "auto",
-        padding: 16,
-        boxSizing: "border-box",
-        backgroundColor: tokens.bg,
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 16,
-        }}
-      >
+    <div ref={containerRef} className="h-full overflow-auto p-4">
+      <div className="flex flex-col items-center gap-4">
         {pages.map((pageNum) => (
           <PageSlot
             key={pageNum}
@@ -440,7 +482,7 @@ function Stage({
 }
 
 // ---------------------------------------------------------------------------
-// PageSlot — lazy-mounts PageCanvas via IntersectionObserver
+// PageSlot
 // ---------------------------------------------------------------------------
 
 interface PageSlotProps {
@@ -466,7 +508,6 @@ function PageSlot({
   const [visible, setVisible] = useState(false);
   const [resolvedDims, setResolvedDims] = useState(dims);
 
-  // Resolve dimensions if not provided.
   useEffect(() => {
     if (resolvedDims) return;
     let cancelled = false;
@@ -480,7 +521,6 @@ function PageSlot({
     };
   }, [pageNum, fallback, resolvedDims, onDimsResolved]);
 
-  // Lazy-mount via IntersectionObserver.
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -524,13 +564,8 @@ function PageSlot({
   return (
     <div
       ref={ref}
-      style={{
-        position: "relative",
-        width: canvasWidth,
-        height: canvasHeight,
-        backgroundColor: "#fff",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)",
-      }}
+      className="relative bg-white shadow-lg"
+      style={{ width: canvasWidth, height: canvasHeight }}
     >
       {visible && resolvedDims ? (
         <Fragment>
@@ -563,18 +598,7 @@ function PageSlot({
           )}
         </Fragment>
       ) : (
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#94a3b8",
-            fontFamily: "system-ui, sans-serif",
-            fontSize: 12,
-          }}
-        >
+        <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-400">
           Page {pageNum}
         </div>
       )}
@@ -589,64 +613,50 @@ function PageSlot({
 function ToolButton({
   label,
   active,
+  accent,
   onClick,
-  tokens,
 }: {
   label: string;
   active: boolean;
+  accent: string;
   onClick: () => void;
-  tokens: ThemeTokens;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      style={{
-        padding: "6px 10px",
-        border: `1px solid ${tokens.border}`,
-        borderRadius: 6,
-        background: active ? tokens.accent : "transparent",
-        color: active ? "#fff" : tokens.fg,
-        fontFamily: "system-ui, sans-serif",
-        fontSize: 12,
-        cursor: "pointer",
-      }}
+      className={`rounded-md border px-2.5 py-1 text-xs font-medium transition-colors ${
+        active
+          ? "text-white"
+          : "border-white/10 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white"
+      }`}
+      style={active ? { backgroundColor: accent, borderColor: accent } : undefined}
     >
       {label}
     </button>
   );
 }
 
-function PageNav({
-  page,
-  total,
-  onChange,
-  tokens,
-}: {
-  page: number;
-  total: number;
-  onChange: (n: number) => void;
-  tokens: ThemeTokens;
-}) {
+function PageNav({ page, total, onChange }: { page: number; total: number; onChange: (n: number) => void }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+    <div className="flex items-center gap-1.5">
       <button
         type="button"
         onClick={() => onChange(Math.max(1, page - 1))}
         disabled={page <= 1}
-        style={navButtonStyle(tokens, page <= 1)}
+        className="flex h-7 w-7 items-center justify-center rounded border border-white/10 text-base text-slate-300 hover:bg-slate-800 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent"
         aria-label="Previous page"
       >
         ‹
       </button>
-      <span style={{ fontSize: 12, color: tokens.fg, fontFamily: "system-ui, sans-serif" }}>
+      <span className="text-xs tabular-nums text-slate-300">
         {page} / {total}
       </span>
       <button
         type="button"
         onClick={() => onChange(Math.min(total, page + 1))}
         disabled={page >= total}
-        style={navButtonStyle(tokens, page >= total)}
+        className="flex h-7 w-7 items-center justify-center rounded border border-white/10 text-base text-slate-300 hover:bg-slate-800 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent"
         aria-label="Next page"
       >
         ›
@@ -655,119 +665,69 @@ function PageNav({
   );
 }
 
-function navButtonStyle(tokens: ThemeTokens, disabled: boolean): CSSProperties {
-  return {
-    width: 28,
-    height: 28,
-    border: `1px solid ${tokens.border}`,
-    borderRadius: 6,
-    background: "transparent",
-    color: tokens.fg,
-    fontSize: 16,
-    cursor: disabled ? "default" : "pointer",
-    opacity: disabled ? 0.3 : 1,
-  };
+// ---------------------------------------------------------------------------
+// Mobile drawer pieces — match MobileDrawer's design language so the
+// hamburger menu feels consistent with the rest of the package.
+// ---------------------------------------------------------------------------
+
+function DrawerSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div className="mb-2">
+      <div className="px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+        {title}
+      </div>
+      <div className="px-1">{children}</div>
+    </div>
+  );
 }
 
-// ---------------------------------------------------------------------------
-// Themed inline styles
-// ---------------------------------------------------------------------------
+function DrawerItem({
+  label,
+  icon,
+  active,
+  onClick,
+}: {
+  label: string;
+  icon: ReactNode;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-slate-200 transition-colors hover:bg-slate-800"
+    >
+      <span className="flex h-5 w-5 shrink-0 items-center justify-center text-slate-400">{icon}</span>
+      <span className={active ? "font-medium text-white" : ""}>{label}</span>
+      {active && <span className="ml-auto h-2 w-2 shrink-0 rounded-full bg-blue-400" />}
+    </button>
+  );
+}
 
-function themedStyles(tokens: ThemeTokens) {
-  const shell: CSSProperties = {
-    display: "flex",
-    flexDirection: "column",
-    height: "100%",
-    minHeight: 480,
-    backgroundColor: tokens.bg,
-    color: tokens.fg,
-    fontFamily: "system-ui, sans-serif",
-  };
-  const header: CSSProperties = {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: "8px 12px",
-    borderBottom: `1px solid ${tokens.border}`,
-    gap: 8,
-    flexShrink: 0,
-  };
-  const headerLeft: CSSProperties = { display: "flex", alignItems: "center", gap: 12 };
-  const headerRight: CSSProperties = { display: "flex", alignItems: "center", gap: 6 };
-  const title: CSSProperties = { color: tokens.primary, fontSize: 14 };
-  const body: CSSProperties = {
-    display: "flex",
-    flex: 1,
-    minHeight: 0,
-  };
-  const bodyMobile: CSSProperties = {
-    display: "flex",
-    flex: 1,
-    minHeight: 0,
-    flexDirection: "column",
-  };
-  const panel: CSSProperties = {
-    width: 260,
-    flexShrink: 0,
-    borderRight: `1px solid ${tokens.border}`,
-    overflowY: "auto",
-    backgroundColor: tokens.bg,
-  };
-  const stage: CSSProperties = {
-    flex: 1,
-    minHeight: 0,
-    backgroundColor: "#1e293b",
-  };
-  const drawerOverlay: CSSProperties = {
-    position: "fixed",
-    inset: 0,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    zIndex: 1000,
-    display: "flex",
-    alignItems: "flex-end",
-  };
-  const drawer: CSSProperties = {
-    width: "100%",
-    maxHeight: "70vh",
-    backgroundColor: tokens.bg,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-    display: "flex",
-    flexDirection: "column",
-    overflow: "hidden",
-  };
-  const drawerHeader: CSSProperties = {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: "10px 14px",
-    borderBottom: `1px solid ${tokens.border}`,
-    fontWeight: 600,
-  };
-  const drawerClose: CSSProperties = {
-    border: "none",
-    background: "transparent",
-    fontSize: 22,
-    color: tokens.fg,
-    cursor: "pointer",
-  };
-  const drawerBody: CSSProperties = { flex: 1, overflowY: "auto" };
-  return {
-    shell,
-    header,
-    headerLeft,
-    headerRight,
-    title,
-    body,
-    bodyMobile,
-    panel,
-    stage,
-    drawerOverlay,
-    drawer,
-    drawerHeader,
-    drawerClose,
-    drawerBody,
-  };
+function ColorPickerIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path d="M16.5 3.5l4 4-10 10-4 1 1-4 10-10z" />
+      <path d="M12.5 7.5l4 4" />
+    </svg>
+  );
+}
+
+function RulerIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path d="M2 12h20M6 8v8M10 9v6M14 8v8M18 9v6" />
+    </svg>
+  );
+}
+
+function LayersIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+    </svg>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -788,6 +748,3 @@ function useMediaQueryMaxWidth(maxPx: number): boolean {
   }, [maxPx]);
   return matches;
 }
-
-// Silence unused-import warning when ReactNode is only used in JSX.
-type _Force = ReactNode;
