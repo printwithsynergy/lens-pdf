@@ -8,7 +8,7 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 _Nothing yet._
 
-## [0.2.1] — 2026-05-04
+## [0.2.0-beta.1] — 2026-05-04
 
 ### Fixed
 - **Build output** — package was not built before publishing. Added `dist/` to
