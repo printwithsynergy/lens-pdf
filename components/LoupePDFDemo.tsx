@@ -54,7 +54,7 @@ import type { ThemeTokens, ViewerServices } from "../plugin/services";
 import { darkThemeTokens } from "../plugin/services";
 import type { OverlayItem } from "../plugin/types";
 import type { DielineResult, PageInfo } from "../types";
-import { pageInfoFromDimensions } from "../types";
+import { DEFAULT_DPI, pageInfoFromDimensions } from "../types";
 import { ViewerHostContext, ViewerServicesContext } from "../host";
 import { validatePdfFile, validatePdfUrl } from "../host/pdfValidation";
 import { AnnotationCanvas } from "./AnnotationCanvas";
@@ -192,7 +192,12 @@ export interface LoupePDFDemoProps {
 // ---------------------------------------------------------------------------
 
 const DEFAULT_MAX_BYTES = 50 * 1024 * 1024;
-const PTS_TO_PX = 96 / 72;
+// PTS_TO_PX must match PageCanvas's internal pts-to-pixel conversion
+// (which is `DEFAULT_DPI / 72`). Using a different ratio here makes
+// the canvas-area parent div size disagree with PageCanvas's rendered
+// page, so absolute-positioned overlays (TAC heatmap, separations,
+// layers, annotations, dieline) shift relative to the page content.
+const PTS_TO_PX = DEFAULT_DPI / 72;
 const DEFAULT_PAGE: PageInfo = pageInfoFromDimensions(1, 612, 792);
 
 const PROCESS_SWATCH: Record<string, string> = {
