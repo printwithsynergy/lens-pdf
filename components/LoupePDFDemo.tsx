@@ -1248,7 +1248,9 @@ export function LoupePDFDemo({
                           lineHeight: 1.5,
                         }}
                       >
-                        This PDF has no optional content groups (layers).
+                        No OCG layers — not broken. Art still exists on the
+                        page in Page mode; this PDF simply wasn&apos;t built
+                        with optional content groups (many exports are flat).
                       </p>
                     ) : (
                       <LayerPanel

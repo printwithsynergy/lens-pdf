@@ -8,6 +8,14 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 _Nothing yet._
 
+## [0.3.0-beta.19] — 2026-05-04
+
+### Changed
+- **Layers empty-state copy** — clarified that zero optional content
+  groups (OCGs) is normal for flat PDFs: artwork still appears on
+  the page composite in Page mode; OCG “layers” only exist when the
+  file was authored with that structure (Acrobat / InDesign).
+
 ## [0.3.0-beta.18] — 2026-05-04
 
 ### Changed

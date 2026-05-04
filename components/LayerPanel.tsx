@@ -176,7 +176,10 @@ export function LayerPanel({
   if (layers.length === 0) {
     return (
       <p style={messageStyle}>
-        This PDF has no optional content layers (OCGs).
+        No optional content groups (OCGs) in this file — most PDFs are flat,
+        so art lives only on the page composite (Page mode), not as named
+        layers you can toggle. Use Layers mode when the PDF was authored with
+        Acrobat / InDesign layer structure.
       </p>
     );
   }
