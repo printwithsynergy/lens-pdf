@@ -8,6 +8,11 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 _Nothing yet._
 
+## [0.2.0-beta.3] — 2026-05-04
+
+### Changed
+- **Publish target** — moved from GitHub Packages to public npm registry.
+
 ## [0.2.0-beta.2] — 2026-05-04
 
 ### Fixed
