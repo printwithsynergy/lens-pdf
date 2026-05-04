@@ -818,11 +818,32 @@ export function createBrowserViewerServices(
   ): Promise<string> {
     const raster = await getAnalysisRaster(pageNum);
     const data = raster.rgba.data;
+    // TAC = process CMYK coverage **plus** every detected spot ink's
+    // cosine-similarity coverage estimate, matching what the
+    // densitometer and color picker report for the same pixel. PDFs
+    // without declared spots fall through with zero spot contribution
+    // (`getInks()` returns only the four process channels), so pure
+    // CMYK files behave exactly like the previous CMYK-only heatmap.
+    const inks = await getInks();
+    const spots = inks.filter((ink) => ink.type === "spot");
     const url = await rasterizeBlobUrl(raster.widthPx, raster.heightPx, (i) => {
       const r = data[i] ?? 255;
       const g = data[i + 1] ?? 255;
       const b = data[i + 2] ?? 255;
-      const { tac } = rgbToCmyk(r, g, b);
+      const { tac: cmykPct } = rgbToCmyk(r, g, b);
+      let spotPct = 0;
+      for (const ink of spots) {
+        spotPct +=
+          estimateInkCoverage(
+            r,
+            g,
+            b,
+            ink.altRgb[0],
+            ink.altRgb[1],
+            ink.altRgb[2],
+          ) * 100;
+      }
+      const tac = cmykPct + spotPct;
       if (tac < 1) return [0, 0, 0, 0];
       return heatmapColor(tac, tacLimit);
     });
