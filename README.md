@@ -52,11 +52,22 @@ down only when you need more control.
 ### Tier 1 — Drop-in production viewer (~3 lines)
 
 `<LoupePDF>` is the recommended single-component entry point. One
-mount, every viewer-only feature wired to pdf.js out of the box: page
-raster (with multi-DPI zoom), color picker (RGB + TAC), densitometer
-(CMYK + spot inks + TAC limit), measure tool, TAC heatmap, per-ink
-separations (CMYK + any spots the PDF declares), layers (OCG list),
-and the annotation toolbar / canvas / thread (in-memory).
+mount, every viewer-only feature wired to pdf.js out of the box:
+
+- **Page raster** with a multi-DPI tile cache so zoom never
+  degrades the image.
+- **Color picker** — RGB readout plus a per-ink breakdown (CMYK
+  + any spot inks the PDF declares).
+- **Densitometer** — per-channel coverage and TAC limit.
+- **TAC heatmap** — process CMYK plus every detected spot ink
+  summed and visualised.
+- **Per-ink separations** — toggle CMYK and any spot plates
+  on / off (defaults to all-on like Output Preview).
+- **Layers** — OCG list with per-layer visibility.
+- **Annotation toolbar / canvas / thread** — pen, arrow, rect,
+  ellipse, text, highlight, sticky note, all in-memory.
+- **Mobile** — tools collapse into a left-anchored slide-in
+  drawer; readouts swap to bottom sheets so they stay legible.
 
 ```tsx
 import { LoupePDF } from "@printwithsynergy/loupe-pdf";
@@ -211,10 +222,14 @@ const services = createBrowserViewerServices({ pdfUrl: "/proof.pdf" });
 services.dispose(); // free blob URLs / pdf.js doc on unmount
 ```
 
-CMYK / TAC are RGB-derived approximations — good for visual showcase
-and casual review, **not** press-grade. For ICC-correct readings
-deploy the optional reference server below and pass its `services`
-overrides to override the browser implementations.
+CMYK / TAC are RGB-derived approximations when no backend is wired.
+Spot inks are detected by scanning raw PDF bytes for `/Separation`
+and `/DeviceN` colour spaces; each detected spot's coverage is
+estimated from its alternate-RGB direction. Good for visual
+showcase and casual review, **not** press-grade. For ICC-correct
+readings deploy the optional reference server below and pass its
+`services` overrides — the components automatically swap from the
+browser approximation to ICC-derived data with no markup change.
 
 ## Demo
 

@@ -8,6 +8,196 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 _Nothing yet._
 
+## [0.3.0-beta.12] — 2026-05-04
+
+### Changed
+- **Documentation refresh** — README, component reference, and
+  CHANGELOG brought current with the 0.3.0 series. `<LoupePDF>` is
+  now the headline integration tier; the demo wrapper is positioned
+  as a marketing-page convenience.
+
+## [0.3.0-beta.11] — 2026-05-04
+
+### Added
+- **Mobile responsive layout** — new `useIsMobile()` hook drives a
+  shared breakpoint (`max-width: 767px`). On mobile the persistent
+  tools sidebar collapses into a slide-in drawer anchored to the
+  left edge (`~85vw`, max `320 px`, `transform`-animated) with a
+  floating `☰` toggle and tap-outside backdrop. Color picker /
+  densitometer readouts switch from floating tooltip to full-width
+  bottom sheets so the readout is always legible regardless of where
+  the user taps.
+
+### Fixed
+- **`MeasureTool` readout legibility** — replaced the Tailwind-only
+  `bg-green-900/90` chip with an opaque inline-styled card (dark
+  slate background, green border, mint mono-font readout, drop
+  shadow) so measurements stay readable over light artwork, photos,
+  and ruler ticks. The drag-hint banner got the same treatment.
+- **Tailwind dependency removed** from `ColorPickerTool`,
+  `DensitometerTool`, and `MeasureTool` overlays — they now render
+  correctly in any host regardless of whether the host's Tailwind
+  config scans the package.
+
+## [0.3.0-beta.10] — 2026-05-04
+
+### Changed
+- **Demo disclaimer copy** — both sidebar disclaimers now lead with
+  "LoupePDF supports full CMYK + spot inks with no approximation
+  when a backend (Ghostscript / MuPDF + ICC profiles) is wired
+  through the `services` prop". The RGB-derived path is presented
+  as the fallback the demo runs in, not the only mode the package
+  supports.
+
+## [0.3.0-beta.9] — 2026-05-04
+
+### Changed
+- **`LoupePDFDemo` source split** — every CSS-in-JS helper
+  (`shellStyle`, `topbarStyle`, `sidebarStyle`, `stageStyle`, …)
+  moved out into a sibling `LoupePDFDemo.styles.ts` (270 lines).
+  The main component file dropped from 1620 → 1373 lines so the
+  React tree is visible without scrolling past inline style objects.
+- **Top-of-file JSDoc** rewritten to lead with "Most consumers
+  should not import this directly. Use `<LoupePDF>` instead — it's
+  a one-liner production drop-in." Documents the file's internal
+  organisation (styles file + per-feature canvas / overlay / panel
+  components).
+
+## [0.3.0-beta.8] — 2026-05-04
+
+### Fixed
+- **TAC heatmap missed spot inks** — `buildHeatmapUrl` previously
+  coloured every pixel from `rgbToCmyk` only, while the densitometer
+  and color picker added each detected spot ink's coverage estimate
+  to the same pixel's TAC. PDFs declaring spot inks now get a
+  heatmap that matches the readout: process CMYK + every detected
+  spot ink, summed via `estimateInkCoverage` with the same
+  cosine-similarity heuristic. Pure CMYK files behave identically
+  to before.
+
+## [0.3.0-beta.7] — 2026-05-04
+
+### Fixed
+- **Demo overlays misaligned with the page** — `LoupePDFDemo` was
+  computing its outer canvas-area div from `PTS_TO_PX = 96/72` while
+  `PageCanvas` rendered using `DEFAULT_DPI/72 = 150/72`. The parent
+  div was ~36% smaller than the rendered page so every absolute-
+  positioned overlay (TAC heatmap, separation canvas, layer canvas,
+  annotation canvas, dieline / box overlays) landed on the top-left
+  ~64% of the page and shifted relative to the actual content.
+  Switching `PTS_TO_PX` to `DEFAULT_DPI / 72` makes the parent agree
+  with what `PageCanvas` renders so all overlays now register
+  pixel-perfect.
+
+## [0.3.0-beta.6] — 2026-05-04
+
+### Changed
+- **Demo footer copy** — dropped the marketing "Everything runs in
+  your browser via pdf.js" line from the sidebar footer and the
+  empty-state upload prompt. CMYK / TAC approximation disclaimer
+  and max-upload hint stay because they're useful technical
+  caveats.
+
+## [0.3.0-beta.5] — 2026-05-04
+
+### Added
+- **Sticky note tool** in the annotation toolbar — drops a fabric
+  `Textbox` styled as a sticky-note card (180 px wide, tinted
+  background derived from the active stroke colour, matching
+  border, dark ink) at the click point and immediately enters edit
+  mode with the placeholder pre-selected. Participates in undo /
+  redo, auto-save, and the existing JSON serialisation.
+
+## [0.3.0-beta.4] — 2026-05-04
+
+### Fixed
+- **Tools / overlays collapsed in hosts without Tailwind** — every
+  overlay component (annotation, color picker, densitometer,
+  measure, TAC heatmap, separation, layer, box, dieline) was
+  relying on Tailwind utility classes (`absolute`, `inset-0`,
+  `cursor-crosshair`) for positioning. In hosts whose Tailwind
+  config didn't pick up the package's compiled JS, those overlays
+  collapsed to 0×0 and pointer events fell through to the page
+  canvas — so annotation tools, color picker, etc. appeared
+  non-functional. Replaced positioning classes with inline `style`
+  props throughout.
+- **`AnnotationCanvas` upper-canvas sizing** — explicit `width` /
+  `height` attributes on the underlying `<canvas>` element so
+  fabric.js sizes its event-receiving upper-canvas correctly.
+- **OCG layer enumeration** hardened — handles both `Map` and
+  `Object` literal shapes returned by pdf.js's
+  `getOptionalContentConfig().getGroups()`, falls back to walking
+  the `/OCProperties /D /Order` tree, queries names through both
+  `getGroup(id)` and `getGroups()[id]`, and passes the proper
+  `{ type: "OCG", id }` shape to `isVisible()`. Caches the OCG list
+  against every page (OCGs are document-level) and emits a console
+  warning when `listLayers` fails so reviewers can diagnose PDFs
+  without optional content groups.
+
+## [0.3.0-beta.3] — 2026-05-04
+
+### Added
+- **`<LoupePDF>` component** — drop-in production viewer. Thin
+  wrapper around `<LoupePDFDemo>` with `embedded=true` and a clean
+  prop surface: `pdfUrl` is the single required prop, no upload
+  chrome, plus full preflight integration (`items`, `selectedItem`,
+  `onItemSelect`, `dieline`, `showBoxOverlays`, `cropToTrim`,
+  `onPageChange`, `onZoomChange`, `onError`).
+- **Spot-ink detection** in `createBrowserViewerServices` —
+  regex-scans raw PDF bytes for `/Separation` and `/DeviceN` colour
+  spaces, decodes PDF name encoding, maps known spot families
+  (Pantone, Reflex Blue, Warm Red, etc.) to sRGB and falls back to
+  a hash-derived hue otherwise. `estimateInkCoverage()` projects
+  each pixel onto the spot's subtractive direction so densitometer,
+  color picker, and the inks panel report values for every detected
+  CMYK + spot.
+- **Per-spot separation plates** — `getChannelImageUrl` now builds
+  grayscale rasters for every detected ink (process and spot) so
+  the separations canvas can isolate any plate.
+- **`AnnotationToolbar` portability** — every shadcn-style class
+  replaced with inline styling so the toolbar renders identically
+  in any host regardless of Tailwind / CSS framework.
+
+### Changed
+- **Demo viewer mode UX** — three mutually-exclusive primary
+  canvases (Page / Separations / Layers) replace the previous
+  overlay-stack. Inks default ON; untick a plate to preview without
+  it (matches Acrobat's Output Preview).
+
+## [0.3.0-beta.2] — 2026-05-04
+
+### Added
+- **Client-side `createBrowserViewerServices`** — full
+  `ViewerServices` implementation backed by pdf.js. Every viewer-
+  only feature (page tiles at multiple DPIs, channel rasters, TAC
+  heatmap, color sample, densitometer, layer rendering, in-memory
+  annotations) works on any PDF the browser can fetch with no
+  backend required.
+- **`prepare(pageNum)` lifecycle method** — eagerly pre-builds
+  every channel + heatmap + layer for a page so non-reactive
+  canvases (separations, layers) don't latch onto an empty URL
+  before the analysis raster lands.
+- **Multi-DPI tile cache** — `PageCanvas` requests an effective
+  DPI bucketed off the current zoom; the browser services build
+  and cache rasters per `(pageNum, dpi)` so zoom doesn't degrade
+  the page tile.
+- **OCG-aware `LayerCanvas`** — uses pdf.js's
+  `OptionalContentConfig` to render a single OCG with transparent
+  background.
+
+### Changed
+- **CMYK approximation** — `rgbToCmyk` switched from a basic
+  closed-form to a "rich-black" formula (additive CMY + K based on
+  `min(C,M,Y) * 0.8`) so the densitometer / TAC heatmap actually
+  trip on solid black instead of reporting K=0% for pure black.
+
+## [0.3.0-beta.1] — 2026-05-04
+
+### Changed
+- **Publish target** — moved package consumption away from GitHub
+  source and onto the public npm registry under the
+  `@printwithsynergy` scope. Marketing site now installs from npm.
+
 ## [0.2.0-beta.3] — 2026-05-04
 
 ### Changed

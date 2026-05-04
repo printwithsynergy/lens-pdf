@@ -12,6 +12,7 @@ and reads its data through the contexts described in
 [architecture.md](./architecture.md). Required `ViewerServices` fields are
 called out per component.
 
+- [Drop-in viewer](#drop-in-viewer)
 - [Drop-in demo](#drop-in-demo)
 - [Page rendering](#page-rendering)
 - [Print-production overlays](#print-production-overlays)
@@ -20,17 +21,62 @@ called out per component.
 - [Annotations](#annotations)
 - [Mobile chrome](#mobile-chrome)
 
+## Drop-in viewer
+
+### `LoupePDF`
+
+The recommended single-component entry point for production hosts.
+One mount, every viewer-only feature wired to pdf.js out of the box —
+page tile (multi-DPI cache), color picker, densitometer, measure
+tool, TAC heatmap, per-ink separations (CMYK + spots), OCG layers,
+and the annotation toolbar / canvas / thread. No upload chrome — the
+host supplies the URL.
+
+```tsx
+import { LoupePDF } from "@printwithsynergy/loupe-pdf";
+import pdfWorkerSrc from "pdfjs-dist/build/pdf.worker.mjs?url";
+
+export function ProofPage() {
+  return <LoupePDF pdfUrl="/proofs/abc.pdf" workerSrc={pdfWorkerSrc} />;
+}
+```
+
+#### Props
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `pdfUrl` | `string` | _(required)_ | PDF the viewer will load. |
+| `workerSrc` | `string` | `defaultPdfWorkerSrc` | Override the pdf.js worker URL. |
+| `services` | `ViewerServices` | _browser services_ | Pass wired services to swap any feature from the in-browser approximation to a backend. |
+| `tools` | `ReadonlyArray<LoupePDFViewerTool>` | all | Subset of tools to show in the sidebar. |
+| `initialZoom` | `number` | `80` | Starting zoom percentage. |
+| `initialPage` | `number` | `1` | Starting page (1-indexed). |
+| `tokens` | `Partial<ThemeTokens>` | `darkThemeTokens` | Theme override merged onto the dark palette. |
+| `brand` / `brandLogoUrl` | `string` | _(none)_ | Optional brand label / logo. |
+| `items` | `OverlayItem[]` | `[]` | Preflight findings (error / warning / advisory bboxes). |
+| `selectedItem` | `OverlayItem \| null` | _(internal)_ | Controlled selection. |
+| `onItemSelect` | `(item) => void` | _(internal)_ | Selection callback. |
+| `dieline` | `DielineResult` | _(none)_ | Dieline geometry overlay. |
+| `showBoxOverlays` | `boolean` | `false` | Render trim / bleed / crop popovers. |
+| `cropToTrim` | `boolean` | `false` | Clip the canvas to the page's TrimBox (falls back to BleedBox, then CropBox). |
+| `onPageChange` / `onZoomChange` / `onError` | callbacks | _(none)_ | Lifecycle hooks. |
+
+CMYK / TAC are RGB-derived approximations when no backend is wired.
+For ICC-correct readings, deploy the [optional reference server](./server.md)
+and pass its `services` overrides.
+
 ## Drop-in demo
 
 ### `LoupePDFDemo`
 
-Complete interactive demo — file upload, URL paste, drag-and-drop,
-client-side PDF validation, sidebar controls, theming, and optional
-fullscreen mode. Zero boilerplate: provide config + branding and you're
-done.
+Marketing / showcase variant of `<LoupePDF>` — adds an upload bar,
+URL paste, drag-and-drop, client-side PDF validation, and an
+empty-state UI. Useful for `loupepdf.com`-style demo pages and
+internal sandboxes where users bring their own files. **Most
+consumers should reach for [`<LoupePDF>`](#loupepdf) instead.**
 
 ```tsx
-import { LoupePDFDemo } from "@printwithsynergy/loupe-pdf/components";
+import { LoupePDFDemo } from "@printwithsynergy/loupe-pdf";
 
 export function DemoPage() {
   return <LoupePDFDemo brand="MyApp" brandLogoUrl="/logo.svg" />;
@@ -313,8 +359,8 @@ saves in share-link / public-token modes.
 ### `AnnotationToolbar`
 
 A tool-and-color toolbar. Supported tools are `pointer`, `pen`, `arrow`,
-`rectangle`, `ellipse`, `text`, `highlight`. The host owns the active-tool
-state and undo/redo stack.
+`rectangle`, `ellipse`, `text`, `highlight`, and `sticky` (sticky-note
+card). The host owns the active-tool state and undo/redo stack.
 
 ```tsx
 <AnnotationToolbar
@@ -373,6 +419,21 @@ Service deps: `annotations.list`, `annotations.remove`. Renders nothing
 when `services.annotations` is unwired (see [fallback.md](./fallback.md)).
 
 ## Mobile chrome
+
+### `useIsMobile`
+
+Hook that returns `true` when `window.matchMedia("(max-width: 767px)")`
+matches. Used internally by `<LoupePDF>` / `<LoupePDFDemo>` to switch
+the tools sidebar into a slide-in drawer (anchored to the left edge,
+~85vw wide, max 320 px) and to switch the color-picker / densitometer
+readouts from floating tooltips to full-width bottom sheets.
+
+```tsx
+import { useIsMobile } from "@printwithsynergy/loupe-pdf/components";
+
+const isMobile = useIsMobile();        // default 767 px breakpoint
+const isTablet = useIsMobile(1024);    // custom breakpoint
+```
 
 ### `MobileDrawer`
 
