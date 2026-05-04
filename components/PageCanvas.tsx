@@ -152,6 +152,24 @@ export function PageCanvas({
   const canvasWidth = Math.round(page.width_pts * ptsToPixels * scale);
   const canvasHeight = Math.round(page.height_pts * ptsToPixels * scale);
 
+  // Ask the page-image service for a tile rendered at the *effective*
+  // DPI (base DPI scaled by current zoom, bucketed so the slider
+  // doesn't flood the cache with near-duplicate builds, capped so we
+  // don't exhaust memory on extreme zoom). Hosts that ship a multi-
+  // DPI cache (e.g. `createBrowserViewerServices`) hand back a tile
+  // matching this bucket so the canvas draws pixel-perfect instead of
+  // CSS-stretching a low-resolution raster.
+  const DPI_BUCKET = 50;
+  const DPI_FLOOR = 72;
+  const DPI_CEIL = 450;
+  const requestedDpi = Math.min(
+    DPI_CEIL,
+    Math.max(
+      DPI_FLOOR,
+      Math.round((dpi * Math.max(0.1, scale)) / DPI_BUCKET) * DPI_BUCKET,
+    ),
+  );
+
   const trimViewport = (() => {
     if (!cropToTrim) return null;
     const box = page.trim_box ?? page.bleed_box ?? page.crop_box;
@@ -185,7 +203,10 @@ export function PageCanvas({
   // host hasn't wired pageImages but ``pdfFallback`` is set, we ask
   // the fallback adapter to render the page in-browser
   // and use the resulting data URL.
-  const proxyUrl = pageImages.getPageImageUrl({ pageNum: page.page_num, dpi });
+  const proxyUrl = pageImages.getPageImageUrl({
+    pageNum: page.page_num,
+    dpi: requestedDpi,
+  });
   useEffect(() => {
     if (mode === "hidden") {
       if (debug) logUnwiredHide("PageCanvas", "pageImages");
@@ -200,7 +221,7 @@ export function PageCanvas({
       const img = new Image();
       const cdnUrl =
         mode === "wired" && tileCdnBase
-          ? `${tileCdnBase}p${page.page_num}_d${dpi}.png`
+          ? `${tileCdnBase}p${page.page_num}_d${requestedDpi}.png`
           : null;
       img.onload = () => {
         if (cancelled) return;
@@ -220,7 +241,7 @@ export function PageCanvas({
 
     if (mode === "fallback" && pdfFallback) {
       pdfFallback
-        .renderPageToUrl({ pageNum: page.page_num, dpi })
+        .renderPageToUrl({ pageNum: page.page_num, dpi: requestedDpi })
         .then((url) => {
           if (!cancelled) startLoad(url);
         })
@@ -234,7 +255,7 @@ export function PageCanvas({
     return () => {
       cancelled = true;
     };
-  }, [proxyUrl, page.page_num, dpi, tileCdnBase, mode, pdfFallback, debug]);
+  }, [proxyUrl, page.page_num, requestedDpi, tileCdnBase, mode, pdfFallback, debug]);
 
   // Animate pulse for selected item
   useEffect(() => {

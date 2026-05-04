@@ -24,10 +24,17 @@ export type {
 } from "./context";
 
 export type {
+  AnnotationEntry,
   AnnotationService,
+  ColorSampleService,
+  DensitometerService,
   I18nService,
+  LayerService,
   PageImageService,
   PdfFallbackAdapter,
+  ReportsService,
+  SeparationService,
+  TACHeatmapService,
   TelemetryService,
   ThemeTokens,
   ViewerServices,

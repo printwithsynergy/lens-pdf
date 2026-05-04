@@ -42,7 +42,24 @@ export type { LoupePDFProviderProps } from "./host/LoupePDFProvider";
 export { pageInfoFromDimensions } from "./types";
 
 export { LoupePDFDemo } from "./components/LoupePDFDemo";
-export type { LoupePDFDemoProps } from "./components/LoupePDFDemo";
+export type {
+  LoupePDFDemoProps,
+  LoupePDFDemoTool,
+} from "./components/LoupePDFDemo";
+
+// Browser-only ViewerServices factory — gives consumers a one-liner
+// path to a fully wired viewer without a server backend.
+export {
+  createBrowserViewerServices,
+  defaultBrowserWorkerSrc,
+  rgbToCmyk,
+  useBrowserViewerServicesVersion,
+  PROCESS_CHANNELS,
+} from "./browser";
+export type {
+  BrowserViewerServices,
+  BrowserViewerServicesOptions,
+} from "./browser";
 
 export { AnnotationCanvas } from "./components/AnnotationCanvas";
 export { AnnotationThread } from "./components/AnnotationThread";

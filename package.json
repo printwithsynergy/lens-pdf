@@ -1,6 +1,6 @@
 {
   "name": "@printwithsynergy/loupe-pdf",
-  "version": "0.2.0-beta.5",
+  "version": "0.3.0-beta.0",
   "type": "module",
   "description": "LoupePDF \u2014 host-agnostic OSS PDF viewer core. Plugin-driven canvas viewer with overlay / panel / toolbar slots.",
   "license": "AGPL-3.0-or-later",
@@ -51,6 +51,10 @@
       "types": "./dist/fallback-pdfjs/index.d.ts",
       "import": "./dist/fallback-pdfjs/index.js"
     },
+    "./browser": {
+      "types": "./dist/browser/index.d.ts",
+      "import": "./dist/browser/index.js"
+    },
     "./types": {
       "types": "./dist/types/index.d.ts",
       "import": "./dist/types/index.js"
@@ -66,6 +70,7 @@
       "host": ["./dist/host/index.d.ts"],
       "plugin": ["./dist/plugin/index.d.ts"],
       "fallback-pdfjs": ["./dist/fallback-pdfjs/index.d.ts"],
+      "browser": ["./dist/browser/index.d.ts"],
       "types": ["./dist/types/index.d.ts"],
       "units": ["./dist/units/index.d.ts"]
     }
