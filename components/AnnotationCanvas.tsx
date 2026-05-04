@@ -374,12 +374,19 @@ export function AnnotationCanvas({
 
   if (hidden) return null;
 
+  // Inline positioning styles — don't depend on the host's Tailwind
+  // config providing `absolute` / `inset-0`, so the annotation canvas
+  // overlays correctly in any embed (Astro, Next, plain CRA, etc.).
   return (
     <div
-      className="absolute inset-0"
-      style={{ pointerEvents: "auto", zIndex: 20 }}
+      style={{
+        position: "absolute",
+        inset: 0,
+        pointerEvents: "auto",
+        zIndex: 20,
+      }}
     >
-      <canvas ref={canvasElRef} />
+      <canvas ref={canvasElRef} width={width} height={height} />
     </div>
   );
 }

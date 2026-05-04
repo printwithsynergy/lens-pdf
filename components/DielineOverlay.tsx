@@ -59,7 +59,7 @@ export function DielineOverlay({
   const color = dieline?.multi_color ? "#ef4444" : "#dc2626";
 
   return (
-    <div className="absolute inset-0" style={{ zIndex: 16 }}>
+    <div style={{ position: "absolute", inset: 0, zIndex: 16 }}>
       {regions.map((region, idx) => {
         const box = {
           x0: region.x0,

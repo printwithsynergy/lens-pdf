@@ -120,8 +120,14 @@ export function TACHeatmapOverlay({
   if (loading) {
     return (
       <div
-        className="absolute left-0 top-0 flex items-center justify-center"
-        style={{ width, height }}
+        className="flex items-center justify-center"
+        style={{
+          position: "absolute",
+          left: 0,
+          top: 0,
+          width,
+          height,
+        }}
       >
         <div className="flex flex-col items-center gap-2 rounded-lg bg-black/60 px-4 py-3">
           <svg className="h-6 w-6 animate-spin text-white" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
@@ -148,8 +154,14 @@ export function TACHeatmapOverlay({
         ref={canvasRef}
         width={width}
         height={height}
-        className="pointer-events-none absolute left-0 top-0"
-        style={{ width, height }}
+        style={{
+          position: "absolute",
+          left: 0,
+          top: 0,
+          width,
+          height,
+          pointerEvents: "none",
+        }}
       />
 
       {/* Tooltip hit-target SVG. Sits above the canvas but below any
@@ -158,8 +170,14 @@ export function TACHeatmapOverlay({
           layer is stacked above this by PdfViewer). */}
       {showTooltipLayer && (
         <svg
-          className="pointer-events-none absolute left-0 top-0"
-          style={{ width, height }}
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 0,
+            width,
+            height,
+            pointerEvents: "none",
+          }}
           width={width}
           height={height}
         >

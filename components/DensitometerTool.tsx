@@ -131,8 +131,13 @@ export function DensitometerTool({
 
   return (
     <div
-      className="absolute inset-0 cursor-crosshair"
-      style={{ zIndex: 25, touchAction: "none" }}
+      style={{
+        position: "absolute",
+        inset: 0,
+        cursor: "crosshair",
+        zIndex: 25,
+        touchAction: "none",
+      }}
       onClick={handleClick}
       onTouchStart={handleTouch}
     >

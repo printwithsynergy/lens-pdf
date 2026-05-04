@@ -98,8 +98,7 @@ export function BoxOverlay({ page, canvasWidth, canvasHeight, dieline }: BoxOver
 
   return (
     <div
-      className="absolute inset-0"
-      style={{ zIndex: 15 }}
+      style={{ position: "absolute", inset: 0, zIndex: 15 }}
     >
       <svg
         width={canvasWidth}

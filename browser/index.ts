@@ -96,6 +96,59 @@ export interface DetectedInk {
  */
 export const defaultBrowserWorkerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
+/**
+ * Extract OCG ids from a pdf.js {@link OptionalContentConfig}. pdf.js
+ * v4's `getGroups()` returns either:
+ *   - `null` when the document has no OCGs
+ *   - an Object literal keyed by ref id — `{ "10R": OptionalContentGroup, … }`
+ *
+ * Older / future versions might return a Map, so this helper accepts
+ * both shapes. Falls through to `getOrder()` and per-id `getGroup()`
+ * lookups when the primary path returns nothing — some PDFs only
+ * surface their OCG list via the order tree even when groups exist.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function extractOcgIds(config: any): string[] {
+  if (!config) return [];
+  let raw: unknown;
+  try {
+    raw = typeof config.getGroups === "function" ? config.getGroups() : null;
+  } catch {
+    raw = null;
+  }
+  if (raw instanceof Map) {
+    return Array.from(raw.keys()).map(String);
+  }
+  if (raw && typeof raw === "object") {
+    const ids = Object.keys(raw as Record<string, unknown>);
+    if (ids.length > 0) return ids;
+  }
+  // Fallback: walk the order tree and collect every leaf id, in case
+  // `getGroups()` returned an empty object even though the doc declares
+  // OCGs through `/OCProperties /D /Order`.
+  try {
+    const order = typeof config.getOrder === "function" ? config.getOrder() : null;
+    if (Array.isArray(order)) {
+      const seen = new Set<string>();
+      const visit = (node: unknown) => {
+        if (typeof node === "string") {
+          seen.add(node);
+        } else if (Array.isArray(node)) {
+          node.forEach(visit);
+        } else if (node && typeof node === "object") {
+          const o = node as { name?: string; order?: unknown };
+          if (Array.isArray(o.order)) o.order.forEach(visit);
+        }
+      };
+      order.forEach(visit);
+      return Array.from(seen);
+    }
+  } catch {
+    /* ignore */
+  }
+  return [];
+}
+
 /** 1×1 transparent PNG — returned by `getPageImageUrl` while a tile
  *  is still being lazy-built. Page raster tiles are reactive (the
  *  PageCanvas re-renders on `notify`), so a placeholder bridges the
@@ -808,14 +861,12 @@ export function createBrowserViewerServices(
     try {
       const doc = await getDoc();
       const config = await doc.getOptionalContentConfig();
-      const groups = (config?.getGroups?.() ?? {}) as Record<
-        string,
-        { name?: string }
-      >;
-      const ids = Object.keys(groups);
+      const ids = extractOcgIds(config);
       ocgIdsPerPage.set(pageNum, ids);
       return ids;
-    } catch {
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn("[loupe-pdf] OCG enumeration failed", err);
       ocgIdsPerPage.set(pageNum, []);
       return [];
     }
@@ -980,18 +1031,56 @@ export function createBrowserViewerServices(
         try {
           const doc = await getDoc();
           const config = await doc.getOptionalContentConfig();
-          const groups = (config?.getGroups?.() ?? {}) as Record<
-            string,
-            { name?: string }
-          >;
-          const ids = Object.keys(groups);
-          ocgIdsPerPage.set(1, ids);
-          return ids.map((id, index) => ({
-            name: groups[id]?.name ?? `Layer ${index + 1}`,
-            ocg_index: index,
-            default_on: config?.isVisible(id) ?? true,
-          }));
-        } catch {
+          const ids = extractOcgIds(config);
+          if (ids.length === 0) {
+            return [];
+          }
+          // Cache the same list for every page — OCGs are document-
+          // level, so getOcgIds() should resolve to the same set
+          // regardless of which page asked for them.
+          for (let i = 1; i <= doc.numPages; i++) {
+            ocgIdsPerPage.set(i, ids);
+          }
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const cfgAny = config as any;
+          return ids.map((id, index) => {
+            // pdf.js's `getGroup(id)` returns an OCG instance with
+            // `.name`. Older builds expose it via `getGroups()[id]`.
+            // Try the dedicated accessor first, then fall back.
+            let name = `Layer ${index + 1}`;
+            try {
+              const g = cfgAny.getGroup?.(id);
+              if (g?.name) name = g.name;
+            } catch {
+              /* ignore */
+            }
+            if (name === `Layer ${index + 1}`) {
+              try {
+                const groups = cfgAny.getGroups?.();
+                const fromObj = groups?.[id]?.name;
+                if (fromObj) name = fromObj;
+              } catch {
+                /* ignore */
+              }
+            }
+            // pdf.js's isVisible expects `{ type: "OCG", id }`, not
+            // a bare id string — pass that shape so the default-on
+            // flag is correct for layered PDFs.
+            let visible = true;
+            try {
+              visible = cfgAny.isVisible?.({ type: "OCG", id }) ?? true;
+            } catch {
+              /* ignore */
+            }
+            return {
+              name,
+              ocg_index: index,
+              default_on: visible,
+            };
+          });
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.warn("[loupe-pdf] listLayers failed", err);
           return [];
         }
       },

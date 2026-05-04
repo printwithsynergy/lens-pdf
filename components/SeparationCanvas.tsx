@@ -198,8 +198,7 @@ export function SeparationCanvas({
       ref={canvasRef}
       width={width}
       height={height}
-      className="absolute left-0 top-0"
-      style={{ width, height }}
+      style={{ position: "absolute", left: 0, top: 0, width, height }}
     />
   );
 }

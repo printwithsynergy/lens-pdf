@@ -146,19 +146,28 @@ export function MeasureTool({
   return (
     <div
       ref={overlayRef}
-      className="absolute inset-0 cursor-crosshair"
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      style={{ zIndex: 25, touchAction: "none" }}
+      style={{
+        position: "absolute",
+        inset: 0,
+        cursor: "crosshair",
+        zIndex: 25,
+        touchAction: "none",
+      }}
     >
       {/* Ruler line (during drag or after measurement) */}
       {start && end && (
         <svg
-          className="pointer-events-none absolute inset-0"
+          style={{
+            position: "absolute",
+            inset: 0,
+            pointerEvents: "none",
+          }}
           width={canvasWidth}
           height={canvasHeight}
         >
