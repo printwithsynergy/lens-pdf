@@ -256,6 +256,36 @@ export function AnnotationCanvas({
         return;
       }
 
+      if (activeTool === "sticky") {
+        // Sticky note = a Textbox with a tinted background and a thin
+        // border in the active stroke colour. Single click places the
+        // card and immediately enters edit mode so reviewers can type
+        // straight away.
+        const NOTE_WIDTH = 180;
+        const note = new fabric.Textbox("Note", {
+          left: startX,
+          top: startY,
+          width: NOTE_WIDTH,
+          fontSize: 14,
+          fill: "#1f1f1f",
+          fontFamily: "sans-serif",
+          textAlign: "left",
+          backgroundColor: strokeColor + "55",
+          padding: 8,
+          borderColor: strokeColor,
+          cornerColor: strokeColor,
+          editable: true,
+          lockScalingFlip: true,
+          splitByGrapheme: false,
+        });
+        canvas.add(note);
+        canvas.setActiveObject(note);
+        note.enterEditing();
+        if (typeof note.selectAll === "function") note.selectAll();
+        isDrawing = false;
+        return;
+      }
+
       if (activeTool === "rectangle") {
         activeShape = new fabric.Rect({
           left: startX,

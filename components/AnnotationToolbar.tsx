@@ -13,6 +13,8 @@ import type { CSSProperties } from "react";
  *   - `ellipse`   — outlined ellipse inscribed in the drag box
  *   - `text`      — IText click-to-place, edit-on-create
  *   - `highlight` — semi-transparent filled rect (hue from `strokeColor`)
+ *   - `sticky`    — sticky-note card: tinted Textbox dropped at click
+ *                  point, immediately enters editing mode
  *
  * @public
  */
@@ -23,7 +25,8 @@ export type AnnotationTool =
   | "rectangle"
   | "ellipse"
   | "text"
-  | "highlight";
+  | "highlight"
+  | "sticky";
 
 interface AnnotationToolbarProps {
   activeTool: AnnotationTool;
@@ -45,6 +48,7 @@ const TOOLS: { id: AnnotationTool; label: string; icon: string }[] = [
   { id: "ellipse", label: "Ellipse", icon: "\u25CB" },
   { id: "text", label: "Text", icon: "T" },
   { id: "highlight", label: "Highlight", icon: "\u2588" },
+  { id: "sticky", label: "Sticky note", icon: "\u25A4" },
 ];
 
 const PRESET_COLORS = [
