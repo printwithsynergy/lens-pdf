@@ -6,6 +6,15 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+_Nothing yet._
+
+## [0.1.0-beta.1] — 2026-05-03
+
+First public beta. The viewer core, in-browser pdf.js fallback,
+optional Node + Ghostscript reference server, demo app, and full
+docs site are all in place. Public API may still change before
+`0.1.0` proper based on early-adopter feedback.
+
 ### Added
 - **Reference server**: optional Node + Ghostscript backend under `server/`.
   Exposes the HTTP contract that `services.separations` /
@@ -53,8 +62,8 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   "preflight|lintpdf|lint-pdf|thinkneverland"` returns nothing in source
   or docs.
 
-## [0.1.0] — initial extraction
+## [0.1.0] — internal extraction
 
-First version of LoupePDF, extracted from an upstream SaaS monorepo as
-the host-agnostic OSS viewer core. Re-exported from
-`@printwithsynergy/loupe-pdf`.
+First internal version of LoupePDF, extracted from an upstream SaaS
+monorepo as the host-agnostic OSS viewer core. Never published.
+Superseded by `0.1.0-beta.1`.
