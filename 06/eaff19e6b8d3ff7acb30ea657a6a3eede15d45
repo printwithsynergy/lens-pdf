@@ -1,0 +1,27 @@
+CHANGELOG.md
+  e4ff528387c0f56d 11-22
+package.json
+  e4ff528387c0f56d 3
+components/LoupePDFDemo.tsx
+  e4ff528387c0f56d 23-24,276,281,286-300,306-341,1058-1059,1070-1071
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "06eaff19e6b8d3ff7acb30ea657a6a3eede15d45",
+  "prompts": {
+    "e4ff528387c0f56d": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "a5a7d1a5-2859-4254-a584-2e5b7b3f2b6d",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Quincy Adams",
+      "messages": [],
+      "total_additions": 72,
+      "total_deletions": 5,
+      "accepted_lines": 72,
+      "overriden_lines": 0
+    }
+  }
+}
