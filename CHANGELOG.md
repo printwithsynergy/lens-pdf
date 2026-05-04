@@ -8,6 +8,46 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 _Nothing yet._
 
+## [0.2.0] — 2026-05-04
+
+### Added
+- **`<LoupePDFDemo>` component** — drop-in interactive demo with file
+  upload, URL paste, drag-and-drop, client-side validation, sidebar
+  controls, theming, and fullscreen mode. Zero boilerplate — config and
+  data only. See [docs/components.md](./docs/components.md#drop-in-demo).
+- **`useLoupePDF()` hook** — manages all viewer state (pages, zoom,
+  layers, tools, fallback adapter, context values). Pair with
+  `<LoupePDFProvider>` for the "hook + provider" integration tier.
+- **`<LoupePDFProvider>` component** — thin wrapper that mounts both
+  `ViewerHostContext` and `ViewerServicesContext` from a `useLoupePDF()`
+  return value.
+- **Slot props on `<LoupePDFViewer>`** — `header`, `sidebar`, and
+  `footer` render props let hosts replace default regions without losing
+  the rest of the viewer chrome. `LoupePDFViewerState` type exposes the
+  viewer state to slot callbacks.
+- **`defaultUnwiredServices`** — exported from `/host` so consumers
+  don't need to recreate the 30-line `markUnwired` stub object.
+- **`pageInfoFromDimensions()`** — helper in `/types` that builds a
+  complete `PageInfo` from just page number, width, and height.
+- **`darkThemeTokens`** — dark palette preset exported from `/plugin`
+  alongside the existing `defaultThemeTokens`.
+- **`validatePdfFile()` / `validatePdfUrl()`** — client-side PDF
+  validation (magic bytes, MIME type, file size) exported from `/host`.
+  See [docs/validation.md](./docs/validation.md).
+- **`generateShareLink()` / `parseShareParams()`** — build and parse
+  shareable viewer URLs with query params for PDF URL, fullscreen, zoom,
+  page, mode, tools, and theme. See
+  [docs/share-links.md](./docs/share-links.md).
+- **`typesVersions`** in `package.json` — consumers using
+  `moduleResolution: "node"` can now resolve sub-path type declarations
+  without switching to `"bundler"`.
+
+### Changed
+- **Version bump** to `0.2.0`.
+- **README** rewritten with a 4-tier decision tree (Demo → Viewer →
+  Hook+Provider → Full Custom) plus shareable-link and validation
+  sections.
+
 ## [0.1.0-beta.3] — 2026-05-04
 
 ### Fixed

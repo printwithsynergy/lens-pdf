@@ -14,6 +14,31 @@ state and self-hide rather than rendering empty placeholders — see
 [docs/fallback.md](./fallback.md) for the full capability-detection model,
 the in-browser pdf.js fallback, and debug logging.
 
+### Quick start with `defaultUnwiredServices`
+
+The easiest way to build a partial `ViewerServices` is to spread the
+pre-built defaults and override only the services your host provides:
+
+```ts
+import { defaultUnwiredServices } from "@printwithsynergy/loupe-pdf/host";
+
+export const services = {
+  ...defaultUnwiredServices,
+  pageImages: {
+    getPageImageUrl: ({ pageNum, dpi }) =>
+      `/api/pdf/${pageNum}.png?dpi=${dpi}`,
+  },
+  tokens: { ...defaultUnwiredServices.tokens, accent: "#e50c6a" },
+};
+```
+
+Everything you don't override stays *unwired* and the consuming
+components self-hide.
+
+### Manual approach
+
+The full manual approach gives you finer-grained control:
+
 ```ts
 import type { ViewerServices } from "@printwithsynergy/loupe-pdf/plugin";
 import {

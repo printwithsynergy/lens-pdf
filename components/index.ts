@@ -16,6 +16,7 @@ export * from "./DensitometerTool";
 export * from "./DielineOverlay";
 export * from "./LayerCanvas";
 export * from "./LayerPanel";
+export * from "./LoupePDFDemo";
 export * from "./LoupePDFViewer";
 export * from "./MeasureTool";
 export * from "./MobileBottomSheet";

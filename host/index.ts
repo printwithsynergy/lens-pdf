@@ -232,5 +232,30 @@ export function useFallbackMode(
   return "hidden";
 }
 
+/**
+ * Pre-built services where every protocol is a no-op default tagged
+ * with the unwired marker. Hosts that only need a partial override
+ * can spread this and replace the fields they've wired:
+ *
+ * ```ts
+ * const services = { ...defaultUnwiredServices, pageImages: myPageImages };
+ * ```
+ *
+ * @public
+ */
+export { defaultViewerServices as defaultUnwiredServices };
+
 export { createPdfJsFallback } from "./pdfFallback";
 export { isUnwired, markUnwired } from "../plugin/services";
+
+export { validatePdfFile, validatePdfUrl } from "./pdfValidation";
+export type { PdfValidationResult } from "./pdfValidation";
+
+export { generateShareLink, parseShareParams } from "./shareLink";
+export type { ShareLinkOptions, ParsedShareParams } from "./shareLink";
+
+export { useLoupePDF } from "./useLoupePDF";
+export type { UseLoupePDFOptions, UseLoupePDFReturn } from "./useLoupePDF";
+
+export { LoupePDFProvider } from "./LoupePDFProvider";
+export type { LoupePDFProviderProps } from "./LoupePDFProvider";

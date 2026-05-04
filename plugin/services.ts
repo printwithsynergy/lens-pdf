@@ -379,6 +379,20 @@ export const defaultThemeTokens: ThemeTokens = {
   border: "#e2e8f0",
 };
 
+/**
+ * Dark theme tokens — dark-mode palette. Drop-in alternative to
+ * {@link defaultThemeTokens} for hosts that want a dark chrome.
+ *
+ * @public
+ */
+export const darkThemeTokens: ThemeTokens = {
+  primary: "#0f172a",
+  accent: "#3b82f6",
+  bg: "#0e0a14",
+  fg: "#f5f3f7",
+  border: "#2b2138",
+};
+
 // ---------------------------------------------------------------------------
 // Capability detection
 // ---------------------------------------------------------------------------

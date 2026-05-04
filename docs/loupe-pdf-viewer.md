@@ -46,6 +46,9 @@ export function MyViewer() {
 | `mode` | `"scroll"` \| `"single"` | `"scroll"` | Page rendering mode. |
 | `tools` | `ReadonlyArray<"zoom"\|"layers"\|"color-picker"\|"measure">` | all four | Toolbar contents. Pass `[]` for no toolbar. |
 | `initialZoom` | `number` | `100` | Starting zoom percent. |
+| `header` | `ReactNode \| ((state: LoupePDFViewerState) => ReactNode)` | _(built-in toolbar)_ | Replace the default toolbar. Receives viewer state when a function. |
+| `sidebar` | `ReactNode \| ((state: LoupePDFViewerState) => ReactNode)` | _(none)_ | Inject a sidebar next to the page list. |
+| `footer` | `ReactNode \| ((state: LoupePDFViewerState) => ReactNode)` | _(none)_ | Inject a footer below the page list. |
 
 ## What gets hidden when no services are wired
 
@@ -68,6 +71,31 @@ Pass `services` to wire the backend-dependent ones. The reference
 server in [`server/`](https://github.com/Printwithsynergy/loupe-pdf/tree/main/server)
 is a turnkey option — see [server.md](./server.md).
 
+## Slot props
+
+Slot props let you replace individual regions without reimplementing the
+entire viewer. Each slot accepts a static `ReactNode` or a render
+function that receives the current `LoupePDFViewerState`:
+
+```tsx
+import { LoupePDFViewer } from "@printwithsynergy/loupe-pdf/components";
+
+<LoupePDFViewer
+  pdfUrl={url}
+  header={(state) => (
+    <div>
+      <span>Page {state.currentPage}</span>
+      <button onClick={() => state.setZoom(state.zoom + 25)}>Zoom in</button>
+    </div>
+  )}
+  footer={<p>Powered by LoupePDF</p>}
+/>
+```
+
+`LoupePDFViewerState` exposes: `zoom`, `setZoom`, `currentPage`,
+`setCurrentPage`, `pageCount`, `layers`, `enabledLayers`, `toggleLayer`,
+`activeTool`, `setActiveTool`.
+
 ## Custom layouts
 
 `<LoupePDFViewer>` is purely additive. The lower-level surface stays
@@ -75,6 +103,15 @@ exactly as before — for bespoke layouts compose `PageCanvas`,
 `LayerPanel`, `MeasureTool`, `ColorPickerTool`, etc. with your own
 context providers. See [components.md](./components.md) for the per-
 component reference.
+
+## Other integration tiers
+
+- **Less boilerplate** — [`<LoupePDFDemo>`](./components.md#drop-in-demo)
+  bakes in upload, URL paste, drag-drop, and validation. ~5 lines.
+- **More control** — [`useLoupePDF()`](./share-links.md) +
+  `<LoupePDFProvider>` manage state while you build the layout.
+- **Full custom** — wire `ViewerHostContext` + `ViewerServicesContext`
+  yourself. See [architecture.md](./architecture.md).
 
 ## Security
 

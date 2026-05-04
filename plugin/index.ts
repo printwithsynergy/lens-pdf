@@ -34,6 +34,7 @@ export type {
 } from "./services";
 
 export {
+  darkThemeTokens,
   defaultThemeTokens,
   isUnwired,
   markUnwired,

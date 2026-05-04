@@ -36,6 +36,31 @@ export interface PageInfo {
 }
 
 /**
+ * Build a {@link PageInfo} from just the page number and PDF-point
+ * dimensions returned by a fallback adapter's ``getPageDimensions``.
+ * Sets ``media_box`` to the full page rectangle and leaves optional
+ * boxes null — matching what pdf.js exposes.
+ *
+ * @public
+ */
+export function pageInfoFromDimensions(
+  pageNum: number,
+  widthPts: number,
+  heightPts: number,
+): PageInfo {
+  return {
+    page_num: pageNum,
+    width_pts: widthPts,
+    height_pts: heightPts,
+    media_box: { x0: 0, y0: 0, x1: widthPts, y1: heightPts },
+    crop_box: null,
+    trim_box: null,
+    bleed_box: null,
+    rotation: 0,
+  };
+}
+
+/**
  * Dieline detection verdict. `source`:
  * - `"name"`     — name-match heuristic (CutContour, Dieline, etc.)
  * - `"vision"`   — vision-model spatial-reasoning fallback

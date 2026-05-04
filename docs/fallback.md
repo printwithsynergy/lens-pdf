@@ -28,6 +28,15 @@ tagged with a non-enumerable symbol marker. `isUnwired(service)` returns
 `true` for any of those defaults and `false` for anything a host substitutes
 in. Components use this to choose their render mode.
 
+The full set of unwired defaults is available as a single object:
+
+```ts
+import { defaultUnwiredServices } from "@printwithsynergy/loupe-pdf/host";
+```
+
+Spread it and override only the services your host provides — no need
+to manually `markUnwired` each field:
+
 ```ts
 import { isUnwired, useViewerServices } from "@printwithsynergy/loupe-pdf/host";
 

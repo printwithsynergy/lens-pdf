@@ -1,6 +1,6 @@
 {
   "name": "@printwithsynergy/loupe-pdf",
-  "version": "0.1.0-beta.3",
+  "version": "0.2.0",
   "description": "LoupePDF \u2014 host-agnostic OSS PDF viewer core. Plugin-driven canvas viewer with overlay / panel / toolbar slots.",
   "license": "AGPL-3.0-or-later",
   "author": "Think Neverland LLC",
@@ -58,6 +58,16 @@
     "./units": {
       "types": "./dist/units/index.d.ts",
       "import": "./dist/units/index.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "components": ["./dist/components/index.d.ts"],
+      "host": ["./dist/host/index.d.ts"],
+      "plugin": ["./dist/plugin/index.d.ts"],
+      "fallback-pdfjs": ["./dist/fallback-pdfjs/index.d.ts"],
+      "types": ["./dist/types/index.d.ts"],
+      "units": ["./dist/units/index.d.ts"]
     }
   },
   "files": [

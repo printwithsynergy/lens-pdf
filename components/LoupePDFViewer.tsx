@@ -35,6 +35,27 @@ export type LoupePDFViewerTool = "zoom" | "color-picker" | "measure" | "layers";
  *
  * @public
  */
+/**
+ * Viewer state exposed to slot render props.
+ *
+ * @public
+ */
+export interface LoupePDFViewerState {
+  zoom: number;
+  setZoom: (z: number) => void;
+  currentPage: number;
+  setCurrentPage: (n: number) => void;
+  pageCount: number | null;
+  activeTool: "none" | "color-picker" | "measure";
+  setActiveTool: (t: "none" | "color-picker" | "measure") => void;
+  enabledLayers: Set<number>;
+  toggleLayer: (ocgIndex: number) => void;
+  setAllLayers: (enabled: boolean) => void;
+  hasLayers: boolean;
+  layersOpen: boolean;
+  setLayersOpen: (v: boolean) => void;
+}
+
 export interface LoupePDFViewerProps {
   /** PDF URL the viewer fetches. Sign / scope upstream. */
   pdfUrl: string;
@@ -54,6 +75,18 @@ export interface LoupePDFViewerProps {
   initialZoom?: number;
   /** Optional brand label rendered in the top-left of the toolbar. */
   brand?: string;
+  /**
+   * Render prop for a custom header. When provided, replaces the
+   * default toolbar. Receives viewer state for building controls.
+   */
+  header?: (state: LoupePDFViewerState) => ReactNode;
+  /**
+   * Render prop for a custom sidebar. When provided, replaces the
+   * default layer panel sidebar.
+   */
+  sidebar?: (state: LoupePDFViewerState) => ReactNode;
+  /** Static footer content rendered below the viewer stage. */
+  footer?: ReactNode;
 }
 
 const DEFAULT_TOOLS: ReadonlyArray<LoupePDFViewerTool> = [

@@ -39,6 +39,23 @@ import { defaultThemeTokens } from "@printwithsynergy/loupe-pdf/plugin";
 // }
 ```
 
+`darkThemeTokens` is a dark palette preset for demo and dark-mode UIs:
+
+```ts
+import { darkThemeTokens } from "@printwithsynergy/loupe-pdf/plugin";
+
+// {
+//   primary: "#f5f3f7",
+//   accent:  "#e50c6a",
+//   bg:      "#0e0a14",
+//   fg:      "#f5f3f7",
+//   border:  "#2b2138",
+// }
+```
+
+`<LoupePDFDemo>` uses `darkThemeTokens` by default; `<LoupePDFViewer>`
+uses `defaultThemeTokens`.
+
 Pass your own through `services.tokens`:
 
 ```ts

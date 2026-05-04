@@ -12,12 +12,61 @@ and reads its data through the contexts described in
 [architecture.md](./architecture.md). Required `ViewerServices` fields are
 called out per component.
 
+- [Drop-in demo](#drop-in-demo)
 - [Page rendering](#page-rendering)
 - [Print-production overlays](#print-production-overlays)
 - [Sampling tools](#sampling-tools)
 - [Layer & separation modes](#layer--separation-modes)
 - [Annotations](#annotations)
 - [Mobile chrome](#mobile-chrome)
+
+## Drop-in demo
+
+### `LoupePDFDemo`
+
+Complete interactive demo — file upload, URL paste, drag-and-drop,
+client-side PDF validation, sidebar controls, theming, and optional
+fullscreen mode. Zero boilerplate: provide config + branding and you're
+done.
+
+```tsx
+import { LoupePDFDemo } from "@printwithsynergy/loupe-pdf/components";
+
+export function DemoPage() {
+  return <LoupePDFDemo brand="MyApp" brandLogoUrl="/logo.svg" />;
+}
+```
+
+#### Props
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `brand` | `string` | `"LoupePDF"` | Label in the top bar. |
+| `brandLogoUrl` | `string` | _(none)_ | Logo image URL. |
+| `tokens` | `Partial<ThemeTokens>` | `darkThemeTokens` | Merged onto the dark palette. |
+| `maxFileSize` | `number` | `50 * 1024 * 1024` (50 MB) | Max upload size in bytes. |
+| `services` | `ViewerServices` | `defaultUnwiredServices` | Optional wired services for hosts with a backend. |
+| `initialZoom` | `number` | `80` | Starting zoom percentage. |
+| `fullscreen` | `boolean` | `false` | Fixed-position full-viewport mode. |
+| `initialPdfUrl` | `string` | _(none)_ | Pre-loaded PDF URL (e.g. from [share-link params](./share-links.md)). |
+| `initialPage` | `number` | `1` | Starting page (1-indexed). |
+| `footer` | `ReactNode` | _(none)_ | Extra content in the footer bar. |
+| `className` | `string` | _(none)_ | Class on the outermost div. |
+| `tools` | `ReadonlyArray<LoupePDFViewerTool>` | all | Subset of tools to show. |
+| `mode` | `"scroll" \| "single"` | `"scroll"` | Page mode. |
+
+#### Built-in features
+
+- **File upload** — opens a native file picker (`application/pdf`).
+- **URL paste** — form input validates via `validatePdfUrl()`.
+- **Drag-and-drop** — drop anywhere on the component.
+- **Validation** — checks PDF magic bytes (`%PDF-`), MIME type, and
+  size. See [validation.md](./validation.md).
+- **Sidebar** — zoom slider, tool toggles, layer panel.
+- **Fullscreen** — `fullscreen` prop renders with `position: fixed; inset: 0`.
+  Combine with [shareable links](./share-links.md) for fullscreen share URLs.
+- **Blob lifecycle** — created blob URLs are revoked on PDF change and
+  on unmount.
 
 ## Page rendering
 

@@ -52,12 +52,12 @@ Imports are organised by entry point so your bundler only pulls what you use.
 
 | Entry point | Contents |
 | --- | --- |
-| `@printwithsynergy/loupe-pdf/components` | Every React component (`PageCanvas`, `ZoomControls`, `PageNavigator`, `LayerCanvas`, `LayerPanel`, `SeparationCanvas`, `TACHeatmapOverlay`, `BoxOverlay`, `DielineOverlay`, `MeasureTool`, `ColorPickerTool`, `DensitometerTool`, `AnnotationCanvas`, `AnnotationThread`, `AnnotationToolbar`, `MobileDrawer`, `MobileBottomSheet`). |
-| `@printwithsynergy/loupe-pdf/plugin` | Plugin protocol types (`OverlayPlugin`, `PanelPlugin`, `ToolbarPlugin`, `AnnotationSourceProvider`, `DialogPlugin`, `MeasurementUnit`, `OverlayItem`), `ViewerContext`, `ViewerServices`, the registry (`register`, `unregister`, `getPluginsForSlot`, `listAll`), and no-op defaults (`noopI18n`, `noopTelemetry`, `defaultThemeTokens`). |
-| `@printwithsynergy/loupe-pdf/host` | `ViewerHostContext` + `ViewerServicesContext` and their `useViewerHost` / `useViewerServices` hooks. |
+| `@printwithsynergy/loupe-pdf/components` | Every React component (`PageCanvas`, `ZoomControls`, `PageNavigator`, `LayerCanvas`, `LayerPanel`, `SeparationCanvas`, `TACHeatmapOverlay`, `BoxOverlay`, `DielineOverlay`, `MeasureTool`, `ColorPickerTool`, `DensitometerTool`, `AnnotationCanvas`, `AnnotationThread`, `AnnotationToolbar`, `MobileDrawer`, `MobileBottomSheet`, **`LoupePDFViewer`**, **`LoupePDFDemo`**). |
+| `@printwithsynergy/loupe-pdf/plugin` | Plugin protocol types (`OverlayPlugin`, `PanelPlugin`, `ToolbarPlugin`, `AnnotationSourceProvider`, `DialogPlugin`, `MeasurementUnit`, `OverlayItem`), `ViewerContext`, `ViewerServices`, the registry (`register`, `unregister`, `getPluginsForSlot`, `listAll`), and no-op defaults (`noopI18n`, `noopTelemetry`, `defaultThemeTokens`, **`darkThemeTokens`**). |
+| `@printwithsynergy/loupe-pdf/host` | `ViewerHostContext` + `ViewerServicesContext` and their `useViewerHost` / `useViewerServices` hooks. **`defaultUnwiredServices`**, **`useLoupePDF()`**, **`LoupePDFProvider`**, **`validatePdfFile`** / **`validatePdfUrl`**, **`generateShareLink`** / **`parseShareParams`**. |
 | `@printwithsynergy/loupe-pdf/units` | Built-in `MeasurementUnit`s (`mmUnit`, `inchUnit`, `pointUnit`, `picaUnit`, `agateUnit`) plus the `defaultMeasurementUnits` and `allMeasurementUnits` arrays. |
-| `@printwithsynergy/loupe-pdf/types` | Shared type primitives (`PageInfo`, `PageBox`, `LayerInfo`, `ColorSample`, `DensitometerSample`, `DielineResult`, `ViewerConfig`, `DEFAULT_VIEWER_CONFIG`, `SEVERITY_COLORS`, `DEFAULT_DPI`, `THUMBNAIL_DPI`). |
-| `@printwithsynergy/loupe-pdf` | Convenience barrel re-exporting `/plugin`, every component, and every unit. |
+| `@printwithsynergy/loupe-pdf/types` | Shared type primitives (`PageInfo`, `PageBox`, `LayerInfo`, `ColorSample`, `DensitometerSample`, `DielineResult`, `ViewerConfig`, `DEFAULT_VIEWER_CONFIG`, `SEVERITY_COLORS`, `DEFAULT_DPI`, `THUMBNAIL_DPI`, **`pageInfoFromDimensions()`**). |
+| `@printwithsynergy/loupe-pdf` | Convenience barrel re-exporting `/plugin`, every component, every unit, plus all new `/host` utilities and `LoupePDFDemo`. |
 
 ## What lives where
 

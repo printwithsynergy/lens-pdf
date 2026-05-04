@@ -62,26 +62,102 @@ dependency — it comes along automatically and is loaded by the
 in-browser fallback adapter at `/fallback-pdfjs`. The package ships ESM
 only.
 
-## Quick start
+## Quick start — pick your tier
+
+LoupePDF ships four integration levels. Start with Tier 1 and drop
+down only when you need more control.
+
+### Tier 1 — Zero boilerplate demo (~5 lines)
+
+File upload, URL paste, drag-drop, validation, sidebar, fullscreen —
+all built in. Config and data, nothing else.
 
 ```tsx
-import { LoupePDFViewer } from "@printwithsynergy/loupe-pdf";
+import { LoupePDFDemo } from "@printwithsynergy/loupe-pdf/components";
 
-export function MyViewer() {
-  return <LoupePDFViewer pdfUrl="https://example.com/file.pdf" />;
+export function DemoPage() {
+  return <LoupePDFDemo brand="MyApp" brandLogoUrl="/logo.svg" />;
 }
 ```
 
-That's the whole thing. `<LoupePDFViewer>` auto-discovers page count,
-dimensions, and OCG layers from the PDF; renders all pages in a
-scrollable list (or one at a time with `mode="single"`); ships a
-responsive default toolbar with zoom, layers, color picker, and measure
-tool; reflows to a bottom-drawer layout under 768 px wide.
+### Tier 2 — One-liner viewer (~5 lines)
 
-For more control, swap `<LoupePDFViewer>` for the lower-level surface
-(`PageCanvas`, `LayerPanel`, `MeasureTool`, etc.) and wire your own
-`ViewerHostContext` + `ViewerServicesContext` providers — every
-individual component remains exported and unchanged.
+`<LoupePDFViewer>` auto-discovers pages, layers, dimensions. Ships
+a responsive toolbar with zoom, layers, color picker, and measure.
+
+```tsx
+import { LoupePDFViewer } from "@printwithsynergy/loupe-pdf/components";
+
+export function MyViewer() {
+  return <LoupePDFViewer pdfUrl="https://cdn.example.com/proof.pdf" />;
+}
+```
+
+Slot props (`header`, `sidebar`, `footer`) let you replace regions
+without losing the rest of the viewer:
+
+```tsx
+<LoupePDFViewer
+  pdfUrl={url}
+  header={(state) => <MyToolbar zoom={state.zoom} setZoom={state.setZoom} />}
+  footer={<p>Custom footer</p>}
+/>
+```
+
+### Tier 3 — Hook + Provider (~20 lines)
+
+`useLoupePDF()` manages all state; `<LoupePDFProvider>` mounts both
+contexts. Build any layout you want on top.
+
+```tsx
+import { useLoupePDF, LoupePDFProvider } from "@printwithsynergy/loupe-pdf/host";
+import { PageCanvas } from "@printwithsynergy/loupe-pdf/components";
+
+export function CustomViewer({ url }: { url: string }) {
+  const viewer = useLoupePDF(url, { tokens: { accent: "#e50c6a" } });
+
+  return (
+    <LoupePDFProvider value={viewer}>
+      <PageCanvas jobId="demo" page={viewer.currentPageInfo} zoom={viewer.zoom} items={[]} selectedItem={null} onItemClick={() => {}} />
+    </LoupePDFProvider>
+  );
+}
+```
+
+### Tier 4 — Full custom composition
+
+Wire `ViewerHostContext` + `ViewerServicesContext` yourself. Every
+component (`PageCanvas`, `LayerPanel`, `MeasureTool`, etc.) is
+exported and unchanged.
+
+### Shareable links
+
+Generate URLs that open the viewer with a specific PDF and settings:
+
+```ts
+import { generateShareLink, parseShareParams } from "@printwithsynergy/loupe-pdf/host";
+
+const link = generateShareLink({
+  baseUrl: "https://loupepdf.com/demo",
+  pdfUrl: "https://cdn.example.com/proof.pdf",
+  fullscreen: true,
+  zoom: 150,
+});
+
+// On the demo page:
+const params = parseShareParams(new URLSearchParams(window.location.search));
+// → { pdfUrl: "https://...", fullscreen: true, zoom: 150 }
+```
+
+### PDF validation
+
+Client-side checks (magic bytes, MIME, size) are built in:
+
+```ts
+import { validatePdfFile, validatePdfUrl } from "@printwithsynergy/loupe-pdf/host";
+
+const result = await validatePdfFile(file); // { valid: true } or { valid: false, error: "..." }
+```
 
 For preflight-grade tools (real ink separations, densitometer, TAC
 heatmap), pass a `services` prop wired to your backend; the matching
@@ -130,6 +206,8 @@ deployment notes, and security caveats.
 | Plugin slots, registration, and the `replaces` mechanism | [docs/plugins.md](./docs/plugins.md) |
 | Built-in `MeasurementUnit`s + custom-unit Protocol | [docs/measurement-units.md](./docs/measurement-units.md) |
 | Theme tokens, i18n, telemetry, read-only mode | [docs/theming.md](./docs/theming.md) |
+| Shareable viewer links (`generateShareLink`, `parseShareParams`) | [docs/share-links.md](./docs/share-links.md) |
+| Client-side PDF validation (`validatePdfFile`, `validatePdfUrl`) | [docs/validation.md](./docs/validation.md) |
 | Boundary rule, provenance, contributing | [docs/contributing.md](./docs/contributing.md) |
 
 ## Community

@@ -20,6 +20,30 @@
 
 export * from "./plugin";
 
+// Host-level utilities re-exported for convenience.
+export {
+  defaultUnwiredServices,
+  ViewerHostContext,
+  ViewerServicesContext,
+  useViewerHost,
+  useViewerServices,
+  useFallbackMode,
+} from "./host";
+export type { ViewerHostContextValue } from "./host";
+
+export { validatePdfFile, validatePdfUrl } from "./host/pdfValidation";
+export type { PdfValidationResult } from "./host/pdfValidation";
+export { generateShareLink, parseShareParams } from "./host/shareLink";
+export type { ShareLinkOptions, ParsedShareParams } from "./host/shareLink";
+export { useLoupePDF } from "./host/useLoupePDF";
+export type { UseLoupePDFOptions, UseLoupePDFReturn } from "./host/useLoupePDF";
+export { LoupePDFProvider } from "./host/LoupePDFProvider";
+export type { LoupePDFProviderProps } from "./host/LoupePDFProvider";
+export { pageInfoFromDimensions } from "./types";
+
+export { LoupePDFDemo } from "./components/LoupePDFDemo";
+export type { LoupePDFDemoProps } from "./components/LoupePDFDemo";
+
 export { AnnotationCanvas } from "./components/AnnotationCanvas";
 export { AnnotationThread } from "./components/AnnotationThread";
 export { AnnotationToolbar } from "./components/AnnotationToolbar";
@@ -32,6 +56,7 @@ export { LayerPanel } from "./components/LayerPanel";
 export { LoupePDFViewer } from "./components/LoupePDFViewer";
 export type {
   LoupePDFViewerProps,
+  LoupePDFViewerState,
   LoupePDFViewerTool,
 } from "./components/LoupePDFViewer";
 export { MeasureTool } from "./components/MeasureTool";
