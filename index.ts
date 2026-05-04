@@ -52,6 +52,7 @@ export type {
 export {
   createBrowserViewerServices,
   defaultBrowserWorkerSrc,
+  detectSpotInksFromPdfBytes,
   rgbToCmyk,
   useBrowserViewerServicesVersion,
   PROCESS_CHANNELS,
@@ -59,6 +60,7 @@ export {
 export type {
   BrowserViewerServices,
   BrowserViewerServicesOptions,
+  DetectedInk,
 } from "./browser";
 
 export { AnnotationCanvas } from "./components/AnnotationCanvas";

@@ -1,5 +1,21 @@
 "use client";
 
+import type { CSSProperties } from "react";
+
+/**
+ * Annotation tools the toolbar can put into "active" mode. Each
+ * value maps 1:1 to a render branch in {@link AnnotationCanvas}:
+ *
+ *   - `pointer`   — select / move existing objects
+ *   - `pen`       — free-hand fabric brush
+ *   - `arrow`     — line + arrowhead grouped on mouse-up
+ *   - `rectangle` — outlined rect dragged from corner to corner
+ *   - `ellipse`   — outlined ellipse inscribed in the drag box
+ *   - `text`      — IText click-to-place, edit-on-create
+ *   - `highlight` — semi-transparent filled rect (hue from `strokeColor`)
+ *
+ * @public
+ */
 export type AnnotationTool =
   | "pointer"
   | "pen"
@@ -41,6 +57,106 @@ const PRESET_COLORS = [
   "#ffffff",
 ];
 
+const ACCENT = "#e50c6a";
+
+const wrapperStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 6,
+  padding: "6px 10px",
+  borderRadius: 8,
+  border: "1px solid rgba(255, 255, 255, 0.1)",
+  background: "rgba(15, 12, 25, 0.92)",
+  backdropFilter: "blur(8px)",
+  color: "#f5f3f7",
+  fontSize: 13,
+  boxShadow: "0 6px 18px rgba(0, 0, 0, 0.45)",
+  flexWrap: "wrap",
+};
+
+function toolButtonStyle(active: boolean): CSSProperties {
+  return {
+    width: 28,
+    height: 28,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 6,
+    border: `1px solid ${active ? ACCENT : "rgba(255,255,255,0.1)"}`,
+    background: active ? ACCENT : "transparent",
+    color: active ? "#fff" : "inherit",
+    cursor: "pointer",
+    fontSize: 14,
+    fontWeight: 600,
+    padding: 0,
+    lineHeight: 1,
+  };
+}
+
+const dividerStyle: CSSProperties = {
+  width: 1,
+  height: 18,
+  background: "rgba(255, 255, 255, 0.15)",
+  margin: "0 4px",
+  flexShrink: 0,
+};
+
+function swatchStyle(color: string, active: boolean): CSSProperties {
+  return {
+    width: 18,
+    height: 18,
+    borderRadius: "50%",
+    border: active
+      ? `2px solid ${ACCENT}`
+      : "2px solid rgba(255, 255, 255, 0.2)",
+    background: color,
+    cursor: "pointer",
+    padding: 0,
+    transform: active ? "scale(1.1)" : "scale(1)",
+    transition: "transform 0.12s ease",
+  };
+}
+
+function actionButtonStyle(disabled: boolean): CSSProperties {
+  return {
+    padding: "4px 10px",
+    borderRadius: 6,
+    border: "1px solid rgba(255, 255, 255, 0.15)",
+    background: "transparent",
+    color: "inherit",
+    cursor: disabled ? "not-allowed" : "pointer",
+    opacity: disabled ? 0.4 : 1,
+    fontSize: 12,
+    fontWeight: 500,
+  };
+}
+
+const savingLabelStyle: CSSProperties = {
+  fontSize: 11,
+  opacity: 0.65,
+  fontVariantNumeric: "tabular-nums",
+  marginLeft: 4,
+};
+
+const customColorInputStyle: CSSProperties = {
+  width: 22,
+  height: 22,
+  cursor: "pointer",
+  border: "none",
+  padding: 0,
+  background: "transparent",
+  borderRadius: 4,
+  marginLeft: 2,
+};
+
+/**
+ * Self-styled annotation toolbar — works in any host with no Tailwind
+ * config required. Styles are inlined so it renders correctly even
+ * when the embedding application doesn't define shadcn-style CSS
+ * variables.
+ *
+ * @public
+ */
 export function AnnotationToolbar({
   activeTool,
   onToolChange,
@@ -53,75 +169,64 @@ export function AnnotationToolbar({
   saving,
 }: AnnotationToolbarProps) {
   return (
-    <div className="flex items-center gap-1 rounded-md border bg-background px-2 py-1 shadow-sm">
-      {/* Tool buttons */}
+    <div style={wrapperStyle}>
       {TOOLS.map((tool) => (
         <button
           key={tool.id}
+          type="button"
           onClick={() => onToolChange(tool.id)}
-          className={`rounded px-2 py-1 text-sm font-medium transition-colors ${
-            activeTool === tool.id
-              ? "bg-primary text-primary-foreground"
-              : "hover:bg-muted"
-          }`}
+          style={toolButtonStyle(activeTool === tool.id)}
           title={tool.label}
+          aria-label={tool.label}
+          aria-pressed={activeTool === tool.id}
         >
           {tool.icon}
         </button>
       ))}
 
-      <span className="mx-1 h-5 border-r" />
+      <span style={dividerStyle} />
 
-      {/* Color picker */}
-      <div className="flex items-center gap-1">
-        {PRESET_COLORS.map((color) => (
-          <button
-            key={color}
-            onClick={() => onStrokeColorChange(color)}
-            className={`h-5 w-5 rounded-full border-2 transition-transform ${
-              strokeColor === color
-                ? "scale-125 border-primary"
-                : "border-transparent hover:scale-110"
-            }`}
-            style={{ backgroundColor: color }}
-            title={color}
-          />
-        ))}
-        <input
-          type="color"
-          value={strokeColor}
-          onChange={(e) => onStrokeColorChange(e.target.value)}
-          className="ml-1 h-5 w-5 cursor-pointer rounded border-0 p-0"
-          title="Custom color"
+      {PRESET_COLORS.map((color) => (
+        <button
+          key={color}
+          type="button"
+          onClick={() => onStrokeColorChange(color)}
+          style={swatchStyle(color, strokeColor.toLowerCase() === color)}
+          title={color}
+          aria-label={`Use color ${color}`}
         />
-      </div>
+      ))}
+      <input
+        type="color"
+        value={strokeColor}
+        onChange={(e) => onStrokeColorChange(e.target.value)}
+        style={customColorInputStyle}
+        title="Custom color"
+        aria-label="Custom color"
+      />
 
-      <span className="mx-1 h-5 border-r" />
+      <span style={dividerStyle} />
 
-      {/* Undo / Redo */}
       <button
+        type="button"
         onClick={onUndo}
         disabled={!canUndo}
-        className="rounded px-2 py-1 text-sm hover:bg-muted disabled:opacity-40"
+        style={actionButtonStyle(!canUndo)}
         title="Undo"
       >
         Undo
       </button>
       <button
+        type="button"
         onClick={onRedo}
         disabled={!canRedo}
-        className="rounded px-2 py-1 text-sm hover:bg-muted disabled:opacity-40"
+        style={actionButtonStyle(!canRedo)}
         title="Redo"
       >
         Redo
       </button>
 
-      <span className="mx-1 h-5 border-r" />
-
-      {/* Save indicator */}
-      <span className="text-xs text-muted-foreground">
-        {saving ? "Saving..." : "Saved"}
-      </span>
+      <span style={savingLabelStyle}>{saving ? "Saving…" : "Saved"}</span>
     </div>
   );
 }

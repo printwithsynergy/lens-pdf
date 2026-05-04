@@ -97,15 +97,34 @@ export function DensitometerTool({
   );
 
   // Map channel name to a solid swatch colour for the readout. Process
-  // channels use the standard CMYK primaries; any spot channel falls back
-  // to neutral grey.
+  // channels use the standard CMYK primaries; any spot channel hashes
+  // its name to a stable distinct hue so each spot lands on a unique
+  // swatch.
   const swatchFor = (name: string): string => {
     const n = name.toLowerCase();
-    if (n.startsWith("c") && !n.includes("o")) return "#00b7eb";
-    if (n.startsWith("m")) return "#e91e63";
-    if (n.startsWith("y")) return "#fdd835";
-    if (n.startsWith("k") || n.startsWith("b")) return "#111827";
-    return "#94a3b8";
+    if (n === "cyan" || n === "c") return "#00b7eb";
+    if (n === "magenta" || n === "m") return "#e91e63";
+    if (n === "yellow" || n === "y") return "#fdd835";
+    if (n === "black" || n === "k") return "#111827";
+    let h = 0;
+    for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+    return `hsl(${h % 360}, 70%, 45%)`;
+  };
+
+  // First-letter shorthand for the four CMYK process inks; full name
+  // for any detected spot ink ("PANTONE 185 C" displays in full).
+  const labelFor = (name: string): { abbr: string; full: string } => {
+    const lower = name.toLowerCase();
+    if (lower === "cyan") return { abbr: "C", full: "Cyan" };
+    if (lower === "magenta") return { abbr: "M", full: "Magenta" };
+    if (lower === "yellow") return { abbr: "Y", full: "Yellow" };
+    if (lower === "black") return { abbr: "K", full: "Black" };
+    return { abbr: name, full: name };
+  };
+
+  const isProcess = (name: string): boolean => {
+    const n = name.toLowerCase();
+    return n === "cyan" || n === "magenta" || n === "yellow" || n === "black";
   };
 
   if (hidden) return null;
@@ -139,22 +158,49 @@ export function DensitometerTool({
                 <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-300">
                   Densitometer
                 </span>
-                <span className="text-[10px] text-slate-400">@300dpi</span>
+                <span className="text-[10px] text-slate-400">@{sample.dpi}dpi</span>
               </div>
+              {/* Process inks compact 2-up grid */}
               <div className="mb-2 grid grid-cols-2 gap-x-3 gap-y-1 font-mono text-[11px]">
-                {sample.channels.map((ch) => (
-                  <div key={ch.name} className="flex items-center gap-1.5">
-                    <span
-                      className="inline-block h-2.5 w-2.5 rounded-sm border border-white/30"
-                      style={{ backgroundColor: swatchFor(ch.name) }}
-                    />
-                    <span className="w-6 text-slate-300">{ch.name.slice(0, 1).toUpperCase()}</span>
-                    <span className="flex-1 text-right tabular-nums">
-                      {ch.percent.toFixed(1)}%
-                    </span>
-                  </div>
-                ))}
+                {sample.channels.filter((ch) => isProcess(ch.name)).map((ch) => {
+                  const lbl = labelFor(ch.name);
+                  return (
+                    <div key={ch.name} className="flex items-center gap-1.5" title={lbl.full}>
+                      <span
+                        className="inline-block h-2.5 w-2.5 rounded-sm border border-white/30"
+                        style={{ backgroundColor: swatchFor(ch.name) }}
+                      />
+                      <span className="w-6 text-slate-300">{lbl.abbr}</span>
+                      <span className="flex-1 text-right tabular-nums">
+                        {ch.percent.toFixed(1)}%
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
+              {/* Spot inks — full name + percent. Only rendered if the
+                  PDF declared spot color spaces. */}
+              {sample.channels.some((ch) => !isProcess(ch.name)) && (
+                <div className="mb-2 space-y-1 border-t border-white/10 pt-1.5 font-mono text-[11px]">
+                  <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                    Spots
+                  </div>
+                  {sample.channels.filter((ch) => !isProcess(ch.name)).map((ch) => (
+                    <div key={ch.name} className="flex items-center gap-1.5">
+                      <span
+                        className="inline-block h-2.5 w-2.5 shrink-0 rounded-sm border border-white/30"
+                        style={{ backgroundColor: swatchFor(ch.name) }}
+                      />
+                      <span className="flex-1 truncate text-slate-200" title={ch.name}>
+                        {ch.name}
+                      </span>
+                      <span className="tabular-nums text-slate-300">
+                        {ch.percent.toFixed(1)}%
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
               <div className="border-t border-white/15 pt-1.5">
                 <div className="flex items-center justify-between font-mono text-[11px]">
                   <span className="text-slate-300">TAC</span>

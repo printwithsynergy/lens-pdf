@@ -48,6 +48,7 @@ import {
   useBrowserViewerServicesVersion,
   PROCESS_CHANNELS,
   type BrowserViewerServices,
+  type DetectedInk,
 } from "../browser";
 import type { ThemeTokens, ViewerServices } from "../plugin/services";
 import { darkThemeTokens } from "../plugin/services";
@@ -547,6 +548,7 @@ export function LoupePDFDemo({
   const [enabledChannels, setEnabledChannels] = useState<Set<string>>(
     new Set(PROCESS_CHANNELS),
   );
+  const [detectedInks, setDetectedInks] = useState<DetectedInk[]>([]);
 
   // -----------------------------------------------------------------------
   // Annotation state
@@ -614,6 +616,13 @@ export function LoupePDFDemo({
         // Default all detected layers ON, matching the lint-pdf
         // viewer's "Layers mode" default.
         setEnabledLayers(new Set(indices));
+        // Surface every ink the PDF declares so the Inks panel can
+        // toggle CMYK + spots, and the densitometer / color picker
+        // report on every plate the document carries.
+        const inks = await svc.getInks();
+        if (cancelled) return;
+        setDetectedInks(inks);
+        setEnabledChannels(new Set(inks.map((i) => i.name)));
         setError(null);
       } catch (err) {
         if (!cancelled) {
@@ -1102,29 +1111,66 @@ export function LoupePDFDemo({
                       gap: 2,
                     }}
                   >
-                    {PROCESS_CHANNELS.map((name) => (
-                      <label key={name} style={rowStyle}>
-                        <input
-                          type="checkbox"
-                          checked={enabledChannels.has(name)}
-                          onChange={(e) =>
-                            setEnabledChannels((prev) => {
-                              const next = new Set(prev);
-                              if (e.target.checked) next.add(name);
-                              else next.delete(name);
-                              return next;
-                            })
-                          }
-                        />
-                        <span
-                          style={{
-                            ...channelSwatchStyle,
-                            backgroundColor: PROCESS_SWATCH[name],
-                          }}
-                        />
-                        <span>{name}</span>
-                      </label>
-                    ))}
+                    {(detectedInks.length > 0
+                      ? detectedInks
+                      : PROCESS_CHANNELS.map((n) => ({
+                          name: n,
+                          type: "process" as const,
+                          altRgb: [0, 0, 0] as [number, number, number],
+                        }))
+                    ).map((ink) => {
+                      const isProcess = ink.type === "process";
+                      const swatch = isProcess
+                        ? PROCESS_SWATCH[ink.name as keyof typeof PROCESS_SWATCH]
+                        : `rgb(${ink.altRgb[0]}, ${ink.altRgb[1]}, ${ink.altRgb[2]})`;
+                      return (
+                        <label key={ink.name} style={rowStyle}>
+                          <input
+                            type="checkbox"
+                            checked={enabledChannels.has(ink.name)}
+                            onChange={(e) =>
+                              setEnabledChannels((prev) => {
+                                const next = new Set(prev);
+                                if (e.target.checked) next.add(ink.name);
+                                else next.delete(ink.name);
+                                return next;
+                              })
+                            }
+                          />
+                          <span
+                            style={{
+                              ...channelSwatchStyle,
+                              backgroundColor: swatch,
+                            }}
+                          />
+                          <span style={{ flex: 1, minWidth: 0 }}>
+                            <span
+                              style={{
+                                display: "block",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                              }}
+                              title={ink.name}
+                            >
+                              {ink.name}
+                            </span>
+                          </span>
+                          {!isProcess && (
+                            <span
+                              style={{
+                                fontSize: 9,
+                                opacity: 0.55,
+                                textTransform: "uppercase",
+                                letterSpacing: 0.5,
+                              }}
+                            >
+                              spot
+                            </span>
+                          )}
+                        </label>
+                      );
+                    })}
                     <button
                       type="button"
                       style={{
@@ -1134,10 +1180,19 @@ export function LoupePDFDemo({
                         padding: "5px 10px",
                       }}
                       onClick={() =>
-                        setEnabledChannels(new Set(PROCESS_CHANNELS))
+                        setEnabledChannels(
+                          new Set(
+                            (detectedInks.length > 0
+                              ? detectedInks.map((i) => i.name)
+                              : [...PROCESS_CHANNELS]),
+                          ),
+                        )
                       }
                       disabled={
-                        enabledChannels.size === PROCESS_CHANNELS.length
+                        enabledChannels.size ===
+                        (detectedInks.length > 0
+                          ? detectedInks.length
+                          : PROCESS_CHANNELS.length)
                       }
                     >
                       Show all inks
@@ -1146,6 +1201,12 @@ export function LoupePDFDemo({
                   <p style={{ fontSize: 11, opacity: 0.5, lineHeight: 1.5 }}>
                     Untick an ink to preview the page without that plate
                     — same UX as Acrobat&rsquo;s Output Preview.
+                    {detectedInks.some((i) => i.type === "spot") && (
+                      <>
+                        {" "}Spot plates are RGB-derived approximations;
+                        wire a backend for ICC-correct readings.
+                      </>
+                    )}
                   </p>
                 </>
               )}
@@ -1301,7 +1362,11 @@ export function LoupePDFDemo({
                       jobId="loupe-pdf-demo"
                       pageNum={page.page_num}
                       enabledChannels={enabledChannels}
-                      allChannels={[...PROCESS_CHANNELS]}
+                      allChannels={
+                        detectedInks.length > 0
+                          ? detectedInks.map((i) => i.name)
+                          : [...PROCESS_CHANNELS]
+                      }
                       width={canvasW}
                       height={canvasH}
                     />

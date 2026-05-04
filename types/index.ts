@@ -105,6 +105,16 @@ export interface ColorSample {
   rgb: [number, number, number];
   hex: string;
   tac: number | null;
+  /** Optional per-ink breakdown — process CMYK + any spot inks the
+   *  service was able to detect at this point. Hosts that don't surface
+   *  spot data leave this undefined. */
+  inks?: ColorSampleInk[];
+}
+
+export interface ColorSampleInk {
+  name: string;
+  percent: number;
+  type: "process" | "spot";
 }
 
 export interface DensitometerChannel {

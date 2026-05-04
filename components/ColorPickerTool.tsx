@@ -88,10 +88,11 @@ export function ColorPickerTool({
     >
       {position && sample && (
         <div
-          className="pointer-events-none absolute z-30 rounded-lg border bg-black/90 px-3 py-2 text-xs text-white shadow-lg"
+          className="pointer-events-none absolute z-30 rounded-lg border border-white/20 bg-black/90 px-3 py-2 text-xs text-white shadow-xl"
           style={{
-            left: Math.min(position.x + 16, canvasWidth - 200),
-            top: Math.min(position.y + 16, canvasHeight - 100),
+            left: Math.min(position.x + 16, canvasWidth - 230),
+            top: Math.min(position.y + 16, canvasHeight - 200),
+            minWidth: 200,
           }}
         >
           <div className="mb-1 flex items-center gap-2">
@@ -107,6 +108,43 @@ export function ColorPickerTool({
             </div>
             {sample.tac !== null && <div>TAC: {sample.tac.toFixed(1)}%</div>}
           </div>
+          {sample.inks && sample.inks.length > 0 && (
+            <div className="mt-1.5 border-t border-white/10 pt-1.5 font-mono text-[10px]">
+              {/* Process inks: 2-up grid */}
+              <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
+                {sample.inks.filter((i) => i.type === "process").map((ink) => (
+                  <div key={ink.name} className="flex items-center justify-between">
+                    <span className="text-slate-300">
+                      {ink.name.charAt(0)}
+                    </span>
+                    <span className="tabular-nums text-slate-100">
+                      {ink.percent.toFixed(1)}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+              {/* Spot inks: full names */}
+              {sample.inks.some((i) => i.type === "spot") && (
+                <div className="mt-1 space-y-0.5 border-t border-white/10 pt-1">
+                  {sample.inks
+                    .filter((i) => i.type === "spot")
+                    .map((ink) => (
+                      <div
+                        key={ink.name}
+                        className="flex items-center justify-between gap-2"
+                      >
+                        <span className="truncate text-slate-200" title={ink.name}>
+                          {ink.name}
+                        </span>
+                        <span className="tabular-nums text-slate-100">
+                          {ink.percent.toFixed(1)}%
+                        </span>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
       {position && loading && (
