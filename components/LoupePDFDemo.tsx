@@ -175,9 +175,9 @@ export interface LoupePDFDemoProps {
   /** Override pdf.js worker URL (unpkg by default). */
   workerSrc?: string;
   /**
-   * Pre-built services. When provided, replaces the in-browser
-   * factory entirely — typically only used by hosts that ship a
-   * full backend and just want the demo's chrome / layout.
+   * Pre-built services. When provided, Loupe uses them where wired and
+   * automatically falls back to in-browser RGB/pdf.js services for any
+   * unwired capability. This keeps LintPDF/backends optional.
    */
   services?: ViewerServices;
   /** Optional footer content below the viewer. */
@@ -455,10 +455,6 @@ export function LoupePDFDemo({
 
   // Build / dispose services whenever the PDF URL changes.
   useEffect(() => {
-    if (serviceOverrides) {
-      setBrowserServices(null);
-      return;
-    }
     if (!pdfUrl) {
       setBrowserServices(null);
       return;
@@ -573,8 +569,46 @@ export function LoupePDFDemo({
     };
   }, [browserServices, currentPage, viewerMode, showHeatmap, tacLimit]);
 
-  const services: ViewerServices | null =
-    serviceOverrides ?? browserServices ?? null;
+  const services: ViewerServices | null = useMemo(() => {
+    if (serviceOverrides && browserServices) {
+      // Hybrid mode: prefer host-provided services when wired, but keep
+      // browser/pdf.js RGB simulation for any missing backend capability.
+      return {
+        pageImages: isUnwired(serviceOverrides.pageImages)
+          ? browserServices.pageImages
+          : serviceOverrides.pageImages,
+        layers: isUnwired(serviceOverrides.layers)
+          ? browserServices.layers
+          : serviceOverrides.layers,
+        separations: isUnwired(serviceOverrides.separations)
+          ? browserServices.separations
+          : serviceOverrides.separations,
+        tacHeatmap: isUnwired(serviceOverrides.tacHeatmap)
+          ? browserServices.tacHeatmap
+          : serviceOverrides.tacHeatmap,
+        colorSample: isUnwired(serviceOverrides.colorSample)
+          ? browserServices.colorSample
+          : serviceOverrides.colorSample,
+        densitometer: isUnwired(serviceOverrides.densitometer)
+          ? browserServices.densitometer
+          : serviceOverrides.densitometer,
+        annotations: isUnwired(serviceOverrides.annotations)
+          ? browserServices.annotations
+          : serviceOverrides.annotations,
+        reports: isUnwired(serviceOverrides.reports)
+          ? browserServices.reports
+          : serviceOverrides.reports,
+        telemetry: isUnwired(serviceOverrides.telemetry)
+          ? browserServices.telemetry
+          : serviceOverrides.telemetry,
+        i18n: isUnwired(serviceOverrides.i18n)
+          ? browserServices.i18n
+          : serviceOverrides.i18n,
+        tokens: serviceOverrides.tokens ?? browserServices.tokens,
+      };
+    }
+    return serviceOverrides ?? browserServices ?? null;
+  }, [serviceOverrides, browserServices]);
 
   // -----------------------------------------------------------------------
   // Blob URL lifecycle (uploads only)
