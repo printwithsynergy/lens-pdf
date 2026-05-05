@@ -238,6 +238,7 @@ export interface LoupePDFDemoProps {
 // ---------------------------------------------------------------------------
 
 const DEFAULT_MAX_BYTES = 50 * 1024 * 1024;
+const FLATTENED_LAYER_INDEX = -1;
 // PTS_TO_PX must match PageCanvas's internal pts-to-pixel conversion
 // (which is `DEFAULT_DPI / 72`). Using a different ratio here makes
 // the canvas-area parent div size disagree with PageCanvas's rendered
@@ -567,7 +568,10 @@ export function LoupePDFDemo({
         setPage(pageInfoFromDimensions(next, dims.widthPts, dims.heightPts));
         const layers = await svc.layers.listLayers();
         if (cancelled) return;
-        const indices = layers.map((l) => l.ocg_index);
+        const indices =
+          layers.length > 0
+            ? layers.map((l) => l.ocg_index)
+            : [FLATTENED_LAYER_INDEX];
         setAllLayerIndices(indices);
         // Default all detected layers ON, matching the lint-pdf
         // viewer's "Layers mode" default.
@@ -1427,39 +1431,23 @@ export function LoupePDFDemo({
                       overflowY: "auto",
                     }}
                   >
-                    {allLayerIndices.length === 0 ? (
-                      <p
-                        style={{
-                          fontSize: 12,
-                          opacity: 0.55,
-                          padding: "8px 4px",
-                          margin: 0,
-                          lineHeight: 1.5,
-                        }}
-                      >
-                        No OCG layers — not broken. Art still exists on the
-                        page in Page mode; this PDF simply wasn&apos;t built
-                        with optional content groups (many exports are flat).
-                      </p>
-                    ) : (
-                      <LayerPanel
-                        jobId="loupe-pdf-demo"
-                        enabledLayers={enabledLayers}
-                        onToggleLayer={(ocgIndex) => {
-                          setEnabledLayers((prev) => {
-                            const next = new Set(prev);
-                            if (next.has(ocgIndex)) next.delete(ocgIndex);
-                            else next.add(ocgIndex);
-                            return next;
-                          });
-                        }}
-                        onSetAllLayers={(enabled) => {
-                          setEnabledLayers(
-                            enabled ? new Set(allLayerIndices) : new Set(),
-                          );
-                        }}
-                      />
-                    )}
+                    <LayerPanel
+                      jobId="loupe-pdf-demo"
+                      enabledLayers={enabledLayers}
+                      onToggleLayer={(ocgIndex) => {
+                        setEnabledLayers((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(ocgIndex)) next.delete(ocgIndex);
+                          else next.add(ocgIndex);
+                          return next;
+                        });
+                      }}
+                      onSetAllLayers={(enabled) => {
+                        setEnabledLayers(
+                          enabled ? new Set(allLayerIndices) : new Set(),
+                        );
+                      }}
+                    />
                   </div>
                 </>
               )}
@@ -1605,7 +1593,12 @@ export function LoupePDFDemo({
                       width={canvasW}
                       height={canvasH}
                     />
-                  ) : viewerMode === "layer" && services ? (
+                  ) : viewerMode === "layer" &&
+                    services &&
+                    allLayerIndices.length > 0 &&
+                    allLayerIndices.every(
+                      (layerIndex) => layerIndex !== FLATTENED_LAYER_INDEX,
+                    ) ? (
                     <LayerCanvas
                       jobId="loupe-pdf-demo"
                       pageNum={page.page_num}

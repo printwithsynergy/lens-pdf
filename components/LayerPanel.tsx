@@ -17,6 +17,15 @@ interface LayerPanelProps {
   onSetAllLayers: (enabled: boolean) => void;
 }
 
+const FLATTENED_LAYER_INDEX = -1;
+const FLATTENED_LAYER: LayerInfo = {
+  name: "Artwork (flattened PDF)",
+  ocg_index: FLATTENED_LAYER_INDEX,
+  default_on: true,
+  synthetic: true,
+  kind: "flattened-artwork",
+};
+
 const containerStyle: CSSProperties = {
   display: "flex",
   flexDirection: "column",
@@ -132,6 +141,9 @@ export function LayerPanel({
   const [layers, setLayers] = useState<LayerInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const displayLayers = layers.length > 0 ? layers : [FLATTENED_LAYER];
+  const showingSyntheticFallback =
+    displayLayers.length === 1 && displayLayers[0]?.synthetic === true;
 
   const fetchLayers = useCallback(async () => {
     try {
@@ -173,21 +185,10 @@ export function LayerPanel({
     return <div style={errorStyle}>{error}</div>;
   }
 
-  if (layers.length === 0) {
-    return (
-      <p style={messageStyle}>
-        No optional content groups (OCGs) in this file — most PDFs are flat,
-        so art lives only on the page composite (Page mode), not as named
-        layers you can toggle. Use Layers mode when the PDF was authored with
-        Acrobat / InDesign layer structure.
-      </p>
-    );
-  }
-
   return (
     <div style={containerStyle}>
       <div style={headerRowStyle}>
-        <h3 style={headerTitleStyle}>Layers ({layers.length})</h3>
+        <h3 style={headerTitleStyle}>Layers ({displayLayers.length})</h3>
         <div style={headerActionsStyle}>
           <button
             type="button"
@@ -207,9 +208,15 @@ export function LayerPanel({
           </button>
         </div>
       </div>
+      {showingSyntheticFallback && (
+        <p style={messageStyle}>
+          No optional-content groups (OCGs) were found, so this row represents
+          the flattened page artwork. Many exported PDFs are flat.
+        </p>
+      )}
 
       <div style={layerListStyle}>
-        {layers.map((layer) => (
+        {displayLayers.map((layer) => (
           <label
             key={layer.ocg_index}
             style={layerRowStyle}

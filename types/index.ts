@@ -93,6 +93,19 @@ export interface LayerInfo {
   name: string;
   ocg_index: number;
   default_on: boolean;
+  /**
+   * True when this row is synthesized by the UI rather than sourced from
+   * PDF `/OCProperties` OCG data (e.g. flat PDFs with no optional content
+   * groups still get a single "Artwork" row so Layers mode doesn't look
+   * broken to non-technical users).
+   */
+  synthetic?: boolean;
+  /**
+   * Layer-row provenance:
+   * - `ocg`               — real optional-content group from the PDF
+   * - `flattened-artwork` — synthetic fallback row for flat PDFs
+   */
+  kind?: "ocg" | "flattened-artwork";
 }
 
 // ---------------------------------------------------------------------------

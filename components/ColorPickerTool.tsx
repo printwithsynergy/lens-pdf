@@ -36,6 +36,29 @@ export function ColorPickerTool({
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Ink swatches: fixed CMYK primaries for process channels, deterministic
+  // hash-to-hue for spot channels so each spot stays visually stable across
+  // samples.
+  const swatchFor = (name: string): string => {
+    const n = name.toLowerCase();
+    if (n === "cyan" || n === "c") return "#00b7eb";
+    if (n === "magenta" || n === "m") return "#e91e63";
+    if (n === "yellow" || n === "y") return "#fdd835";
+    if (n === "black" || n === "k") return "#111827";
+    let h = 0;
+    for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+    return `hsl(${h % 360}, 70%, 45%)`;
+  };
+
+  const processAbbr = (name: string): string => {
+    const lower = name.toLowerCase();
+    if (lower === "cyan") return "C";
+    if (lower === "magenta") return "M";
+    if (lower === "yellow") return "Y";
+    if (lower === "black") return "K";
+    return name.charAt(0).toUpperCase();
+  };
+
   useEffect(() => {
     if (mode === "hidden" && debug) logUnwiredHide("ColorPickerTool", "colorSample");
   }, [mode, debug]);
@@ -195,13 +218,29 @@ export function ColorPickerTool({
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "space-between",
+                        gap: 6,
                       }}
                     >
-                      <span style={{ color: "#cbd5e1" }}>
-                        {ink.name.charAt(0)}
+                      <span
+                        style={{
+                          display: "inline-block",
+                          width: 10,
+                          height: 10,
+                          borderRadius: 2,
+                          border: "1px solid rgba(255,255,255,0.3)",
+                          backgroundColor: swatchFor(ink.name),
+                          flexShrink: 0,
+                        }}
+                      />
+                      <span style={{ color: "#cbd5e1", width: 18 }}>
+                        {processAbbr(ink.name)}
                       </span>
                       <span
-                        style={{ fontVariantNumeric: "tabular-nums", color: "#f1f5f9" }}
+                        style={{
+                          fontVariantNumeric: "tabular-nums",
+                          color: "#f1f5f9",
+                          marginLeft: "auto",
+                        }}
                       >
                         {ink.percent.toFixed(1)}%
                       </span>
@@ -231,6 +270,17 @@ export function ColorPickerTool({
                           gap: 8,
                         }}
                       >
+                        <span
+                          style={{
+                            display: "inline-block",
+                            width: 10,
+                            height: 10,
+                            borderRadius: 2,
+                            border: "1px solid rgba(255,255,255,0.3)",
+                            backgroundColor: swatchFor(ink.name),
+                            flexShrink: 0,
+                          }}
+                        />
                         <span
                           style={{
                             overflow: "hidden",

@@ -8,6 +8,25 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 _Nothing yet._
 
+## [0.3.0-beta.22] — 2026-05-05
+
+### Added
+- **Flat-PDF layer fallback row** — when a PDF has no OCGs, the
+  Layers panel now shows a synthetic `Artwork (flattened PDF)` row
+  instead of an empty state. This is UI-only metadata (`synthetic`,
+  `kind: "flattened-artwork"`) and does not alter real layer data.
+- **Color picker ink swatches** — process and spot rows in
+  `ColorPickerTool` now render swatch chips next to each ink name,
+  matching densitometer readability and using stable spot-color
+  hashing.
+
+### Changed
+- **Layers mode fallback rendering** — for synthetic-only layer sets
+  (flat PDFs), `LoupePDFDemo` renders `PageCanvas` in Layers mode so
+  users still see artwork while toggling the fallback row.
+- **LayerInfo typing** — added optional provenance metadata:
+  `synthetic?: boolean` and `kind?: "ocg" | "flattened-artwork"`.
+
 ## [0.3.0-beta.21] — 2026-05-04
 
 ### Fixed
