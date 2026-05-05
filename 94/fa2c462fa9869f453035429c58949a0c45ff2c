@@ -1,0 +1,31 @@
+components/LoupePDFDemo.styles.ts
+  e4ff528387c0f56d 118-120
+components/LoupePDFDemo.tsx
+  e4ff528387c0f56d 59,416-436,833-835,837-1026,1029-1033,1035,1059-1062,1073-1074,1076-1077,1080,1083,1088,1095-1096,1102-1105,1107,1122,1126,1136-1138,1475,1484-1495,1556-1562
+components/AnnotationThread.tsx
+  e4ff528387c0f56d 25-26,127,162-199,204,214,222,224,227,233,244
+package.json
+  e4ff528387c0f56d 3
+CHANGELOG.md
+  e4ff528387c0f56d 11-39
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "94fa2c462fa9869f453035429c58949a0c45ff2c",
+  "prompts": {
+    "e4ff528387c0f56d": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "a5a7d1a5-2859-4254-a584-2e5b7b3f2b6d",
+        "model": "default"
+      },
+      "human_author": "Quincy Adams",
+      "messages": [],
+      "total_additions": 346,
+      "total_deletions": 68,
+      "accepted_lines": 345,
+      "overriden_lines": 0
+    }
+  }
+}
