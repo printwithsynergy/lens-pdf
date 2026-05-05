@@ -8,6 +8,17 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 _Nothing yet._
 
+## [0.3.0-beta.27] — 2026-05-05
+
+### Changed
+- **Optional backend wiring in demo shell** — `LoupePDFDemo` now treats
+  host-provided `services` as a hybrid override: wired backend services
+  are used where available, and any unwired capability automatically
+  falls back to in-browser pdf.js RGB simulation.
+- **No hard backend dependency for viewer tools** — passing partial
+  backend services no longer disables browser-side tooling for missing
+  capabilities, keeping install/integration of backend stacks optional.
+
 ## [0.3.0-beta.26] — 2026-05-05
 
 ### Added
