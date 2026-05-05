@@ -444,6 +444,7 @@ export function LoupePDFDemo({
   const [browserServices, setBrowserServices] =
     useState<BrowserViewerServices | null>(null);
   const [preparing, setPreparing] = useState(false);
+  const [toolsLoading, setToolsLoading] = useState(false);
 
   // Reactive: re-render every time the services notify a new tile / channel
   // / heatmap / annotation has landed. PageCanvas / SeparationCanvas /
@@ -477,9 +478,11 @@ export function LoupePDFDemo({
     const svc = browserServices;
     if (!svc) {
       setPageCount(1);
+      setToolsLoading(false);
       return;
     }
     let cancelled = false;
+    setToolsLoading(true);
     (async () => {
       try {
         const total = await svc.getPageCount();
@@ -512,6 +515,8 @@ export function LoupePDFDemo({
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Failed to load PDF.");
         }
+      } finally {
+        if (!cancelled) setToolsLoading(false);
       }
     })();
     return () => {
@@ -1259,9 +1264,36 @@ export function LoupePDFDemo({
                   </button>
                 </div>
               )}
-              {leftPanelPlugins.map((plugin) => (
-                <div key={plugin.id}>{plugin.render(shellPluginContext)}</div>
-              ))}
+              {toolsLoading ? (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "8px 0",
+                    opacity: 0.8,
+                    fontSize: 12,
+                  }}
+                >
+                  <span
+                    aria-hidden
+                    style={{
+                      width: 14,
+                      height: 14,
+                      borderRadius: "50%",
+                      border: "2px solid rgba(255,255,255,0.2)",
+                      borderTopColor: "rgba(255,255,255,0.75)",
+                      animation: "loupe-pdf-tools-spin 0.85s linear infinite",
+                    }}
+                  />
+                  <span>Loading tools…</span>
+                  <style>{`@keyframes loupe-pdf-tools-spin { to { transform: rotate(360deg); } }`}</style>
+                </div>
+              ) : (
+                leftPanelPlugins.map((plugin) => (
+                  <div key={plugin.id}>{plugin.render(shellPluginContext)}</div>
+                ))
+              )}
 
             </aside>
           )}

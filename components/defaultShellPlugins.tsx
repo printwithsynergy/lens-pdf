@@ -141,6 +141,11 @@ function modeToolsPlugin(): LoupePDFShellPlugin {
           )}
 
           <h2 style={headingStyle}>Tools</h2>
+          <ToolRadio
+            label="Move / Pan"
+            active={activeTool === "none"}
+            onToggle={() => setActiveTool("none")}
+          />
           {colorPicker && (
             <ToolRadio
               label="Color picker"

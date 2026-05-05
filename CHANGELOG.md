@@ -8,6 +8,18 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 _Nothing yet._
 
+## [0.3.0-beta.26] — 2026-05-05
+
+### Added
+- **Explicit Move / Pan tool** — tool panel now includes a dedicated
+  neutral pointer mode so users can intentionally return to navigation
+  without sampling/measuring/annotating.
+
+### Changed
+- **Tool-load UX** — sidebar now shows a deterministic `Loading tools…`
+  indicator while service-driven tool availability is being resolved,
+  preventing controls from appearing progressively.
+
 ## [0.3.0-beta.25] — 2026-05-05
 
 ### Fixed
