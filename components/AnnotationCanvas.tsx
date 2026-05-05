@@ -240,7 +240,11 @@ export function AnnotationCanvas({
         fabricRef.current = null;
       }
     };
-  }, [pageNum, annotations, pushHistory, debouncedSave, syncAnnotationIndex]);
+    // Intentionally only per-page init: re-initialising Fabric on every
+    // parent state update (tool toggles, side-panel changes) can tear
+    // down the canvas mid-interaction and crash the viewer.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageNum]);
 
   // ── Resize canvas when dimensions change ─────────────────────
 

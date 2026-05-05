@@ -8,6 +8,14 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 _Nothing yet._
 
+## [0.3.0-beta.25] — 2026-05-05
+
+### Fixed
+- **Tool-click viewer crash regression** — `AnnotationCanvas` was being
+  re-initialized on parent re-renders after the shell-plugin refactor,
+  which could tear down Fabric during tool toggles. Canvas init is now
+  page-scoped again, and annotation-history callbacks are stabilized.
+
 ## [0.3.0-beta.24] — 2026-05-05
 
 ### Added

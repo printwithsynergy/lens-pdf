@@ -701,6 +701,10 @@ export function LoupePDFDemo({
     } | null)?.__annotationRedo;
     fn?.();
   }, []);
+  const handleAnnotationHistoryChange = useCallback((canU: boolean, canR: boolean) => {
+    setCanUndo(canU);
+    setCanRedo(canR);
+  }, []);
 
   // -----------------------------------------------------------------------
   // Plugin availability + slot resolution
@@ -1452,10 +1456,7 @@ export function LoupePDFDemo({
                         activeTool={annotationTool}
                         strokeColor={strokeColor}
                         onSavingChange={setSavingAnnotation}
-                        onHistoryChange={(canU, canR) => {
-                          setCanUndo(canU);
-                          setCanRedo(canR);
-                        }}
+                        onHistoryChange={handleAnnotationHistoryChange}
                         onIndexedAnnotationsChange={setIndexedAnnotations}
                       />
                     </div>
