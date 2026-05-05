@@ -1172,8 +1172,8 @@ export function LoupePDFDemo({
             </button>
           )}
 
-          {/* Mobile drawer dimmer — starts below the marketing header so the
-              URL row stays tappable; heavier scrim (no blur bleed-through). */}
+          {/* Mobile drawer dimmer — sits above all chrome so the tools panel
+              is never trapped behind the top bar/header layers. */}
           {hasAnyTool && isMobile && mobileSidebarOpen && (
             <div
               onClick={() => setMobileSidebarOpen(false)}
@@ -1182,8 +1182,8 @@ export function LoupePDFDemo({
                 left: 0,
                 right: 0,
                 bottom: 0,
-                top: embedded ? 0 : headerChromePx,
-                zIndex: 55,
+                top: 0,
+                zIndex: 140,
                 background: "rgba(0, 0, 0, 0.72)",
               }}
             />
@@ -1199,12 +1199,12 @@ export function LoupePDFDemo({
                   ? {
                       ...sidebarStyle(tokens),
                       position: "fixed",
-                      top: embedded ? 0 : headerChromePx,
+                      top: 0,
                       left: 0,
                       bottom: 0,
                       width: "min(85vw, 320px)",
                       maxWidth: "100%",
-                      zIndex: 56,
+                      zIndex: 141,
                       transform: mobileSidebarOpen
                         ? "translateX(0)"
                         : "translateX(-100%)",
@@ -1215,6 +1215,7 @@ export function LoupePDFDemo({
                         : "none",
                       WebkitOverflowScrolling: "touch",
                       overscrollBehavior: "contain",
+                      paddingTop: "max(12px, env(safe-area-inset-top))",
                       paddingBottom: "max(16px, env(safe-area-inset-bottom))",
                     }
                   : sidebarStyle(tokens)

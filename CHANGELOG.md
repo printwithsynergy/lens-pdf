@@ -8,6 +8,13 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 _Nothing yet._
 
+## [0.3.0-beta.29] — 2026-05-05
+
+### Fixed
+- **Mobile tools drawer stacking** — tools drawer/backdrop now render above
+  top chrome on mobile so the close button is always reachable and the
+  panel no longer appears behind the header.
+
 ## [0.3.0-beta.28] — 2026-05-05
 
 ### Added
