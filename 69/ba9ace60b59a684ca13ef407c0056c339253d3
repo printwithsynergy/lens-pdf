@@ -1,0 +1,33 @@
+components/LayerPanel.tsx
+  e4ff528387c0f56d 20-28,144-146,191,211-216,219
+types/index.ts
+  e4ff528387c0f56d 96-108
+CHANGELOG.md
+  e4ff528387c0f56d 11-29
+components/ColorPickerTool.tsx
+  e4ff528387c0f56d 39-61,221,224-236,239-243,273-283
+package.json
+  e4ff528387c0f56d 3
+components/LoupePDFDemo.tsx
+  e4ff528387c0f56d 241,571-574,1434-1450,1596-1601
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "69ba9ace60b59a684ca13ef407c0056c339253d3",
+  "prompts": {
+    "e4ff528387c0f56d": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "a5a7d1a5-2859-4254-a584-2e5b7b3f2b6d",
+        "model": "premium"
+      },
+      "human_author": "Quincy Adams",
+      "messages": [],
+      "total_additions": 134,
+      "total_deletions": 52,
+      "accepted_lines": 134,
+      "overriden_lines": 0
+    }
+  }
+}
