@@ -22,6 +22,8 @@ interface AnnotationThreadProps {
    * with a wired backend hosts can reuse any monotonic counter.
    */
   refreshKey?: number;
+  /** Larger type, padding, and 44px-class touch targets — use in mobile drawers. */
+  comfortable?: boolean;
 }
 
 const containerStyle: CSSProperties = {
@@ -122,6 +124,7 @@ export function AnnotationThread({
   currentUserEmail,
   onJumpToPage,
   refreshKey,
+  comfortable = false,
 }: AnnotationThreadProps) {
   const { readOnly, debug } = useViewerHost();
   const { annotations: annotationService } = useViewerServices();
@@ -156,11 +159,49 @@ export function AnnotationThread({
 
   if (hidden) return null;
 
+  const loadingSx: CSSProperties = comfortable
+    ? { ...loadingRowStyle, padding: 16, fontSize: 14 }
+    : loadingRowStyle;
+  const emptySx: CSSProperties = comfortable
+    ? {
+        ...emptyStyle,
+        padding: 16,
+        fontSize: 14,
+        lineHeight: 1.5,
+      }
+    : emptyStyle;
+  const listSx: CSSProperties = comfortable
+    ? { ...containerStyle, padding: 14, gap: 12, fontSize: 13 }
+    : containerStyle;
+  const rowSx: CSSProperties = comfortable
+    ? { ...itemStyle, padding: 14, alignItems: "center" }
+    : itemStyle;
+  const metaSx: CSSProperties = comfortable
+    ? { ...metaStyle, fontSize: 12 }
+    : metaStyle;
+  const jumpSx: CSSProperties = comfortable
+    ? {
+        ...jumpButtonStyle,
+        minHeight: 44,
+        padding: "10px 0",
+        fontSize: 13,
+      }
+    : jumpButtonStyle;
+  const delSx: CSSProperties = comfortable
+    ? {
+        ...deleteButtonStyle,
+        minHeight: 44,
+        minWidth: 44,
+        padding: "10px 14px",
+        fontSize: 13,
+      }
+    : deleteButtonStyle;
+
   if (loading) {
     return (
       <>
         <style>{SPINNER_KEYFRAMES}</style>
-        <div style={loadingRowStyle}>
+        <div style={loadingSx}>
           <span aria-hidden style={spinnerStyle} />
           <span>Loading annotations…</span>
         </div>
@@ -170,7 +211,7 @@ export function AnnotationThread({
 
   if (annotations.length === 0) {
     return (
-      <div style={emptyStyle}>
+      <div style={emptySx}>
         No annotations yet. Toggle the annotation tool to start marking up the
         PDF.
       </div>
@@ -178,18 +219,18 @@ export function AnnotationThread({
   }
 
   return (
-    <div style={containerStyle}>
+    <div style={listSx}>
       {annotations.map((a) => (
-        <div key={a.id} style={itemStyle}>
+        <div key={a.id} style={rowSx}>
           <div style={itemBodyStyle}>
             <div style={authorStyle}>{a.authorName ?? a.authorEmail}</div>
-            <div style={metaStyle}>
+            <div style={metaSx}>
               Page {a.pageNum} · {new Date(a.updatedAt).toLocaleString()}
             </div>
             <button
               type="button"
               onClick={() => onJumpToPage?.(a.pageNum)}
-              style={jumpButtonStyle}
+              style={jumpSx}
             >
               Jump to page
             </button>
@@ -200,7 +241,7 @@ export function AnnotationThread({
               <button
                 type="button"
                 onClick={() => handleDelete(a.id)}
-                style={deleteButtonStyle}
+                style={delSx}
                 title="Delete annotation"
               >
                 Delete

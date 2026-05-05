@@ -8,6 +8,35 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 _Nothing yet._
 
+## [0.3.0-beta.21] — 2026-05-04
+
+### Fixed
+- **Mobile tools drawer** — the floating hamburger sat in the
+  top-left of the stage at `z-index: 60`, so it covered the
+  annotation toolbar and, when the drawer was open, overlapped the
+  first rows of the sidebar (e.g. the "Mode" heading). The tools
+  toggle now lives in the **stacked marketing header** on narrow
+  viewports (44px touch target). **Embedded** mode (no URL bar)
+  still uses a corner FAB, moved to the **top-right** so it
+  doesn’t cover the left-aligned pen tool.
+- **Drawer vs header** — the dimmer and slide-in `aside` start
+  **below** the measured header height (`ResizeObserver` on the
+  `<header>`) so the URL row and ☰ stay interactive; header uses
+  `z-index: 100` above the drawer (`56`).
+- **See-through drawer** — `sidebarStyle` now sets an opaque
+  `background: tokens.bg`. The dimmer is a heavier `rgba(0,0,0,.72)`
+  with **no** backdrop blur so the stage doesn’t show through the
+  panel.
+- **Mobile URL bar** — header is a column on small screens: full-
+  width field, `minHeight: 44` / `fontSize: 16` (iOS won’t
+  auto-zoom), `Load` and `Upload PDF` as two equal full-width
+  buttons.
+- **Annotation list in the drawer** — new `comfortable` prop on
+  `<AnnotationThread>` (on when `useIsMobile`) increases padding
+  and delete / jump control sizes. Stage padding is tighter on
+  mobile; the annotation toolbar row can scroll horizontally
+  if needed.
+
 ## [0.3.0-beta.20] — 2026-05-04
 
 ### Added

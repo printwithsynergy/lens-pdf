@@ -115,6 +115,9 @@ export function sidebarStyle(tokens: ThemeTokens): CSSProperties {
   return {
     width: 280,
     flexShrink: 0,
+    /** Solid surface — required on mobile so the drawer never looks
+     *  washed-out over the stage (Safari / overlay compositing). */
+    background: tokens.bg,
     borderRight: `1px solid ${tokens.border}`,
     padding: 16,
     overflowY: "auto",

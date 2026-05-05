@@ -56,6 +56,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -412,6 +413,27 @@ export function LoupePDFDemo({
   // components. Desktop keeps the persistent sidebar.
   const isMobile = useIsMobile();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  /** Height of the marketing top bar (URL row). Drawer + dimmer start below it so they never cover the chrome or collide with the tools toggle. */
+  const headerBarRef = useRef<HTMLElement | null>(null);
+  const [headerChromePx, setHeaderChromePx] = useState(0);
+
+  useLayoutEffect(() => {
+    if (embedded) {
+      setHeaderChromePx(0);
+      return;
+    }
+    const el = headerBarRef.current;
+    if (!el || typeof ResizeObserver === "undefined") {
+      setHeaderChromePx(el?.offsetHeight ?? 0);
+      return;
+    }
+    const sync = () =>
+      setHeaderChromePx(Math.ceil(el.getBoundingClientRect().height));
+    sync();
+    const ro = new ResizeObserver(sync);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [embedded, isMobile]);
 
   // -----------------------------------------------------------------------
   // PDF state
@@ -808,52 +830,209 @@ export function LoupePDFDemo({
           <div style={dropOverlayStyle}>Drop your PDF here</div>
         )}
 
-        {/* Top bar — hidden in embedded mode so hosts can supply their
-            own chrome around `<LoupePDF>`. */}
+        {/* Top bar — hidden in embedded mode. On narrow viewports the URL
+            row stacks full-width with 44px touch targets; the tools-drawer
+            toggle lives in this bar so it never covers the annotation toolbar. */}
         {!embedded && (
-        <header style={topbarStyle}>
-          <div style={brandStyle}>
-            {brandLogoUrl && (
-              <img
-                src={brandLogoUrl}
-                alt=""
-                aria-hidden="true"
-                style={{ width: 24, height: 24 }}
-              />
-            )}
-            <span>{brand}</span>
-            <span style={{ opacity: 0.4 }}>&middot;</span>
-            <span style={{ opacity: 0.6, fontWeight: 400, fontSize: 13 }}>
-              demo
-            </span>
-          </div>
-          <form style={urlBarStyle} onSubmit={loadUrl}>
-            <input
-              type="text"
-              placeholder="Paste any PDF URL the browser can fetch…"
-              value={draftUrl}
-              onChange={(e) => setDraftUrl(e.target.value)}
-              style={urlInputStyle(tokens)}
-            />
-            <button type="submit" style={btnStyle(tokens)}>
-              Load
-            </button>
-          </form>
-          <button
-            type="button"
-            style={ghostBtnStyle(tokens)}
-            onClick={() => fileInputRef.current?.click()}
+          <header
+            ref={headerBarRef}
+            style={{
+              ...topbarStyle,
+              position: "relative",
+              zIndex: 100,
+              background: tokens.bg,
+              borderBottom: `1px solid ${tokens.border}`,
+              ...(isMobile
+                ? {
+                    flexDirection: "column",
+                    alignItems: "stretch",
+                    gap: 12,
+                    padding: "12px 14px",
+                  }
+                : {}),
+            }}
           >
-            Upload PDF
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="application/pdf,.pdf"
-            style={{ display: "none" }}
-            onChange={onFileChange}
-          />
-        </header>
+            {isMobile ? (
+              <>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    width: "100%",
+                    minWidth: 0,
+                  }}
+                >
+                  {hasAnyTool && (
+                    <button
+                      type="button"
+                      aria-label={
+                        mobileSidebarOpen
+                          ? "Close tools panel"
+                          : "Open tools panel"
+                      }
+                      aria-expanded={mobileSidebarOpen}
+                      onClick={() => setMobileSidebarOpen((v) => !v)}
+                      style={{
+                        flexShrink: 0,
+                        width: 44,
+                        height: 44,
+                        borderRadius: 8,
+                        border: `1px solid ${tokens.border}`,
+                        background: tokens.bg,
+                        color: tokens.fg,
+                        cursor: "pointer",
+                        fontSize: 22,
+                        lineHeight: 1,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
+                      }}
+                    >
+                      {mobileSidebarOpen ? "\u00D7" : "\u2630"}
+                    </button>
+                  )}
+                  <div
+                    style={{
+                      ...brandStyle,
+                      flex: 1,
+                      minWidth: 0,
+                      overflow: "hidden",
+                    }}
+                  >
+                    {brandLogoUrl && (
+                      <img
+                        src={brandLogoUrl}
+                        alt=""
+                        aria-hidden="true"
+                        style={{ width: 24, height: 24, flexShrink: 0 }}
+                      />
+                    )}
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {brand}
+                    </span>
+                    <span style={{ opacity: 0.4 }}>&middot;</span>
+                    <span
+                      style={{
+                        opacity: 0.6,
+                        fontWeight: 400,
+                        fontSize: 13,
+                        flexShrink: 0,
+                      }}
+                    >
+                      demo
+                    </span>
+                  </div>
+                </div>
+                <form
+                  onSubmit={loadUrl}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 10,
+                    width: "100%",
+                  }}
+                >
+                  <input
+                    type="text"
+                    inputMode="url"
+                    autoCapitalize="off"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    enterKeyHint="go"
+                    placeholder="Paste PDF URL (https://…)"
+                    value={draftUrl}
+                    onChange={(e) => setDraftUrl(e.target.value)}
+                    style={{
+                      ...urlInputStyle(tokens),
+                      width: "100%",
+                      boxSizing: "border-box",
+                      minHeight: 44,
+                      fontSize: 16,
+                    }}
+                  />
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 10,
+                      width: "100%",
+                    }}
+                  >
+                    <button
+                      type="submit"
+                      style={{
+                        ...btnStyle(tokens),
+                        flex: 1,
+                        minHeight: 44,
+                        padding: "12px 14px",
+                        fontSize: 15,
+                      }}
+                    >
+                      Load
+                    </button>
+                    <button
+                      type="button"
+                      style={{
+                        ...ghostBtnStyle(tokens),
+                        flex: 1,
+                        minHeight: 44,
+                        padding: "12px 14px",
+                        fontSize: 15,
+                      }}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      Upload PDF
+                    </button>
+                  </div>
+                </form>
+              </>
+            ) : (
+              <>
+                <div style={brandStyle}>
+                  {brandLogoUrl && (
+                    <img
+                      src={brandLogoUrl}
+                      alt=""
+                      aria-hidden="true"
+                      style={{ width: 24, height: 24 }}
+                    />
+                  )}
+                  <span>{brand}</span>
+                  <span style={{ opacity: 0.4 }}>&middot;</span>
+                  <span style={{ opacity: 0.6, fontWeight: 400, fontSize: 13 }}>
+                    demo
+                  </span>
+                </div>
+                <form style={urlBarStyle} onSubmit={loadUrl}>
+                  <input
+                    type="text"
+                    placeholder="Paste any PDF URL the browser can fetch…"
+                    value={draftUrl}
+                    onChange={(e) => setDraftUrl(e.target.value)}
+                    style={urlInputStyle(tokens)}
+                  />
+                  <button type="submit" style={btnStyle(tokens)}>
+                    Load
+                  </button>
+                </form>
+                <button
+                  type="button"
+                  style={ghostBtnStyle(tokens)}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  Upload PDF
+                </button>
+              </>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/pdf,.pdf"
+              style={{ display: "none" }}
+              onChange={onFileChange}
+            />
+          </header>
         )}
 
         {error && (
@@ -877,11 +1056,10 @@ export function LoupePDFDemo({
         )}
 
         <div style={{ ...layoutStyle, position: "relative" }}>
-          {/* Mobile-only floating "Tools" toggle. Renders over the
-              stage so the user can always pop the sidebar drawer back
-              open after closing it. Hidden on desktop because the
-              sidebar is always visible there. */}
-          {hasAnyTool && isMobile && (
+          {/* Embedded-only: no URL header, so keep a corner FAB for the
+              tools drawer. Marketing demo puts ☰ in the top bar instead
+              so it never covers the annotation toolbar. */}
+          {embedded && hasAnyTool && isMobile && (
             <button
               type="button"
               aria-label={
@@ -892,37 +1070,41 @@ export function LoupePDFDemo({
               style={{
                 position: "absolute",
                 top: 12,
-                left: 12,
+                right: 12,
+                left: "auto",
                 zIndex: 60,
-                width: 40,
-                height: 40,
+                width: 44,
+                height: 44,
                 borderRadius: 8,
                 border: `1px solid ${tokens.border}`,
-                background: "rgba(15, 12, 25, 0.92)",
+                background: tokens.bg,
                 color: tokens.fg,
                 cursor: "pointer",
-                fontSize: 20,
+                fontSize: 22,
                 lineHeight: 1,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.4)",
+                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.35)",
               }}
             >
               {mobileSidebarOpen ? "\u00D7" : "\u2630"}
             </button>
           )}
 
-          {/* Mobile drawer backdrop. Tap outside to dismiss. */}
+          {/* Mobile drawer dimmer — starts below the marketing header so the
+              URL row stays tappable; heavier scrim (no blur bleed-through). */}
           {hasAnyTool && isMobile && mobileSidebarOpen && (
             <div
               onClick={() => setMobileSidebarOpen(false)}
               style={{
                 position: "fixed",
-                inset: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                top: embedded ? 0 : headerChromePx,
                 zIndex: 55,
-                background: "rgba(0, 0, 0, 0.5)",
-                backdropFilter: "blur(2px)",
+                background: "rgba(0, 0, 0, 0.72)",
               }}
             />
           )}
@@ -937,10 +1119,11 @@ export function LoupePDFDemo({
                   ? {
                       ...sidebarStyle(tokens),
                       position: "fixed",
-                      top: 0,
+                      top: embedded ? 0 : headerChromePx,
                       left: 0,
                       bottom: 0,
                       width: "min(85vw, 320px)",
+                      maxWidth: "100%",
                       zIndex: 56,
                       transform: mobileSidebarOpen
                         ? "translateX(0)"
@@ -950,6 +1133,9 @@ export function LoupePDFDemo({
                       boxShadow: mobileSidebarOpen
                         ? "8px 0 24px rgba(0, 0, 0, 0.45)"
                         : "none",
+                      WebkitOverflowScrolling: "touch",
+                      overscrollBehavior: "contain",
+                      paddingBottom: "max(16px, env(safe-area-inset-bottom))",
                     }
                   : sidebarStyle(tokens)
               }
@@ -1286,6 +1472,7 @@ export function LoupePDFDemo({
                     currentUserEmail="you@browser.local"
                     onJumpToPage={(p) => setCurrentPage(p)}
                     refreshKey={servicesVersion}
+                    comfortable={isMobile}
                   />
                 </>
               )}
@@ -1294,7 +1481,18 @@ export function LoupePDFDemo({
           )}
 
           {/* Stage */}
-          <section style={stageStyle}>
+          <section
+            style={{
+              ...stageStyle,
+              ...(isMobile
+                ? {
+                    padding: "12px 8px",
+                    paddingBottom: "max(12px, env(safe-area-inset-bottom))",
+                    gap: 8,
+                  }
+                : {}),
+            }}
+          >
             {!pdfUrl && embedded ? (
               <div style={emptyStateStyle}>
                 <p style={{ margin: 0, opacity: 0.6 }}>Loading…</p>
@@ -1355,6 +1553,13 @@ export function LoupePDFDemo({
                       top: 0,
                       zIndex: 30,
                       alignSelf: "center",
+                      width: isMobile ? "100%" : undefined,
+                      maxWidth: isMobile ? "100%" : undefined,
+                      boxSizing: "border-box",
+                      overflowX: isMobile ? "auto" : undefined,
+                      WebkitOverflowScrolling: isMobile ? "touch" : undefined,
+                      paddingLeft: isMobile ? 0 : undefined,
+                      paddingRight: isMobile ? 0 : undefined,
                     }}
                   >
                     <AnnotationToolbar
