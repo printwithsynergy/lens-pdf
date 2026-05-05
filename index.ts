@@ -70,6 +70,7 @@ export type {
 } from "./browser";
 
 export { AnnotationCanvas } from "./components/AnnotationCanvas";
+export { AnnotationNotesPanel } from "./components/AnnotationNotesPanel";
 export { AnnotationThread } from "./components/AnnotationThread";
 export { AnnotationToolbar } from "./components/AnnotationToolbar";
 export { BoxOverlay } from "./components/BoxOverlay";
@@ -85,6 +86,7 @@ export type {
   LoupePDFViewerTool,
 } from "./components/LoupePDFViewer";
 export { MeasureTool } from "./components/MeasureTool";
+export { createDefaultShellPlugins } from "./components/defaultShellPlugins";
 export { MobileBottomSheet } from "./components/MobileBottomSheet";
 export { MobileDrawer } from "./components/MobileDrawer";
 export { PageCanvas } from "./components/PageCanvas";
@@ -92,6 +94,19 @@ export { PageNavigator } from "./components/PageNavigator";
 export { SeparationCanvas } from "./components/SeparationCanvas";
 export { TACHeatmapOverlay } from "./components/TACHeatmapOverlay";
 export { ZoomControls } from "./components/ZoomControls";
+export { pluginsForPreset } from "./components/presets";
+export type { LoupePDFPresetKind } from "./components/presets";
+export {
+  computeFeatureAvailability,
+  pluginsForSlot,
+  resolveShellPlugins,
+} from "./components/shellPlugins";
+export type {
+  LoupePDFFeatureAvailability,
+  LoupePDFShellPlugin,
+  LoupePDFShellPluginContext,
+  LoupePDFShellSlot,
+} from "./components/shellPlugins";
 
 // Built-in MeasurementUnit definitions consumed by MeasureTool.
 export {

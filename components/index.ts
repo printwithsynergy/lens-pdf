@@ -8,12 +8,14 @@
  */
 
 export * from "./AnnotationCanvas";
+export * from "./AnnotationNotesPanel";
 export * from "./AnnotationThread";
 export * from "./AnnotationToolbar";
 export * from "./BoxOverlay";
 export * from "./ColorPickerTool";
 export * from "./DensitometerTool";
 export * from "./DielineOverlay";
+export * from "./defaultShellPlugins";
 export * from "./LayerCanvas";
 export * from "./LayerPanel";
 export * from "./LoupePDFDemo";
@@ -24,5 +26,7 @@ export * from "./MobileDrawer";
 export * from "./PageCanvas";
 export * from "./PageNavigator";
 export * from "./SeparationCanvas";
+export * from "./shellPlugins";
+export * from "./presets";
 export * from "./TACHeatmapOverlay";
 export * from "./ZoomControls";

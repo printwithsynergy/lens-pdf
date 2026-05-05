@@ -8,6 +8,43 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 _Nothing yet._
 
+## [0.3.0-beta.24] — 2026-05-05
+
+### Added
+- **Plugin-first viewer shell primitives** — new reusable shell plugin
+  API (`LoupePDFShellPlugin`, `resolveShellPlugins`, `pluginsForSlot`,
+  `computeFeatureAvailability`) and first-party defaults
+  (`createDefaultShellPlugins`) for panel + toolbar composition.
+- **Preset-based composition** — `LoupePDFDemo` now accepts a
+  `preset` (`demo` / `minimal`) and `plugins` overrides so hosts can
+  replace built-in sidebar/menu blocks without forking component code.
+
+### Changed
+- **LoupePDF / LoupePDFDemo composition** — sidebar + annotation toolbar
+  rendering now goes through slot plugins instead of hardcoded branches,
+  making built-ins modular and reusable for custom viewers.
+- **Capability gating defaults** — feature visibility now centralises in
+  `computeFeatureAvailability` (default-on, auto-hide when services are
+  unwired or data is absent).
+
+### Docs
+- Updated component + plugin docs with shell-plugin usage and override
+  examples for custom viewer assembly.
+
+## [0.3.0-beta.23] — 2026-05-05
+
+### Fixed
+- **Sticky-note text editing** — sticky notes were being created as a
+  grouped paper-rect + textbox object, which made text-edit entry
+  unreliable in Fabric 6 interaction paths. Notes now instantiate as a
+  single editable `fabric.Textbox` with opaque pastel background,
+  padding, and shadow, then immediately enter editing mode.
+- **Mobile tools toggle overlap** — menu toggles now use a clear open/
+  close pattern that avoids overlaying the first drawer controls:
+  mobile top-bar toggle remains a hamburger, embedded FAB hides while
+  drawer is open, and the drawer itself includes an in-panel close
+  button.
+
 ## [0.3.0-beta.22] — 2026-05-05
 
 ### Added

@@ -27,8 +27,7 @@ export type AnnotationTool =
   | "rectangle"
   | "ellipse"
   | "text"
-  | "highlight"
-  | "sticky";
+  | "highlight";
 
 interface AnnotationToolbarProps {
   activeTool: AnnotationTool;
@@ -40,8 +39,6 @@ interface AnnotationToolbarProps {
   canUndo: boolean;
   canRedo: boolean;
   saving: boolean;
-  stickyNotesVisible?: boolean;
-  onToggleStickyNotes?: () => void;
 }
 
 /** Mouse-pointer silhouette — reads as “select” better than a lone △. */
@@ -77,7 +74,7 @@ const TOOLS: {
     id: "pointer",
     label: "Select & move",
     tooltip:
-      "Select — click a stroke, shape, text box, or sticky note you added, then drag to move or resize. Does nothing on empty artwork until you draw something else first.",
+      "Select — click a stroke, shape, or text you added, then drag to move or resize. Does nothing on empty artwork until you draw something else first.",
     icon: <SelectToolIcon />,
   },
   {
@@ -111,13 +108,6 @@ const TOOLS: {
     tooltip:
       "Highlight — drag diagonally to fill a translucent rectangle (uses active colour).",
     icon: "\u2588",
-  },
-  {
-    id: "sticky",
-    label: "Sticky note",
-    tooltip:
-      "Sticky note — click to drop an opaque note card; double-click the text to edit.",
-    icon: "\u25A4",
   },
 ];
 
@@ -259,8 +249,6 @@ export function AnnotationToolbar({
   canUndo,
   canRedo,
   saving,
-  stickyNotesVisible = true,
-  onToggleStickyNotes,
 }: AnnotationToolbarProps) {
   const [tip, setTip] = useState<{
     text: string;
@@ -357,14 +345,14 @@ export function AnnotationToolbar({
           aria-label={`Use colour ${color}`}
           onMouseEnter={(e) =>
             showTip(
-              `Stroke / fill: ${color} — click to make it the active colour for pen, shapes, and notes.`,
+              `Stroke / fill: ${color} — click to make it the active colour for pen, shapes, and text.`,
               e.currentTarget,
             )
           }
           onMouseLeave={hideTipDelayed}
           onFocus={(e) =>
             showTip(
-              `Stroke / fill: ${color} — click to make it the active colour for pen, shapes, and notes.`,
+              `Stroke / fill: ${color} — click to make it the active colour for pen, shapes, and text.`,
               e.currentTarget,
             )
           }
@@ -434,40 +422,6 @@ export function AnnotationToolbar({
       >
         Redo
       </button>
-
-      {onToggleStickyNotes && (
-        <button
-          type="button"
-          onClick={onToggleStickyNotes}
-          style={actionButtonStyle(false)}
-          title={
-            stickyNotesVisible
-              ? "Hide all sticky notes (they stay saved; show again when you like)"
-              : "Show all sticky notes again"
-          }
-          onMouseEnter={(e) =>
-            showTip(
-              stickyNotesVisible
-                ? "Hide notes — all sticky notes disappear from view until you show them again (not deleted)."
-                : "Show notes — bring hidden sticky notes back on the page.",
-              e.currentTarget,
-            )
-          }
-          onMouseLeave={hideTipDelayed}
-          onFocus={(e) =>
-            showTip(
-              stickyNotesVisible
-                ? "Hide notes — all sticky notes disappear from view until you show them again (not deleted)."
-                : "Show notes — bring hidden sticky notes back on the page.",
-              e.currentTarget,
-            )
-          }
-          onBlur={hideTip}
-          aria-pressed={!stickyNotesVisible}
-        >
-          {stickyNotesVisible ? "Hide notes" : "Show notes"}
-        </button>
-      )}
 
       <span
         style={savingLabelStyle}

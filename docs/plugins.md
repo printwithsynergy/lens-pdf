@@ -190,6 +190,46 @@ Constraints:
   registers cleanly even before the target loads, and starts shadowing
   as soon as the target appears.
 
+## Viewer shell plugins (`LoupePDF` / `LoupePDFDemo`)
+
+The drop-in components also expose a focused shell-plugin API for
+sidebar/menu/tool customization without touching the global plugin
+registry.
+
+Import from `@printwithsynergy/loupe-pdf/components`:
+
+```ts
+type LoupePDFShellSlot = "panel.left" | "overlay.toolbar";
+
+interface LoupePDFShellPlugin {
+  id: string;
+  slot: LoupePDFShellSlot;
+  order?: number;
+  replaces?: string;
+  isAvailable?: (ctx: LoupePDFShellPluginContext) => boolean;
+  render: (ctx: LoupePDFShellPluginContext) => ReactNode;
+}
+```
+
+Pass plugins directly:
+
+```tsx
+<LoupePDF
+  pdfUrl="/proofs/abc.pdf"
+  plugins={[
+    {
+      id: "acme.left.custom",
+      slot: "panel.left",
+      order: 15,
+      render: (ctx) => <div>Page {ctx.currentPage}</div>,
+    },
+  ]}
+/>
+```
+
+`replaces` uses the same shadow semantics as the global registry:
+set `replaces: "<builtin-id>"` to override a first-party shell plugin.
+
 ## `OverlayItem`
 
 Plugins and host adapters translate their domain types — findings,

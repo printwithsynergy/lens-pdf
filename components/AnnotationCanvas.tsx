@@ -13,32 +13,20 @@ interface AnnotationCanvasProps {
   strokeColor: string;
   onSavingChange?: (saving: boolean) => void;
   onHistoryChange?: (canUndo: boolean, canRedo: boolean) => void;
-  /** When `false`, every sticky-note annotation on the canvas is
-   * hidden (without being deleted). Default: `true`. */
-  showStickyNotes?: boolean;
+  /**
+   * Emits a numbered list of annotations currently on the page so the
+   * host can show a linked notes panel (`#1`, `#2`, …).
+   */
+  onIndexedAnnotationsChange?: (
+    rows: Array<{ number: number; pageNum: number; objectType: string }>,
+  ) => void;
 }
-
-/**
- * Convert a hex (`#RRGGBB`) to a pastel by mixing it `amount` toward
- * white. Returns the resulting `rgb()` triple. Used to derive the
- * paper colour of a sticky note from the user's chosen stroke
- * colour while keeping the note opaque and readable.
- */
-function pastelize(hex: string, amount = 0.72): string {
-  const m = hex.replace("#", "");
-  if (m.length !== 6) return "#fef3c7";
-  const r = parseInt(m.slice(0, 2), 16);
-  const g = parseInt(m.slice(2, 4), 16);
-  const b = parseInt(m.slice(4, 6), 16);
-  const blend = (channel: number) =>
-    Math.round(channel + (255 - channel) * amount);
-  return `rgb(${blend(r)}, ${blend(g)}, ${blend(b)})`;
-}
-
-/** Marker we tag onto fabric objects so the visibility toggle can
- *  filter them later. Keeps "show / hide notes" cheap regardless of
- *  how many other annotations exist on the canvas. */
-const STICKY_NOTE_FLAG = "__loupeStickyNote";
+const ANNOTATION_NUMBER_KEY = "__loupeAnnotationNumber";
+type IndexedAnnotationRow = {
+  number: number;
+  pageNum: number;
+  objectType: string;
+};
 
 // Undo/redo state kept per-component instance
 interface HistoryState {
@@ -55,7 +43,7 @@ export function AnnotationCanvas({
   strokeColor,
   onSavingChange,
   onHistoryChange,
-  showStickyNotes = true,
+  onIndexedAnnotationsChange,
 }: AnnotationCanvasProps) {
   const { readOnly, debug } = useViewerHost();
   const { annotations } = useViewerServices();
@@ -94,6 +82,41 @@ export function AnnotationCanvas({
       debounceRef.current = setTimeout(() => saveToApi(canvas), 2000);
     },
     [saveToApi],
+  );
+
+  const syncAnnotationIndex = useCallback(
+    (canvas: any) => {
+      const objects = canvas
+        .getObjects()
+        .filter((obj: any) => obj.excludeFromExport !== true);
+      let maxNumber = 0;
+      for (const obj of objects) {
+        const n = Number((obj as Record<string, unknown>)[ANNOTATION_NUMBER_KEY]);
+        if (Number.isFinite(n) && n > maxNumber) maxNumber = n;
+      }
+      let next = maxNumber + 1;
+      let touched = false;
+      for (const obj of objects) {
+        const n = Number((obj as Record<string, unknown>)[ANNOTATION_NUMBER_KEY]);
+        if (!Number.isFinite(n) || n <= 0) {
+          (obj as Record<string, unknown>)[ANNOTATION_NUMBER_KEY] = next++;
+          touched = true;
+        }
+      }
+      const rows: IndexedAnnotationRow[] = objects
+        .map((obj: any) => ({
+          number: Number(
+            (obj as Record<string, unknown>)[ANNOTATION_NUMBER_KEY] ?? 0,
+          ),
+          pageNum,
+          objectType: String(obj.type ?? "object"),
+        }))
+        .filter((r: IndexedAnnotationRow) => Number.isFinite(r.number) && r.number > 0)
+        .sort((a: IndexedAnnotationRow, b: IndexedAnnotationRow) => a.number - b.number);
+      onIndexedAnnotationsChange?.(rows);
+      if (touched) canvas.requestRenderAll();
+    },
+    [onIndexedAnnotationsChange, pageNum],
   );
 
   const pushHistory = useCallback(
@@ -190,11 +213,13 @@ export function AnnotationCanvas({
         });
       }
 
+      syncAnnotationIndex(canvas);
       // Seed history
       pushHistory(canvas);
 
       // Listen for object changes
       const onChange = () => {
+        syncAnnotationIndex(canvas);
         pushHistory(canvas);
         debouncedSave(canvas);
       };
@@ -215,9 +240,7 @@ export function AnnotationCanvas({
         fabricRef.current = null;
       }
     };
-    // Only init once per page
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pageNum]);
+  }, [pageNum, annotations, pushHistory, debouncedSave, syncAnnotationIndex]);
 
   // ── Resize canvas when dimensions change ─────────────────────
 
@@ -227,25 +250,6 @@ export function AnnotationCanvas({
     canvas.setDimensions({ width, height });
     canvas.renderAll();
   }, [width, height]);
-
-  // ── Sticky-note visibility toggle ────────────────────────────
-
-  useEffect(() => {
-    const canvas = fabricRef.current;
-    if (!canvas || !loaded) return;
-    const objects = canvas.getObjects();
-    let dirty = false;
-    for (const obj of objects) {
-      const isSticky =
-        (obj as Record<string, unknown>)[STICKY_NOTE_FLAG] === true;
-      if (!isSticky) continue;
-      if (obj.visible !== showStickyNotes) {
-        obj.visible = showStickyNotes;
-        dirty = true;
-      }
-    }
-    if (dirty) canvas.requestRenderAll();
-  }, [showStickyNotes, loaded]);
 
   // ── Tool switching ───────────────────────────────────────────
 
@@ -310,61 +314,6 @@ export function AnnotationCanvas({
         canvas.add(text);
         canvas.setActiveObject(text);
         text.enterEditing();
-        isDrawing = false;
-        return;
-      }
-
-      if (activeTool === "sticky") {
-        // Sticky note = an opaque pastel "paper" rect (derived from the
-        // active stroke colour, blended toward white so it never goes
-        // see-through) with a Textbox glued on top. Grouped together
-        // so dragging / scaling the card moves both pieces, with a
-        // soft drop-shadow for the paper-on-page feel.
-        const NOTE_WIDTH = 200;
-        const NOTE_HEIGHT = 140;
-        const PAD = 14;
-        const paper = pastelize(strokeColor);
-        const paperRect = new fabric.Rect({
-          left: 0,
-          top: 0,
-          width: NOTE_WIDTH,
-          height: NOTE_HEIGHT,
-          fill: paper,
-          stroke: strokeColor,
-          strokeWidth: 1,
-          rx: 4,
-          ry: 4,
-          shadow: new (fabric as any).Shadow({
-            color: "rgba(0,0,0,0.28)",
-            blur: 10,
-            offsetX: 2,
-            offsetY: 4,
-          }),
-        });
-        const text = new fabric.Textbox("Note", {
-          left: PAD,
-          top: PAD,
-          width: NOTE_WIDTH - PAD * 2,
-          fontSize: 14,
-          lineHeight: 1.35,
-          fill: "#1f1f1f",
-          fontFamily: "sans-serif",
-          textAlign: "left",
-          editable: true,
-          splitByGrapheme: false,
-        });
-        const group = new fabric.Group([paperRect, text], {
-          left: startX,
-          top: startY,
-          subTargetCheck: true,
-          // Tag so showStickyNotes / hide-notes can find this group
-          // later without serialising every object.
-          [STICKY_NOTE_FLAG]: true,
-        } as any);
-        canvas.add(group);
-        canvas.setActiveObject(group);
-        // Keep group selected; double-click drills into the textbox
-        // for editing thanks to subTargetCheck.
         isDrawing = false;
         return;
       }

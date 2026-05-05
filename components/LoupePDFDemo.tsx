@@ -74,12 +74,11 @@ import { darkThemeTokens } from "../plugin/services";
 import type { OverlayItem } from "../plugin/types";
 import type { DielineResult, PageInfo } from "../types";
 import { DEFAULT_DPI, pageInfoFromDimensions } from "../types";
-import { ViewerHostContext, ViewerServicesContext } from "../host";
+import { isUnwired, ViewerHostContext, ViewerServicesContext } from "../host";
 import { validatePdfFile, validatePdfUrl } from "../host/pdfValidation";
 import {
   brandStyle,
   btnStyle,
-  channelSwatchStyle,
   dropOverlayStyle,
   emptyStateStyle,
   errorStyle,
@@ -88,12 +87,9 @@ import {
   ghostBtnStyle,
   headingStyle,
   layoutStyle,
-  modeButtonGroupStyle,
-  modeButtonStyle,
   pageNavBtnStyle,
   pageNavStyle,
   preparingOverlayStyle,
-  rowStyle,
   shellStyle,
   sidebarStyle,
   stageInnerStyle,
@@ -104,18 +100,25 @@ import {
 } from "./LoupePDFDemo.styles";
 import { AnnotationCanvas } from "./AnnotationCanvas";
 import { useIsMobile } from "./useIsMobile";
-import { AnnotationThread } from "./AnnotationThread";
-import { AnnotationToolbar, type AnnotationTool } from "./AnnotationToolbar";
+import type { AnnotationTool } from "./AnnotationToolbar";
 import { BoxOverlay } from "./BoxOverlay";
 import { ColorPickerTool } from "./ColorPickerTool";
 import { DensitometerTool } from "./DensitometerTool";
 import { DielineOverlay } from "./DielineOverlay";
 import { LayerCanvas } from "./LayerCanvas";
-import { LayerPanel } from "./LayerPanel";
 import { MeasureTool } from "./MeasureTool";
 import { PageCanvas } from "./PageCanvas";
 import { SeparationCanvas } from "./SeparationCanvas";
 import { TACHeatmapOverlay } from "./TACHeatmapOverlay";
+import { pluginsForPreset, type LoupePDFPresetKind } from "./presets";
+import {
+  computeFeatureAvailability,
+  pluginsForSlot,
+  resolveShellPlugins,
+  type LoupePDFShellPlugin,
+  type PointerTool,
+  type ViewerMode,
+} from "./shellPlugins";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -231,6 +234,13 @@ export interface LoupePDFDemoProps {
   onZoomChange?: (zoom: number) => void;
   /** Fires when the viewer raises a recoverable error. */
   onError?: (message: string) => void;
+  /** First-party plugin preset used as the base composition. */
+  preset?: LoupePDFPresetKind;
+  /**
+   * Additional shell plugins (or replacements) for panels and toolbar
+   * slots. Use `replaces` on your plugin to override a built-in one.
+   */
+  plugins?: ReadonlyArray<LoupePDFShellPlugin>;
 }
 
 // ---------------------------------------------------------------------------
@@ -247,99 +257,9 @@ const FLATTENED_LAYER_INDEX = -1;
 const PTS_TO_PX = DEFAULT_DPI / 72;
 const DEFAULT_PAGE: PageInfo = pageInfoFromDimensions(1, 612, 792);
 
-const PROCESS_SWATCH: Record<string, string> = {
-  Cyan: "#00b7eb",
-  Magenta: "#ec008c",
-  Yellow: "#fdd835",
-  Black: "#111827",
-};
-
-type ViewerMode = "page" | "separation" | "layer";
-
 function formatMaxSize(bytes: number): string {
   return `${Math.round(bytes / (1024 * 1024))} MB`;
 }
-
-// ---------------------------------------------------------------------------
-// Tool radio
-// ---------------------------------------------------------------------------
-
-type PointerTool =
-  | "none"
-  | "color-picker"
-  | "densitometer"
-  | "measure"
-  | "annotate";
-
-function ToolRadio({
-  label,
-  active,
-  onToggle,
-  swatch,
-}: {
-  label: string;
-  active: boolean;
-  onToggle: () => void;
-  swatch?: ReactNode;
-}) {
-  return (
-    <label style={rowStyle}>
-      <input type="radio" checked={active} onChange={onToggle} />
-      {swatch ? (
-        <span
-          aria-hidden
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: 14,
-            height: 14,
-            flex: "0 0 auto",
-          }}
-        >
-          {swatch}
-        </span>
-      ) : null}
-      <span>{label}</span>
-    </label>
-  );
-}
-
-/** Rainbow ring — represents "samples any colour". */
-const COLOR_PICKER_SWATCH = (
-  <span
-    style={{
-      display: "block",
-      width: 14,
-      height: 14,
-      borderRadius: "50%",
-      background:
-        "conic-gradient(#ef4444, #f59e0b, #eab308, #22c55e, #06b6d4, #3b82f6, #8b5cf6, #ec4899, #ef4444)",
-      boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.25)",
-    }}
-  />
-);
-
-/** CMYK quadrant — represents process + spot density. */
-const DENSITOMETER_SWATCH = (
-  <span
-    style={{
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gridTemplateRows: "1fr 1fr",
-      width: 14,
-      height: 14,
-      borderRadius: 2,
-      overflow: "hidden",
-      boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.25)",
-    }}
-  >
-    <span style={{ background: "#00aeef" }} />
-    <span style={{ background: "#ec008c" }} />
-    <span style={{ background: "#fff200" }} />
-    <span style={{ background: "#000000" }} />
-  </span>
-);
 
 // ---------------------------------------------------------------------------
 // Main component
@@ -379,6 +299,8 @@ export function LoupePDFDemo({
   onPageChange: onPageChangeProp,
   onZoomChange: onZoomChangeProp,
   onError: onErrorProp,
+  preset = "demo",
+  plugins: customPlugins = [],
 }: LoupePDFDemoProps) {
   const overlayItems = useMemo<readonly OverlayItem[]>(
     () => items ?? [],
@@ -512,7 +434,9 @@ export function LoupePDFDemo({
   const [savingAnnotation, setSavingAnnotation] = useState(false);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
-  const [stickyNotesVisible, setStickyNotesVisible] = useState(true);
+  const [indexedAnnotations, setIndexedAnnotations] = useState<
+    Array<{ number: number; pageNum: number; objectType: string }>
+  >([]);
 
   // -----------------------------------------------------------------------
   // Services
@@ -761,6 +685,10 @@ export function LoupePDFDemo({
       (wrap.querySelector("canvas") as HTMLCanvasElement) ?? null;
   }, [activeTool, currentPage, canvasW, canvasH]);
 
+  useEffect(() => {
+    setIndexedAnnotations([]);
+  }, [currentPage]);
+
   const triggerUndo = useCallback(() => {
     const fn = (annotationCanvasRef.current as unknown as {
       __annotationUndo?: () => void;
@@ -775,24 +703,120 @@ export function LoupePDFDemo({
   }, []);
 
   // -----------------------------------------------------------------------
-  // Sidebar visibility helpers
+  // Plugin availability + slot resolution
   // -----------------------------------------------------------------------
-  const toolSet = useMemo(() => new Set<LoupePDFDemoTool>(tools), [tools]);
-  const showColorPicker = toolSet.has("color-picker");
-  const showDensitometer = toolSet.has("densitometer");
-  const showMeasure = toolSet.has("measure");
-  const showAnnotate = toolSet.has("annotate");
-  const showHeatmapToggle = toolSet.has("tac-heatmap");
-  const showSeparations = toolSet.has("separations");
-  const showLayersControl = toolSet.has("layers");
-  const hasAnyTool =
-    showColorPicker ||
-    showDensitometer ||
-    showMeasure ||
-    showAnnotate ||
-    showHeatmapToggle ||
-    showSeparations ||
-    showLayersControl;
+  const availability = useMemo(
+    () =>
+      computeFeatureAvailability({
+        tools,
+        services,
+        detectedInkCount: detectedInks.length,
+        layerCount: allLayerIndices.length,
+        isUnwired,
+      }),
+    [tools, services, detectedInks.length, allLayerIndices.length],
+  );
+
+  const shellPluginContext = useMemo(
+    () => ({
+      tokens,
+      isMobile,
+      pdfUrl,
+      servicesVersion,
+      currentPage,
+      setCurrentPage,
+      viewerMode,
+      setViewerMode,
+      activeTool,
+      setActiveTool,
+      showHeatmap,
+      setShowHeatmap,
+      enabledChannels,
+      setEnabledChannels,
+      detectedInks: detectedInks.map((ink) => ({ name: ink.name, type: ink.type })),
+      enabledLayers,
+      setEnabledLayers,
+      allLayerIndices,
+      annotationTool,
+      setAnnotationTool,
+      strokeColor,
+      setStrokeColor,
+      savingAnnotation,
+      canUndo,
+      canRedo,
+      triggerUndo,
+      triggerRedo,
+      indexedAnnotations,
+      availability,
+    }),
+    [
+      tokens,
+      isMobile,
+      pdfUrl,
+      servicesVersion,
+      currentPage,
+      viewerMode,
+      activeTool,
+      showHeatmap,
+      enabledChannels,
+      detectedInks,
+      enabledLayers,
+      allLayerIndices,
+      annotationTool,
+      strokeColor,
+      savingAnnotation,
+      canUndo,
+      canRedo,
+      triggerUndo,
+      triggerRedo,
+      indexedAnnotations,
+      availability,
+    ],
+  );
+
+  const resolvedPlugins = useMemo(
+    () => resolveShellPlugins([...pluginsForPreset(preset), ...customPlugins]),
+    [preset, customPlugins],
+  );
+
+  const leftPanelPlugins = useMemo(
+    () => pluginsForSlot(resolvedPlugins, "panel.left", shellPluginContext),
+    [resolvedPlugins, shellPluginContext],
+  );
+  const toolbarOverlayPlugins = useMemo(
+    () => pluginsForSlot(resolvedPlugins, "overlay.toolbar", shellPluginContext),
+    [resolvedPlugins, shellPluginContext],
+  );
+
+  const showColorPicker = availability.colorPicker;
+  const showDensitometer = availability.densitometer;
+  const showMeasure = availability.measure;
+  const showAnnotate = availability.annotate;
+  const showSeparations = availability.separations;
+  const showLayersControl = availability.layers;
+  const hasAnyTool = leftPanelPlugins.length > 0;
+
+  useEffect(() => {
+    if (viewerMode === "separation" && !availability.separations) setViewerMode("page");
+    if (viewerMode === "layer" && !availability.layers) setViewerMode("page");
+  }, [viewerMode, availability.separations, availability.layers]);
+
+  useEffect(() => {
+    if (activeTool === "color-picker" && !availability.colorPicker) setActiveTool("none");
+    if (activeTool === "densitometer" && !availability.densitometer) setActiveTool("none");
+    if (activeTool === "measure" && !availability.measure) setActiveTool("none");
+    if (activeTool === "annotate" && !availability.annotate) setActiveTool("none");
+  }, [
+    activeTool,
+    availability.colorPicker,
+    availability.densitometer,
+    availability.measure,
+    availability.annotate,
+  ]);
+
+  useEffect(() => {
+    if (!availability.tacHeatmap && showHeatmap) setShowHeatmap(false);
+  }, [availability.tacHeatmap, showHeatmap]);
 
   // -----------------------------------------------------------------------
   // Render
@@ -871,9 +895,7 @@ export function LoupePDFDemo({
                     <button
                       type="button"
                       aria-label={
-                        mobileSidebarOpen
-                          ? "Close tools panel"
-                          : "Open tools panel"
+                        "Open tools panel"
                       }
                       aria-expanded={mobileSidebarOpen}
                       onClick={() => setMobileSidebarOpen((v) => !v)}
@@ -894,7 +916,7 @@ export function LoupePDFDemo({
                         boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
                       }}
                     >
-                      {mobileSidebarOpen ? "\u00D7" : "\u2630"}
+                      {"\u2630"}
                     </button>
                   )}
                   <div
@@ -1063,11 +1085,11 @@ export function LoupePDFDemo({
           {/* Embedded-only: no URL header, so keep a corner FAB for the
               tools drawer. Marketing demo puts ☰ in the top bar instead
               so it never covers the annotation toolbar. */}
-          {embedded && hasAnyTool && isMobile && (
+          {embedded && hasAnyTool && isMobile && !mobileSidebarOpen && (
             <button
               type="button"
               aria-label={
-                mobileSidebarOpen ? "Close tools panel" : "Open tools panel"
+                "Open tools panel"
               }
               aria-expanded={mobileSidebarOpen}
               onClick={() => setMobileSidebarOpen((v) => !v)}
@@ -1092,7 +1114,7 @@ export function LoupePDFDemo({
                 boxShadow: "0 4px 12px rgba(0, 0, 0, 0.35)",
               }}
             >
-              {mobileSidebarOpen ? "\u00D7" : "\u2630"}
+              {"\u2630"}
             </button>
           )}
 
@@ -1144,8 +1166,42 @@ export function LoupePDFDemo({
                   : sidebarStyle(tokens)
               }
             >
-              <h2 style={headingStyle}>View</h2>
-              <label style={rowStyle}>
+              {isMobile && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 8,
+                    marginBottom: 8,
+                  }}
+                >
+                  <h2 style={{ ...headingStyle, margin: 0 }}>Tools</h2>
+                  <button
+                    type="button"
+                    onClick={() => setMobileSidebarOpen(false)}
+                    aria-label="Close tools panel"
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 8,
+                      border: `1px solid ${tokens.border}`,
+                      background: tokens.bg,
+                      color: tokens.fg,
+                      cursor: "pointer",
+                      fontSize: 20,
+                      lineHeight: 1,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {"\u00D7"}
+                  </button>
+                </div>
+              )}
+              <div style={pageNavStyle}>
                 <span style={{ width: 44 }}>Zoom</span>
                 <input
                   type="range"
@@ -1165,8 +1221,7 @@ export function LoupePDFDemo({
                 >
                   {zoom}%
                 </span>
-              </label>
-
+              </div>
               {pageCount > 1 && (
                 <div style={pageNavStyle}>
                   <button
@@ -1192,9 +1247,7 @@ export function LoupePDFDemo({
                   <button
                     type="button"
                     style={pageNavBtnStyle(tokens, currentPage >= pageCount)}
-                    onClick={() =>
-                      setCurrentPage((p) => Math.min(pageCount, p + 1))
-                    }
+                    onClick={() => setCurrentPage((p) => Math.min(pageCount, p + 1))}
                     disabled={currentPage >= pageCount}
                     aria-label="Next page"
                   >
@@ -1202,268 +1255,9 @@ export function LoupePDFDemo({
                   </button>
                 </div>
               )}
-
-              {(showSeparations || showLayersControl) && (
-                <>
-                  <h2 style={headingStyle}>Mode</h2>
-                  <div style={modeButtonGroupStyle()}>
-                    <button
-                      type="button"
-                      style={modeButtonStyle(tokens, viewerMode === "page", "left")}
-                      onClick={() => setViewerMode("page")}
-                    >
-                      Page
-                    </button>
-                    {showSeparations && (
-                      <button
-                        type="button"
-                        style={modeButtonStyle(
-                          tokens,
-                          viewerMode === "separation",
-                          showLayersControl ? "middle" : "right",
-                        )}
-                        onClick={() => setViewerMode("separation")}
-                      >
-                        Separations
-                      </button>
-                    )}
-                    {showLayersControl && (
-                      <button
-                        type="button"
-                        style={modeButtonStyle(
-                          tokens,
-                          viewerMode === "layer",
-                          "right",
-                        )}
-                        onClick={() => setViewerMode("layer")}
-                      >
-                        Layers
-                      </button>
-                    )}
-                  </div>
-                </>
-              )}
-
-              {(showColorPicker ||
-                showDensitometer ||
-                showMeasure ||
-                showAnnotate ||
-                showHeatmapToggle) && <h2 style={headingStyle}>Tools</h2>}
-              {showColorPicker && (
-                <ToolRadio
-                  label="Color picker"
-                  swatch={COLOR_PICKER_SWATCH}
-                  active={activeTool === "color-picker"}
-                  onToggle={() =>
-                    setActiveTool((t) =>
-                      t === "color-picker" ? "none" : "color-picker",
-                    )
-                  }
-                />
-              )}
-              {showDensitometer && (
-                <ToolRadio
-                  label="Densitometer"
-                  swatch={DENSITOMETER_SWATCH}
-                  active={activeTool === "densitometer"}
-                  onToggle={() =>
-                    setActiveTool((t) =>
-                      t === "densitometer" ? "none" : "densitometer",
-                    )
-                  }
-                />
-              )}
-              {showMeasure && (
-                <ToolRadio
-                  label="Measure"
-                  active={activeTool === "measure"}
-                  onToggle={() =>
-                    setActiveTool((t) =>
-                      t === "measure" ? "none" : "measure",
-                    )
-                  }
-                />
-              )}
-              {showAnnotate && (
-                <ToolRadio
-                  label="Annotate"
-                  active={activeTool === "annotate"}
-                  onToggle={() =>
-                    setActiveTool((t) =>
-                      t === "annotate" ? "none" : "annotate",
-                    )
-                  }
-                />
-              )}
-              {showHeatmapToggle && (
-                <label style={rowStyle}>
-                  <input
-                    type="checkbox"
-                    checked={showHeatmap}
-                    onChange={(e) => setShowHeatmap(e.target.checked)}
-                  />
-                  <span>TAC heatmap (limit {tacLimit}%)</span>
-                </label>
-              )}
-
-              {showSeparations && viewerMode === "separation" && (
-                <>
-                  <h2 style={headingStyle}>Inks</h2>
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 2,
-                    }}
-                  >
-                    {(detectedInks.length > 0
-                      ? detectedInks
-                      : PROCESS_CHANNELS.map((n) => ({
-                          name: n,
-                          type: "process" as const,
-                          altRgb: [0, 0, 0] as [number, number, number],
-                        }))
-                    ).map((ink) => {
-                      const isProcess = ink.type === "process";
-                      const swatch = isProcess
-                        ? PROCESS_SWATCH[ink.name as keyof typeof PROCESS_SWATCH]
-                        : `rgb(${ink.altRgb[0]}, ${ink.altRgb[1]}, ${ink.altRgb[2]})`;
-                      return (
-                        <label key={ink.name} style={rowStyle}>
-                          <input
-                            type="checkbox"
-                            checked={enabledChannels.has(ink.name)}
-                            onChange={(e) =>
-                              setEnabledChannels((prev) => {
-                                const next = new Set(prev);
-                                if (e.target.checked) next.add(ink.name);
-                                else next.delete(ink.name);
-                                return next;
-                              })
-                            }
-                          />
-                          <span
-                            style={{
-                              ...channelSwatchStyle,
-                              backgroundColor: swatch,
-                            }}
-                          />
-                          <span style={{ flex: 1, minWidth: 0 }}>
-                            <span
-                              style={{
-                                display: "block",
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
-                              }}
-                              title={ink.name}
-                            >
-                              {ink.name}
-                            </span>
-                          </span>
-                          {!isProcess && (
-                            <span
-                              style={{
-                                fontSize: 9,
-                                opacity: 0.55,
-                                textTransform: "uppercase",
-                                letterSpacing: 0.5,
-                              }}
-                            >
-                              spot
-                            </span>
-                          )}
-                        </label>
-                      );
-                    })}
-                    <button
-                      type="button"
-                      style={{
-                        ...ghostBtnStyle(tokens),
-                        marginTop: 4,
-                        fontSize: 11,
-                        padding: "5px 10px",
-                      }}
-                      onClick={() =>
-                        setEnabledChannels(
-                          new Set(
-                            (detectedInks.length > 0
-                              ? detectedInks.map((i) => i.name)
-                              : [...PROCESS_CHANNELS]),
-                          ),
-                        )
-                      }
-                      disabled={
-                        enabledChannels.size ===
-                        (detectedInks.length > 0
-                          ? detectedInks.length
-                          : PROCESS_CHANNELS.length)
-                      }
-                    >
-                      Show all inks
-                    </button>
-                  </div>
-                  <p style={{ fontSize: 11, opacity: 0.5, lineHeight: 1.5 }}>
-                    Untick an ink to preview the page without that plate
-                    — same UX as Acrobat&rsquo;s Output Preview.
-                    {detectedInks.some((i) => i.type === "spot") && (
-                      <>
-                        {" "}This demo plates each ink from the RGB
-                        raster as a fallback. Wiring a backend (server
-                        prop) replaces this with true ICC-correct
-                        per-plate output for every detected CMYK + spot
-                        — no approximation.
-                      </>
-                    )}
-                  </p>
-                </>
-              )}
-
-              {showLayersControl && viewerMode === "layer" && (
-                <>
-                  <h2 style={headingStyle}>Layers</h2>
-                  <div
-                    style={{
-                      border: `1px solid ${tokens.border}`,
-                      borderRadius: 8,
-                      padding: 6,
-                      maxHeight: 200,
-                      overflowY: "auto",
-                    }}
-                  >
-                    <LayerPanel
-                      jobId="loupe-pdf-demo"
-                      enabledLayers={enabledLayers}
-                      onToggleLayer={(ocgIndex) => {
-                        setEnabledLayers((prev) => {
-                          const next = new Set(prev);
-                          if (next.has(ocgIndex)) next.delete(ocgIndex);
-                          else next.add(ocgIndex);
-                          return next;
-                        });
-                      }}
-                      onSetAllLayers={(enabled) => {
-                        setEnabledLayers(
-                          enabled ? new Set(allLayerIndices) : new Set(),
-                        );
-                      }}
-                    />
-                  </div>
-                </>
-              )}
-
-              {showAnnotate && (
-                <>
-                  <h2 style={headingStyle}>Annotations</h2>
-                  <AnnotationThread
-                    jobId="loupe-pdf-demo"
-                    currentUserEmail="you@browser.local"
-                    onJumpToPage={(p) => setCurrentPage(p)}
-                    refreshKey={servicesVersion}
-                    comfortable={isMobile}
-                  />
-                </>
-              )}
+              {leftPanelPlugins.map((plugin) => (
+                <div key={plugin.id}>{plugin.render(shellPluginContext)}</div>
+              ))}
 
             </aside>
           )}
@@ -1534,7 +1328,7 @@ export function LoupePDFDemo({
               </div>
             ) : (
               <div style={stageInnerStyle}>
-                {showAnnotate && activeTool === "annotate" && (
+                {toolbarOverlayPlugins.length > 0 && (
                   <div
                     style={{
                       position: "sticky",
@@ -1550,21 +1344,9 @@ export function LoupePDFDemo({
                       paddingRight: isMobile ? 0 : undefined,
                     }}
                   >
-                    <AnnotationToolbar
-                      activeTool={annotationTool}
-                      onToolChange={setAnnotationTool}
-                      strokeColor={strokeColor}
-                      onStrokeColorChange={setStrokeColor}
-                      onUndo={triggerUndo}
-                      onRedo={triggerRedo}
-                      canUndo={canUndo}
-                      canRedo={canRedo}
-                      saving={savingAnnotation}
-                      stickyNotesVisible={stickyNotesVisible}
-                      onToggleStickyNotes={() =>
-                        setStickyNotesVisible((v) => !v)
-                      }
-                    />
+                    {toolbarOverlayPlugins.map((plugin) => (
+                      <div key={plugin.id}>{plugin.render(shellPluginContext)}</div>
+                    ))}
                   </div>
                 )}
                 <div
@@ -1674,7 +1456,7 @@ export function LoupePDFDemo({
                           setCanUndo(canU);
                           setCanRedo(canR);
                         }}
-                        showStickyNotes={stickyNotesVisible}
+                        onIndexedAnnotationsChange={setIndexedAnnotations}
                       />
                     </div>
                   )}

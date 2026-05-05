@@ -98,8 +98,9 @@ export function DemoPage() {
 | `initialPage` | `number` | `1` | Starting page (1-indexed). |
 | `footer` | `ReactNode` | _(none)_ | Extra content in the footer bar. |
 | `className` | `string` | _(none)_ | Class on the outermost div. |
-| `tools` | `ReadonlyArray<LoupePDFViewerTool>` | all | Subset of tools to show. |
-| `mode` | `"scroll" \| "single"` | `"scroll"` | Page mode. |
+| `tools` | `ReadonlyArray<LoupePDFDemoTool>` | all | Feature ids to keep enabled (`color-picker`, `densitometer`, `measure`, `annotate`, `tac-heatmap`, `separations`, `layers`). |
+| `preset` | `"demo" \| "minimal"` | `"demo"` | First-party plugin preset baseline. `LoupePDF` uses `"minimal"`. |
+| `plugins` | `LoupePDFShellPlugin[]` | `[]` | Extra shell plugins; use `replaces` to override built-ins. |
 
 #### Built-in features
 
@@ -113,6 +114,44 @@ export function DemoPage() {
   Combine with [shareable links](./share-links.md) for fullscreen share URLs.
 - **Blob lifecycle** — created blob URLs are revoked on PDF change and
   on unmount.
+- **Plugin shell** — left panels + annotation toolbar are mounted from
+  slot plugins (`panel.left`, `overlay.toolbar`) via built-in presets.
+
+#### Custom sidebar/menu composition
+
+`LoupePDFDemo` and `LoupePDF` now expose a plugin-first shell for the
+viewer chrome. You can replace built-ins without forking:
+
+```tsx
+import {
+  LoupePDF,
+  type LoupePDFShellPlugin,
+} from "@printwithsynergy/loupe-pdf/components";
+
+const customNotesPanel: LoupePDFShellPlugin = {
+  id: "acme.panel.notes",
+  slot: "panel.left",
+  order: 40,
+  replaces: "loupe.annotations-panel",
+  render(ctx) {
+    return (
+      <section>
+        <h2>My Notes</h2>
+        <button onClick={() => ctx.setCurrentPage(1)}>Jump to page 1</button>
+      </section>
+    );
+  },
+};
+
+export function ProofPage() {
+  return (
+    <LoupePDF
+      pdfUrl="/proofs/abc.pdf"
+      plugins={[customNotesPanel]}
+    />
+  );
+}
+```
 
 ## Page rendering
 

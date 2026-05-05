@@ -64,5 +64,5 @@ export interface LoupePDFProps
  * @public
  */
 export function LoupePDF({ pdfUrl, ...rest }: LoupePDFProps) {
-  return <LoupePDFDemo {...rest} embedded initialPdfUrl={pdfUrl} />;
+  return <LoupePDFDemo {...rest} embedded preset="minimal" initialPdfUrl={pdfUrl} />;
 }
