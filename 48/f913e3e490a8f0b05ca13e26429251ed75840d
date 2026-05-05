@@ -1,0 +1,49 @@
+components/index.ts
+  e4ff528387c0f56d 11,18,29-30
+docs/components.md
+  e4ff528387c0f56d 101-103,117-154
+package.json
+  e4ff528387c0f56d 3
+components/shellPlugins.tsx
+  e4ff528387c0f56d 1-142
+index.ts
+  e4ff528387c0f56d 73,89,97-109
+components/defaultShellPlugins.tsx
+  e4ff528387c0f56d 1-341
+components/AnnotationNotesPanel.tsx
+  e4ff528387c0f56d 1-233
+docs/plugins.md
+  e4ff528387c0f56d 193-232
+components/AnnotationCanvas.tsx
+  e4ff528387c0f56d 16-22,24-29,46,87-121,216,222,243
+components/presets.ts
+  e4ff528387c0f56d 1-19
+components/LoupePDFDemo.tsx
+  e4ff528387c0f56d 77,103,113-121,237-243,302-303,437-439,688-691,706,708-819,898,919,1088,1092,1117,1169-1204,1224,1250,1258-1260,1331,1347-1349,1459
+components/LoupePDF.tsx
+  e4ff528387c0f56d 67
+CHANGELOG.md
+  e4ff528387c0f56d 11-47
+components/AnnotationToolbar.tsx
+  e4ff528387c0f56d 30,77,348,355
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "48f913e3e490a8f0b05ca13e26429251ed75840d",
+  "prompts": {
+    "e4ff528387c0f56d": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "a5a7d1a5-2859-4254-a584-2e5b7b3f2b6d",
+        "model": "premium"
+      },
+      "human_author": "Quincy Adams",
+      "messages": [],
+      "total_additions": 1185,
+      "total_deletions": 630,
+      "accepted_lines": 1122,
+      "overriden_lines": 0
+    }
+  }
+}
