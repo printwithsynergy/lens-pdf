@@ -435,8 +435,15 @@ export function LoupePDFDemo({
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [indexedAnnotations, setIndexedAnnotations] = useState<
-    Array<{ number: number; pageNum: number; objectType: string }>
+    Array<{
+      number: number;
+      pageNum: number;
+      objectType: string;
+      centerX: number;
+      centerY: number;
+    }>
   >([]);
+  const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | null>(null);
 
   // -----------------------------------------------------------------------
   // Services
@@ -726,6 +733,7 @@ export function LoupePDFDemo({
 
   useEffect(() => {
     setIndexedAnnotations([]);
+    setSelectedAnnotationId(null);
   }, [currentPage]);
 
   const triggerUndo = useCallback(() => {
@@ -790,6 +798,8 @@ export function LoupePDFDemo({
       triggerUndo,
       triggerRedo,
       indexedAnnotations,
+      selectedAnnotationId,
+      setSelectedAnnotationId,
       availability,
     }),
     [
@@ -813,6 +823,7 @@ export function LoupePDFDemo({
       triggerUndo,
       triggerRedo,
       indexedAnnotations,
+      selectedAnnotationId,
       availability,
     ],
   );
@@ -1524,9 +1535,60 @@ export function LoupePDFDemo({
                         onSavingChange={setSavingAnnotation}
                         onHistoryChange={handleAnnotationHistoryChange}
                         onIndexedAnnotationsChange={setIndexedAnnotations}
+                        selectedAnnotationNumber={
+                          selectedAnnotationId?.startsWith("obj-")
+                            ? Number(selectedAnnotationId.slice(4))
+                            : null
+                        }
+                        onSelectedAnnotationNumberChange={(annotationNumber) => {
+                          setSelectedAnnotationId(
+                            annotationNumber != null ? `obj-${annotationNumber}` : null,
+                          );
+                        }}
                       />
                     </div>
                   )}
+                  {showAnnotate &&
+                    indexedAnnotations.map((row) => {
+                      const id = `obj-${row.number}`;
+                      const selected = selectedAnnotationId === id;
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedAnnotationId(id);
+                            setActiveTool("annotate");
+                          }}
+                          title={`Annotation #${row.number}`}
+                          style={{
+                            position: "absolute",
+                            left: Math.max(10, row.centerX - 12),
+                            top: Math.max(10, row.centerY - 12),
+                            width: 24,
+                            height: 24,
+                            borderRadius: "50%",
+                            border: selected
+                              ? "2px solid rgba(251,191,36,0.98)"
+                              : "1px solid rgba(255,255,255,0.82)",
+                            background: selected
+                              ? "rgba(251,191,36,0.95)"
+                              : "rgba(15,23,42,0.9)",
+                            color: selected ? "#111827" : "#f8fafc",
+                            fontSize: 11,
+                            fontWeight: 700,
+                            lineHeight: "24px",
+                            textAlign: "center",
+                            cursor: "pointer",
+                            boxShadow: "0 1px 4px rgba(0,0,0,0.45)",
+                            zIndex: 26,
+                            padding: 0,
+                          }}
+                        >
+                          {row.number}
+                        </button>
+                      );
+                    })}
                   {activeTool === "color-picker" && (
                     <ColorPickerTool
                       jobId="loupe-pdf-demo"

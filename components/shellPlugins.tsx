@@ -88,7 +88,15 @@ export interface LoupePDFShellPluginContext {
   canRedo: boolean;
   triggerUndo: () => void;
   triggerRedo: () => void;
-  indexedAnnotations: Array<{ number: number; pageNum: number; objectType: string }>;
+  indexedAnnotations: Array<{
+    number: number;
+    pageNum: number;
+    objectType: string;
+    centerX: number;
+    centerY: number;
+  }>;
+  selectedAnnotationId: string | null;
+  setSelectedAnnotationId: Dispatch<SetStateAction<string | null>>;
   availability: LoupePDFFeatureAvailability;
 }
 

@@ -14,6 +14,14 @@ interface AnnotationNotesPanelProps {
     pageNum: number;
     objectType: string;
   }>;
+  selectedAnnotationId?: string | null;
+  onSelectedAnnotationIdChange?: (id: string) => void;
+}
+
+interface AnnotationLinkedNote {
+  id: string;
+  text: string;
+  createdAt: string;
 }
 
 const cardStyle: CSSProperties = {
@@ -60,6 +68,8 @@ export function AnnotationNotesPanel({
   storageScopeKey,
   onJumpToPage,
   indexedAnnotations = [],
+  selectedAnnotationId: selectedAnnotationIdProp,
+  onSelectedAnnotationIdChange,
 }: AnnotationNotesPanelProps) {
   const { debug } = useViewerHost();
   const { annotations: annotationService } = useViewerServices();
@@ -68,7 +78,7 @@ export function AnnotationNotesPanel({
   const [generalNotes, setGeneralNotes] = useState("");
   const [selectedAnnotationId, setSelectedAnnotationId] = useState<string>("");
   const [notesByAnnotationId, setNotesByAnnotationId] = useState<
-    Record<string, string>
+    Record<string, AnnotationLinkedNote[]>
   >({});
 
   const storageKey = useMemo(
@@ -109,10 +119,36 @@ export function AnnotationNotesPanel({
       if (!raw) return;
       const parsed = JSON.parse(raw) as {
         generalNotes?: string;
-        notesByAnnotationId?: Record<string, string>;
+        notesByAnnotationId?: Record<
+          string,
+          string | AnnotationLinkedNote[]
+        >;
       };
       setGeneralNotes(parsed.generalNotes ?? "");
-      setNotesByAnnotationId(parsed.notesByAnnotationId ?? {});
+      const migrated: Record<string, AnnotationLinkedNote[]> = {};
+      for (const [key, value] of Object.entries(parsed.notesByAnnotationId ?? {})) {
+        if (typeof value === "string") {
+          migrated[key] =
+            value.trim().length > 0
+              ? [{ id: `${key}:legacy`, text: value, createdAt: new Date().toISOString() }]
+              : [];
+          continue;
+        }
+        if (Array.isArray(value)) {
+          migrated[key] = value
+            .filter((v): v is AnnotationLinkedNote => {
+              return (
+                typeof v === "object" &&
+                v !== null &&
+                typeof (v as { id?: unknown }).id === "string" &&
+                typeof (v as { text?: unknown }).text === "string" &&
+                typeof (v as { createdAt?: unknown }).createdAt === "string"
+              );
+            })
+            .map((v) => ({ id: v.id, text: v.text, createdAt: v.createdAt }));
+        }
+      }
+      setNotesByAnnotationId(migrated);
     } catch {
       // Ignore malformed persisted note payloads.
     }
@@ -129,9 +165,9 @@ export function AnnotationNotesPanel({
 
   if (hidden) return null;
 
-  const selectedNote = selectedAnnotationId
-    ? notesByAnnotationId[selectedAnnotationId] ?? ""
-    : "";
+  const selectedNotes = selectedAnnotationId
+    ? notesByAnnotationId[selectedAnnotationId] ?? []
+    : [];
 
   const targets =
     indexedAnnotations.length > 0
@@ -150,6 +186,14 @@ export function AnnotationNotesPanel({
     targets.find((target) => target.id === selectedAnnotationId) ?? null;
 
   useEffect(() => {
+    if (!selectedAnnotationIdProp) return;
+    if (!targets.some((t) => t.id === selectedAnnotationIdProp)) return;
+    if (selectedAnnotationId !== selectedAnnotationIdProp) {
+      setSelectedAnnotationId(selectedAnnotationIdProp);
+    }
+  }, [selectedAnnotationIdProp, targets, selectedAnnotationId]);
+
+  useEffect(() => {
     if (targets.length === 0) {
       if (selectedAnnotationId) setSelectedAnnotationId("");
       return;
@@ -158,6 +202,11 @@ export function AnnotationNotesPanel({
       setSelectedAnnotationId(targets[0]!.id);
     }
   }, [targets, selectedAnnotationId]);
+
+  useEffect(() => {
+    if (!selectedAnnotationId) return;
+    onSelectedAnnotationIdChange?.(selectedAnnotationId);
+  }, [selectedAnnotationId, onSelectedAnnotationIdChange]);
 
   return (
     <div style={cardStyle}>
@@ -184,7 +233,11 @@ export function AnnotationNotesPanel({
         <>
           <select
             value={selectedAnnotationId}
-            onChange={(e) => setSelectedAnnotationId(e.target.value)}
+            onChange={(e) => {
+              const next = e.target.value;
+              setSelectedAnnotationId(next);
+              onSelectedAnnotationIdChange?.(next);
+            }}
             style={selectStyle}
           >
             {targets.map((target) => (
@@ -214,17 +267,97 @@ export function AnnotationNotesPanel({
               </button>
             </div>
           )}
-          <textarea
-            value={selectedNote}
-            onChange={(e) => {
-              const val = e.target.value;
+          <button
+            type="button"
+            style={{
+              border: "1px solid rgba(134,239,172,0.45)",
+              background: "transparent",
+              color: "#86efac",
+              borderRadius: 6,
+              fontSize: 11,
+              padding: "5px 10px",
+              cursor: "pointer",
+              alignSelf: "flex-start",
+            }}
+            onClick={() => {
               const key = selectedAnnotationId;
               if (!key) return;
-              setNotesByAnnotationId((prev) => ({ ...prev, [key]: val }));
+              const now = new Date().toISOString();
+              const id = `${key}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
+              setNotesByAnnotationId((prev) => ({
+                ...prev,
+                [key]: [...(prev[key] ?? []), { id, text: "", createdAt: now }],
+              }));
             }}
-            placeholder="Note linked to this annotation number..."
-            style={textareaStyle}
-          />
+          >
+            + Add linked note
+          </button>
+          {selectedNotes.length === 0 ? (
+            <div
+              style={{
+                fontSize: 12,
+                color: "rgba(226,232,240,0.62)",
+                fontStyle: "italic",
+              }}
+            >
+              No linked notes yet for this annotation.
+            </div>
+          ) : (
+            selectedNotes.map((note, idx) => (
+              <div key={note.id} style={{ ...cardStyle, gap: 6 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    fontSize: 11,
+                    color: "rgba(148,163,184,0.95)",
+                    fontWeight: 600,
+                  }}
+                >
+                  <span>Note {idx + 1}</span>
+                  <button
+                    type="button"
+                    style={{
+                      border: "1px solid rgba(251,113,133,0.45)",
+                      background: "transparent",
+                      color: "#fda4af",
+                      borderRadius: 6,
+                      fontSize: 10,
+                      padding: "3px 8px",
+                      cursor: "pointer",
+                    }}
+                    onClick={() => {
+                      const key = selectedAnnotationId;
+                      if (!key) return;
+                      setNotesByAnnotationId((prev) => ({
+                        ...prev,
+                        [key]: (prev[key] ?? []).filter((n) => n.id !== note.id),
+                      }));
+                    }}
+                  >
+                    Remove
+                  </button>
+                </div>
+                <textarea
+                  value={note.text}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const key = selectedAnnotationId;
+                    if (!key) return;
+                    setNotesByAnnotationId((prev) => ({
+                      ...prev,
+                      [key]: (prev[key] ?? []).map((n) =>
+                        n.id === note.id ? { ...n, text: val } : n,
+                      ),
+                    }));
+                  }}
+                  placeholder="Note linked to this annotation number..."
+                  style={textareaStyle}
+                />
+              </div>
+            ))
+          )}
         </>
       )}
     </div>

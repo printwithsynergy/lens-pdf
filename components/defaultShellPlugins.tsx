@@ -305,6 +305,8 @@ function annotationsPlugin(): LoupePDFShellPlugin {
           storageScopeKey={ctx.pdfUrl || "loupe-pdf-demo"}
           onJumpToPage={(p) => ctx.setCurrentPage(p)}
           indexedAnnotations={ctx.indexedAnnotations}
+          selectedAnnotationId={ctx.selectedAnnotationId}
+          onSelectedAnnotationIdChange={(id) => ctx.setSelectedAnnotationId(id)}
         />
       </>
     ),

@@ -8,6 +8,21 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 _Nothing yet._
 
+## [0.3.0-beta.28] — 2026-05-05
+
+### Added
+- **On-canvas annotation numbers** — each annotation now gets a visible
+  numbered badge in the PDF viewer so users can map panel items to page
+  elements instantly.
+- **Bidirectional selection sync** — selecting an annotation on-canvas
+  now syncs the notes panel target, and selecting a target in the notes
+  panel focuses that annotation on the canvas.
+
+### Changed
+- **Annotation-linked notes support multiple entries** — each numbered
+  annotation can now hold multiple linked notes (add/remove/edit), not
+  just one note string.
+
 ## [0.3.0-beta.27] — 2026-05-05
 
 ### Changed

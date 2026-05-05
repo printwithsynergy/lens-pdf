@@ -18,14 +18,24 @@ interface AnnotationCanvasProps {
    * host can show a linked notes panel (`#1`, `#2`, …).
    */
   onIndexedAnnotationsChange?: (
-    rows: Array<{ number: number; pageNum: number; objectType: string }>,
+    rows: Array<{
+      number: number;
+      pageNum: number;
+      objectType: string;
+      centerX: number;
+      centerY: number;
+    }>,
   ) => void;
+  selectedAnnotationNumber?: number | null;
+  onSelectedAnnotationNumberChange?: (annotationNumber: number | null) => void;
 }
 const ANNOTATION_NUMBER_KEY = "__loupeAnnotationNumber";
 type IndexedAnnotationRow = {
   number: number;
   pageNum: number;
   objectType: string;
+  centerX: number;
+  centerY: number;
 };
 
 // Undo/redo state kept per-component instance
@@ -44,6 +54,8 @@ export function AnnotationCanvas({
   onSavingChange,
   onHistoryChange,
   onIndexedAnnotationsChange,
+  selectedAnnotationNumber,
+  onSelectedAnnotationNumberChange,
 }: AnnotationCanvasProps) {
   const { readOnly, debug } = useViewerHost();
   const { annotations } = useViewerServices();
@@ -104,13 +116,18 @@ export function AnnotationCanvas({
         }
       }
       const rows: IndexedAnnotationRow[] = objects
-        .map((obj: any) => ({
-          number: Number(
-            (obj as Record<string, unknown>)[ANNOTATION_NUMBER_KEY] ?? 0,
-          ),
-          pageNum,
-          objectType: String(obj.type ?? "object"),
-        }))
+        .map((obj: any) => {
+          const rect = obj.getBoundingRect();
+          return {
+            number: Number(
+              (obj as Record<string, unknown>)[ANNOTATION_NUMBER_KEY] ?? 0,
+            ),
+            pageNum,
+            objectType: String(obj.type ?? "object"),
+            centerX: rect.left + rect.width / 2,
+            centerY: rect.top + rect.height / 2,
+          };
+        })
         .filter((r: IndexedAnnotationRow) => Number.isFinite(r.number) && r.number > 0)
         .sort((a: IndexedAnnotationRow, b: IndexedAnnotationRow) => a.number - b.number);
       onIndexedAnnotationsChange?.(rows);
@@ -223,9 +240,23 @@ export function AnnotationCanvas({
         pushHistory(canvas);
         debouncedSave(canvas);
       };
+      const getSelectedNumber = () => {
+        const active = canvas.getActiveObject();
+        if (!active) return null;
+        const n = Number(
+          ((active as unknown as Record<string, unknown>)[ANNOTATION_NUMBER_KEY]),
+        );
+        return Number.isFinite(n) && n > 0 ? n : null;
+      };
+      const onSelection = () => {
+        onSelectedAnnotationNumberChange?.(getSelectedNumber());
+      };
       canvas.on("object:added", onChange);
       canvas.on("object:modified", onChange);
       canvas.on("object:removed", onChange);
+      canvas.on("selection:created", onSelection);
+      canvas.on("selection:updated", onSelection);
+      canvas.on("selection:cleared", onSelection);
 
       setLoaded(true);
     }
@@ -245,6 +276,21 @@ export function AnnotationCanvas({
     // down the canvas mid-interaction and crash the viewer.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pageNum]);
+
+  // Keep canvas selection in sync when the panel picks an annotation by number.
+  useEffect(() => {
+    const canvas = fabricRef.current;
+    if (!canvas || selectedAnnotationNumber == null) return;
+    const match = canvas.getObjects().find((obj: any) => {
+      const n = Number(
+        ((obj as unknown as Record<string, unknown>)[ANNOTATION_NUMBER_KEY]),
+      );
+      return Number.isFinite(n) && n === selectedAnnotationNumber;
+    });
+    if (!match) return;
+    canvas.setActiveObject(match);
+    canvas.requestRenderAll();
+  }, [selectedAnnotationNumber]);
 
   // ── Resize canvas when dimensions change ─────────────────────
 
