@@ -6,6 +6,27 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0-beta.32] — 2026-05-06
+
+### Added
+- **Server viewer-link API** — reference backend now exposes
+  `POST /viewer-links` to generate canonical hosted viewer launch URLs
+  from config payloads (page/zoom/tool/source/token/query metadata).
+- **Annotation CRUD API** — reference backend now supports full
+  annotation CRUD (`/jobs/:jobId/annotations`) plus per-page compatibility
+  endpoints used by the viewer annotation service contract.
+- **Typed host server helpers** — new host-level helpers
+  (`createLoupeServerApiClient`, `createServerAnnotationService`) provide
+  typed link-generation and annotation-service adapters for downstream apps.
+
+### Changed
+- **Hybrid auth support in reference backend** — auth mode is now
+  configurable (`internal`, `bearer`, `api-key`, `hybrid`) with dedicated
+  env vars and unified middleware enforcement.
+- **Docs refresh for unified viewer architecture** — README and reference
+  docs updated to reflect the canonical `controller -> shell -> stage`
+  path, current integration tiers, and new server API examples.
+
 ## [0.3.0-beta.30] — 2026-05-05
 
 ### Fixed
