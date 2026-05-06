@@ -1,0 +1,21 @@
+package.json
+  s_e4ff528387c0f5::t_695d069f37ade2 3
+CHANGELOG.md
+  s_e4ff528387c0f5::t_1c4f110dfc778e 9-29
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.1",
+  "base_commit_sha": "a6a809c014e54739a4999714315deeb490931248",
+  "prompts": {},
+  "sessions": {
+    "s_e4ff528387c0f5": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "a5a7d1a5-2859-4254-a584-2e5b7b3f2b6d",
+        "model": "premium"
+      },
+      "human_author": "Quincy Adams <quincy@thinkneverland.com>"
+    }
+  }
+}
