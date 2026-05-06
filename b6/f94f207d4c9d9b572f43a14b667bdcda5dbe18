@@ -1,0 +1,39 @@
+host/codexAdapter.ts
+  s_b6db5244fff483::t_f11d123c1bb3fc 1-82
+index.ts
+  s_b6db5244fff483::t_28cc1e760183e8 53
+  s_b6db5244fff483::t_b7d4919f552a45 42
+scripts/codex-viewer-adapter.mjs
+  s_b6db5244fff483::t_33bce47348800c 1-81
+host/codexAdapter.test.ts
+  s_b6db5244fff483::t_7504668a288bcf 1-33
+host/index.ts
+  s_b6db5244fff483::t_66c9703b7cc19c 261,272
+browser/index.ts
+  s_1ec52510788653::t_f8f4dd4b26ec9a 116-163
+  s_1ec52510788653::t_19ae3e52b4ada7 39-42,334-339,435-437,939-945,1178-1183
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.1",
+  "base_commit_sha": "b6f94f207d4c9d9b572f43a14b667bdcda5dbe18",
+  "prompts": {},
+  "sessions": {
+    "s_1ec52510788653": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "8501c3bf-ab93-45aa-ab86-4ea1ce17a4e1",
+        "model": "premium"
+      },
+      "human_author": "Quincy Adams <quincy@thinkneverland.com>"
+    },
+    "s_b6db5244fff483": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "c92fd016-5694-47f8-ae3a-6f1771ffb4ae",
+        "model": "premium"
+      },
+      "human_author": "Quincy Adams <quincy@thinkneverland.com>"
+    }
+  }
+}
