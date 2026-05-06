@@ -144,7 +144,13 @@ function modeToolsPlugin(): LoupePDFShellPlugin {
           <ToolRadio
             label="Move / Pan"
             active={activeTool === "none"}
-            onToggle={() => setActiveTool("none")}
+            onToggle={() => {
+              setActiveTool("none");
+              // Move / Pan is non-annotation navigation; force the
+              // annotation sub-tool to pointer so we never leave pen
+              // armed when the user exits annotate mode.
+              ctx.setAnnotationTool("pointer");
+            }}
           />
           {colorPicker && (
             <ToolRadio

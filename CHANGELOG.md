@@ -6,7 +6,15 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-_Nothing yet._
+## [0.3.0-beta.30] — 2026-05-05
+
+### Fixed
+- **Move / Pan isolation** — selecting `Move / Pan` now forces annotation
+  mode back to pointer so it never leaves pen/drawing armed while users
+  are navigating.
+- **Sticky mobile close control** — tools drawer header on mobile is now
+  sticky with its own background/border so the close button remains
+  visible while scrolling long tool panels.
 
 ## [0.3.0-beta.29] — 2026-05-05
 

@@ -1229,6 +1229,13 @@ export function LoupePDFDemo({
                     justifyContent: "space-between",
                     gap: 8,
                     marginBottom: 8,
+                    position: "sticky",
+                    top: 0,
+                    zIndex: 2,
+                    paddingTop: 2,
+                    paddingBottom: 8,
+                    background: tokens.bg,
+                    borderBottom: `1px solid ${tokens.border}`,
                   }}
                 >
                   <h2 style={{ ...headingStyle, margin: 0 }}>Tools</h2>
