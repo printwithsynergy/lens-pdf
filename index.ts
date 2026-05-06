@@ -35,6 +35,20 @@ export { validatePdfFile, validatePdfUrl } from "./host/pdfValidation";
 export type { PdfValidationResult } from "./host/pdfValidation";
 export { generateShareLink, parseShareParams } from "./host/shareLink";
 export type { ShareLinkOptions, ParsedShareParams } from "./host/shareLink";
+export {
+  createLoupeServerApiClient,
+  createServerAnnotationService,
+} from "./host/serverApi";
+export type {
+  LoupeServerApiClient,
+  LoupeServerApiClientOptions,
+  GenerateViewerLinkRequest,
+  GenerateViewerLinkResponse,
+  ServerAnnotationRecord,
+  CreateAnnotationRequest,
+  UpdateAnnotationRequest,
+  ServerAnnotationServiceOptions,
+} from "./host/serverApi";
 export { useLoupePDF } from "./host/useLoupePDF";
 export type { UseLoupePDFOptions, UseLoupePDFReturn } from "./host/useLoupePDF";
 export { LoupePDFProvider } from "./host/LoupePDFProvider";
@@ -58,7 +72,6 @@ export type { LoupePDFProps } from "./components/LoupePDF";
 export {
   createBrowserViewerServices,
   defaultBrowserWorkerSrc,
-  detectSpotInksFromPdfBytes,
   rgbToCmyk,
   useBrowserViewerServicesVersion,
   PROCESS_CHANNELS,
@@ -80,11 +93,8 @@ export { DielineOverlay } from "./components/DielineOverlay";
 export { LayerCanvas } from "./components/LayerCanvas";
 export { LayerPanel } from "./components/LayerPanel";
 export { LoupePDFViewer } from "./components/LoupePDFViewer";
-export type {
-  LoupePDFViewerProps,
-  LoupePDFViewerState,
-  LoupePDFViewerTool,
-} from "./components/LoupePDFViewer";
+export type { LoupePDFViewerProps } from "./components/LoupePDFViewer";
+export type { LoupePDFTool } from "./components/viewerTools";
 export { MeasureTool } from "./components/MeasureTool";
 export { createDefaultShellPlugins } from "./components/defaultShellPlugins";
 export { MobileBottomSheet } from "./components/MobileBottomSheet";

@@ -37,7 +37,18 @@
  * @public
  */
 
-import { LoupePDFDemo, type LoupePDFDemoProps } from "./LoupePDFDemo";
+import { useCallback, useMemo, useState } from "react";
+import { ViewerHostContext, ViewerServicesContext } from "../host";
+import { darkThemeTokens, type ThemeTokens, type ViewerServices } from "../plugin/services";
+import type { OverlayItem } from "../plugin/types";
+import type { DielineResult } from "../types";
+import { shellStyle } from "./LoupePDFDemo.styles";
+import { LoupePDFViewerShell } from "./LoupePDFViewerShell";
+import type { LoupePDFPresetKind } from "./presets";
+import type { LoupePDFShellPlugin } from "./shellPlugins";
+import { useIsMobile } from "./useIsMobile";
+import { useLoupeViewerController } from "./useLoupeViewerController";
+import type { LoupePDFTool } from "./viewerTools";
 
 /**
  * Props for {@link LoupePDF}. Identical to {@link LoupePDFDemoProps}
@@ -46,15 +57,27 @@ import { LoupePDFDemo, type LoupePDFDemoProps } from "./LoupePDFDemo";
  *
  * @public
  */
-export interface LoupePDFProps
-  extends Omit<LoupePDFDemoProps, "embedded" | "initialPdfUrl" | "maxFileSize"> {
-  /**
-   * URL of the PDF to load. Any URL the browser can fetch — your
-   * own CDN, a signed link, a `blob:` URL from a `File` your app
-   * uploaded, etc. Changing this swaps the document and resets to
-   * `initialPage`.
-   */
+export interface LoupePDFProps {
   pdfUrl: string;
+  workerSrc?: string;
+  services?: ViewerServices;
+  tokens?: Partial<ThemeTokens>;
+  className?: string;
+  tools?: ReadonlyArray<LoupePDFTool>;
+  initialZoom?: number;
+  initialPage?: number;
+  tacLimit?: number;
+  items?: readonly OverlayItem[];
+  selectedItem?: OverlayItem | null;
+  onItemSelect?: (item: OverlayItem | null) => void;
+  dieline?: DielineResult | null;
+  showBoxOverlays?: boolean;
+  cropToTrim?: boolean;
+  onPageChange?: (page: number) => void;
+  onZoomChange?: (zoom: number) => void;
+  onError?: (message: string) => void;
+  preset?: LoupePDFPresetKind;
+  plugins?: ReadonlyArray<LoupePDFShellPlugin>;
 }
 
 /**
@@ -63,6 +86,105 @@ export interface LoupePDFProps
  *
  * @public
  */
-export function LoupePDF({ pdfUrl, ...rest }: LoupePDFProps) {
-  return <LoupePDFDemo {...rest} embedded preset="minimal" initialPdfUrl={pdfUrl} />;
+export function LoupePDF({
+  pdfUrl,
+  workerSrc,
+  services,
+  tokens: tokenOverrides,
+  className,
+  tools,
+  initialZoom = 80,
+  initialPage = 1,
+  tacLimit = 300,
+  items = [],
+  selectedItem,
+  onItemSelect,
+  dieline,
+  showBoxOverlays = false,
+  cropToTrim = false,
+  onPageChange,
+  onZoomChange,
+  onError,
+  preset = "minimal",
+  plugins = [],
+}: LoupePDFProps) {
+  const tokens = useMemo(
+    () => ({ ...darkThemeTokens, ...tokenOverrides }),
+    [tokenOverrides],
+  );
+  const [internalSelected, setInternalSelected] = useState<OverlayItem | null>(null);
+  const effectiveSelected = onItemSelect ? (selectedItem ?? null) : internalSelected;
+  const handleItemClick = useCallback(
+    (item: OverlayItem) => {
+      if (onItemSelect) onItemSelect(item);
+      else setInternalSelected(item);
+    },
+    [onItemSelect],
+  );
+  const isMobile = useIsMobile();
+
+  const controller = useLoupeViewerController({
+    pdfUrl,
+    workerSrc,
+    services,
+    tools: tools ?? [
+      "color-picker",
+      "densitometer",
+      "measure",
+      "annotate",
+      "tac-heatmap",
+      "separations",
+      "layers",
+    ],
+    initialPage,
+    initialZoom,
+    tacLimit,
+    tokens,
+    isMobile,
+    preset,
+    plugins,
+    onPageChange,
+    onZoomChange,
+    onError,
+  });
+
+  return (
+    <ViewerHostContext.Provider value={controller.hostValue}>
+      {controller.services ? (
+        <ViewerServicesContext.Provider value={controller.services}>
+          <div className={className} style={shellStyle(tokens, false)}>
+            <LoupePDFViewerShell
+              controller={controller}
+              tokens={tokens}
+              isMobile={isMobile}
+              pdfUrl={pdfUrl}
+              cropToTrim={cropToTrim}
+              showBoxOverlays={showBoxOverlays}
+              tacLimit={tacLimit}
+              dieline={dieline ?? null}
+              overlayItems={items}
+              effectiveSelected={effectiveSelected}
+              onOverlayItemClick={handleItemClick}
+            />
+          </div>
+        </ViewerServicesContext.Provider>
+      ) : (
+        <div className={className} style={shellStyle(tokens, false)}>
+          <LoupePDFViewerShell
+            controller={controller}
+            tokens={tokens}
+            isMobile={isMobile}
+            pdfUrl={pdfUrl}
+            cropToTrim={cropToTrim}
+            showBoxOverlays={showBoxOverlays}
+            tacLimit={tacLimit}
+            dieline={dieline ?? null}
+            overlayItems={items}
+            effectiveSelected={effectiveSelected}
+            onOverlayItemClick={handleItemClick}
+          />
+        </div>
+      )}
+    </ViewerHostContext.Provider>
+  );
 }

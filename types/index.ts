@@ -216,6 +216,9 @@ export interface ViewerConfig {
   /** Plan-gate: empty means report downloads are not available. */
   allowed_report_formats: string[];
   tile_cdn_base: string | null;
+  /** Optional codex contract metadata during parser migration. */
+  codex_schema_version?: string | null;
+  codex_document?: Record<string, unknown> | null;
 }
 
 export const DEFAULT_VIEWER_CONFIG: ViewerConfig = {

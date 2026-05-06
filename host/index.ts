@@ -254,6 +254,21 @@ export type { PdfValidationResult } from "./pdfValidation";
 export { generateShareLink, parseShareParams } from "./shareLink";
 export type { ShareLinkOptions, ParsedShareParams } from "./shareLink";
 
+export {
+  createLoupeServerApiClient,
+  createServerAnnotationService,
+} from "./serverApi";
+export type {
+  LoupeServerApiClient,
+  LoupeServerApiClientOptions,
+  GenerateViewerLinkRequest,
+  GenerateViewerLinkResponse,
+  ServerAnnotationRecord,
+  CreateAnnotationRequest,
+  UpdateAnnotationRequest,
+  ServerAnnotationServiceOptions,
+} from "./serverApi";
+
 export { useLoupePDF } from "./useLoupePDF";
 export type { UseLoupePDFOptions, UseLoupePDFReturn } from "./useLoupePDF";
 

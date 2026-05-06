@@ -3,7 +3,7 @@
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import type { ThemeTokens, ViewerServices } from "../plugin/services";
 import type { AnnotationTool } from "./AnnotationToolbar";
-import type { LoupePDFDemoTool } from "./LoupePDFDemo";
+import type { LoupePDFTool } from "./viewerTools";
 
 export type ViewerMode = "page" | "separation" | "layer";
 export type PointerTool =
@@ -24,7 +24,7 @@ export interface LoupePDFFeatureAvailability {
 }
 
 export interface LoupePDFFeatureInputs {
-  tools: ReadonlyArray<LoupePDFDemoTool>;
+  tools: ReadonlyArray<LoupePDFTool>;
   services: ViewerServices | null;
   detectedInkCount: number;
   layerCount: number;
@@ -38,7 +38,7 @@ export function computeFeatureAvailability({
   layerCount,
   isUnwired,
 }: LoupePDFFeatureInputs): LoupePDFFeatureAvailability {
-  const toolSet = new Set<LoupePDFDemoTool>(tools);
+  const toolSet = new Set<LoupePDFTool>(tools);
   const hasColorSampler = !!services && !isUnwired(services.colorSample);
   const hasDensitometer = !!services && !isUnwired(services.densitometer);
   const hasMeasurement = true;

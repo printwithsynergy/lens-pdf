@@ -109,43 +109,9 @@ export const defaultBrowserWorkerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.ver
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function extractOcgIds(config: any): string[] {
-  if (!config) return [];
-  let raw: unknown;
-  try {
-    raw = typeof config.getGroups === "function" ? config.getGroups() : null;
-  } catch {
-    raw = null;
-  }
-  if (raw instanceof Map) {
-    return Array.from(raw.keys()).map(String);
-  }
-  if (raw && typeof raw === "object") {
-    const ids = Object.keys(raw as Record<string, unknown>);
-    if (ids.length > 0) return ids;
-  }
-  // Fallback: walk the order tree and collect every leaf id, in case
-  // `getGroups()` returned an empty object even though the doc declares
-  // OCGs through `/OCProperties /D /Order`.
-  try {
-    const order = typeof config.getOrder === "function" ? config.getOrder() : null;
-    if (Array.isArray(order)) {
-      const seen = new Set<string>();
-      const visit = (node: unknown) => {
-        if (typeof node === "string") {
-          seen.add(node);
-        } else if (Array.isArray(node)) {
-          node.forEach(visit);
-        } else if (node && typeof node === "object") {
-          const o = node as { name?: string; order?: unknown };
-          if (Array.isArray(o.order)) o.order.forEach(visit);
-        }
-      };
-      order.forEach(visit);
-      return Array.from(seen);
-    }
-  } catch {
-    /* ignore */
-  }
+  // Big-bang codex cutover: layer inventory is authoritative from codex APIs.
+  // Browser-side OCG parsing is intentionally disabled.
+  void config;
   return [];
 }
 
@@ -198,7 +164,7 @@ export function rgbToCmyk(
 }
 
 // ---------------------------------------------------------------------------
-// Spot-ink detection (raw-bytes regex)
+// Ink lookup
 // ---------------------------------------------------------------------------
 
 const PROCESS_INK_RGB: Record<string, [number, number, number]> = {
@@ -211,134 +177,6 @@ const PROCESS_INK_RGB: Record<string, [number, number, number]> = {
   y: [255, 242, 0],
   k: [35, 31, 32],
 };
-
-const PROCESS_NAME_SET = new Set(Object.keys(PROCESS_INK_RGB));
-
-/**
- * Lookup table for common spot-ink families. Match is a case-insensitive
- * `includes` against the parsed colour name; first hit wins. We're not
- * trying to be a Pantone library — just enough so the densitometer
- * reads sane swatches for ubiquitous spots ("Reflex Blue",
- * "Pantone 185 C", "Warm Red", etc.) instead of falling through to the
- * hash-derived RGB fallback.
- */
-const SPOT_NAME_RGB: Array<{ pattern: RegExp; rgb: [number, number, number] }> = [
-  { pattern: /reflex\s*blue/i, rgb: [0, 32, 156] },
-  { pattern: /process\s*blue/i, rgb: [0, 133, 202] },
-  { pattern: /rhodamine/i, rgb: [225, 35, 135] },
-  { pattern: /rubine/i, rgb: [206, 9, 73] },
-  { pattern: /warm\s*red/i, rgb: [232, 65, 24] },
-  { pattern: /orange\s*021/i, rgb: [254, 80, 0] },
-  { pattern: /violet/i, rgb: [144, 0, 255] },
-  { pattern: /green/i, rgb: [0, 169, 92] },
-  { pattern: /\bred\b/i, rgb: [237, 28, 36] },
-  { pattern: /\bblue\b/i, rgb: [44, 62, 147] },
-  { pattern: /\bsilver\b/i, rgb: [201, 199, 196] },
-  { pattern: /\bgold\b/i, rgb: [212, 175, 55] },
-  { pattern: /\bwhite\b/i, rgb: [240, 240, 240] },
-  { pattern: /varnish|gloss|matte/i, rgb: [180, 195, 210] },
-  { pattern: /die\s*line|dieline|cut\s*contour/i, rgb: [240, 30, 30] },
-  { pattern: /pantone\s*185/i, rgb: [232, 17, 45] },
-  { pattern: /pantone\s*186/i, rgb: [206, 17, 38] },
-  { pattern: /pantone\s*286/i, rgb: [0, 51, 160] },
-  { pattern: /pantone\s*287/i, rgb: [0, 56, 168] },
-  { pattern: /pantone\s*348/i, rgb: [0, 132, 61] },
-  { pattern: /pantone\s*485/i, rgb: [218, 41, 28] },
-  { pattern: /pantone\s*7406/i, rgb: [241, 196, 15] },
-  { pattern: /pantone\s*877/i, rgb: [201, 199, 196] },
-];
-
-/** Decode PDF name-object encoding (`#XX` hex → byte). */
-function decodePdfName(raw: string): string {
-  return raw.replace(/#([0-9a-fA-F]{2})/g, (_, hex) =>
-    String.fromCharCode(parseInt(hex, 16)),
-  );
-}
-
-function spotNameToRgb(name: string): [number, number, number] {
-  for (const { pattern, rgb } of SPOT_NAME_RGB) {
-    if (pattern.test(name)) return rgb;
-  }
-  // Hash-derived fallback so each spot gets a stable, distinct swatch.
-  let h = 0;
-  for (let i = 0; i < name.length; i++) {
-    h = (h * 31 + name.charCodeAt(i)) >>> 0;
-  }
-  const hue = h % 360;
-  const sat = 0.7;
-  const light = 0.45;
-  return hslToRgb(hue, sat, light);
-}
-
-function hslToRgb(h: number, s: number, l: number): [number, number, number] {
-  const c = (1 - Math.abs(2 * l - 1)) * s;
-  const hh = h / 60;
-  const x = c * (1 - Math.abs((hh % 2) - 1));
-  let r1 = 0,
-    g1 = 0,
-    b1 = 0;
-  if (hh < 1) [r1, g1, b1] = [c, x, 0];
-  else if (hh < 2) [r1, g1, b1] = [x, c, 0];
-  else if (hh < 3) [r1, g1, b1] = [0, c, x];
-  else if (hh < 4) [r1, g1, b1] = [0, x, c];
-  else if (hh < 5) [r1, g1, b1] = [x, 0, c];
-  else [r1, g1, b1] = [c, 0, x];
-  const m = l - c / 2;
-  return [
-    Math.round((r1 + m) * 255),
-    Math.round((g1 + m) * 255),
-    Math.round((b1 + m) * 255),
-  ];
-}
-
-/**
- * Best-effort spot-ink detector. Scans the raw PDF bytes (latin-1
- * decoded) for `/Separation /Name …` and `/DeviceN [/N1 /N2 …]`
- * declarations. Misses spots inside compressed object streams — for
- * those the densitometer falls back to "process only" with no harm
- * done. Hosts that need 100 % accurate ink lists wire a backend.
- *
- * @public
- */
-export function detectSpotInksFromPdfBytes(bytes: Uint8Array): DetectedInk[] {
-  const text = new TextDecoder("latin1").decode(bytes);
-  const found = new Map<string, DetectedInk>();
-
-  // /Separation /Name AltColorSpace TintTransform
-  const sepRe =
-    /\/Separation\s*\/([A-Za-z0-9_#%\-\+\*\(\)\.]+)\s+\/(?:DeviceCMYK|DeviceRGB|DeviceGray|CalRGB|CalGray|Lab)/g;
-  let m: RegExpExecArray | null;
-  while ((m = sepRe.exec(text)) !== null) {
-    const raw = m[1];
-    if (!raw) continue;
-    const name = decodePdfName(raw).trim();
-    const lower = name.toLowerCase();
-    if (PROCESS_NAME_SET.has(lower) || lower === "all" || lower === "none") continue;
-    if (!found.has(lower)) {
-      found.set(lower, { name, type: "spot", altRgb: spotNameToRgb(name) });
-    }
-  }
-
-  // /DeviceN [ /Name1 /Name2 ... ] /AltCS TintTransform
-  const dnRe = /\/DeviceN\s*\[([^\]]{1,500})\]/g;
-  while ((m = dnRe.exec(text)) !== null) {
-    const arr = m[1] ?? "";
-    const inkRe = /\/([A-Za-z0-9_#%\-\+\*\(\)\.]+)/g;
-    let im: RegExpExecArray | null;
-    while ((im = inkRe.exec(arr)) !== null) {
-      const raw = im[1];
-      if (!raw) continue;
-      const name = decodePdfName(raw).trim();
-      const lower = name.toLowerCase();
-      if (PROCESS_NAME_SET.has(lower) || lower === "all" || lower === "none") continue;
-      if (!found.has(lower)) {
-        found.set(lower, { name, type: "spot", altRgb: spotNameToRgb(name) });
-      }
-    }
-  }
-
-  return Array.from(found.values());
-}
 
 /**
  * Estimate ink coverage at a sampled pixel using cosine similarity in
@@ -608,7 +446,7 @@ export function createBrowserViewerServices(
       docPromise = (async () => {
         const bytes = await getBytes();
         // .slice() so pdf.js's worker can transfer/own its own copy
-        // without invalidating ours; we still need it for ink parsing.
+        // without invalidating ours.
         return pdfjs.getDocument({ data: bytes.slice() })
           .promise as Promise<pdfjs.PDFDocumentProxy>;
       })();
@@ -624,14 +462,6 @@ export function createBrowserViewerServices(
           type: "process" as const,
           altRgb: PROCESS_INK_RGB[name.toLowerCase()] ?? [0, 0, 0],
         }));
-        try {
-          const bytes = await getBytes();
-          const spots = detectSpotInksFromPdfBytes(bytes);
-          inks.push(...spots);
-        } catch (err) {
-          // eslint-disable-next-line no-console
-          console.warn("[loupe-pdf] spot ink detection failed", err);
-        }
         return inks;
       })();
     }

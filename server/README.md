@@ -40,7 +40,11 @@ Environment variables, all optional except where noted:
 | `LOUPE_JOBS_DIR` | `/var/lib/loupe-pdf/jobs` | Where uploaded PDFs land on disk. |
 | `LOUPE_CACHE_DIR` | `/var/cache/loupe-pdf` | Render cache (currently in-memory; reserved for future on-disk caching). |
 | `LOUPE_MAX_UPLOAD_MIB` | `100` | Refuse uploads larger than this. |
-| `LOUPE_BEARER_TOKEN` | unset | When set, every request must carry `Authorization: Bearer <token>`. Coarse single-secret auth meant for private-network deploys; put a real gateway in front for anything else. |
+| `LOUPE_AUTH_MODE` | `internal` | Auth mode for API routes: `internal`, `bearer`, `api-key`, `hybrid`. |
+| `LOUPE_BEARER_TOKEN` | unset | Bearer secret used by `bearer` and `hybrid` modes. |
+| `LOUPE_API_KEY` | unset | API-key secret used by `api-key` and `hybrid` modes (`x-api-key`). |
+| `LOUPE_INTERNAL_TOKEN` | unset | Optional explicit trusted-internal secret (`x-loupe-internal-token`). |
+| `LOUPE_VIEWER_BASE_URL` | `https://loupepdf.com/demo` | Default viewer base URL used by `POST /viewer-links`. |
 | `GS_BIN` | `gs` | Path / name of the Ghostscript binary. |
 
 ## Wire into the viewer
@@ -108,6 +112,27 @@ const services: ViewerServices = {
 } as ViewerServices;
 ```
 
+## Viewer link generation API
+
+Generate canonical viewer launch URLs from a config payload:
+
+```sh
+curl -X POST "$API_BASE/viewer-links" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $LOUPE_BEARER_TOKEN" \
+  -d '{
+    "viewerBaseUrl": "https://loupepdf.com/demo",
+    "source": "internal",
+    "jobId": "job-abc",
+    "pdfUrl": "https://cdn.example.com/proof.pdf",
+    "page": 1,
+    "zoom": 125
+  }'
+```
+
+Response includes `viewer_url`, normalized query payload, and optional
+`expires_at` metadata.
+
 ## Endpoint reference
 
 All endpoints are scoped to a `jobId` (1–128 chars of `[a-zA-Z0-9_-]`).
@@ -115,8 +140,16 @@ All endpoints are scoped to a `jobId` (1–128 chars of `[a-zA-Z0-9_-]`).
 | Method | Path | Notes |
 | --- | --- | --- |
 | `GET` | `/healthz` | Liveness. |
+| `POST` | `/viewer-links` | Build canonical viewer launch URL from config payload. |
 | `POST` | `/jobs/{jobId}/source` | Register a PDF. Body: `application/pdf` raw bytes **or** `application/json` `{ "url": "https://…" }` to fetch on the server's behalf. |
 | `DELETE` | `/jobs/{jobId}` | Drop cached state for the job. |
+| `GET` | `/jobs/{jobId}/annotations` | List annotations for job. |
+| `GET` | `/jobs/{jobId}/annotations/{annotationId}` | Get one annotation by id. |
+| `POST` | `/jobs/{jobId}/annotations` | Create annotation record. |
+| `PUT` | `/jobs/{jobId}/annotations/{annotationId}` | Update annotation record. |
+| `DELETE` | `/jobs/{jobId}/annotations/{annotationId}` | Delete annotation record. |
+| `GET` | `/jobs/{jobId}/annotations/page/{pageNum}?authorEmail=...` | Get page annotation for one author (AnnotationService compatibility). |
+| `POST` | `/jobs/{jobId}/annotations/page/{pageNum}` | Upsert page annotation for one author (AnnotationService compatibility). |
 | `GET` | `/jobs/{jobId}/page/{pageNum}.png?dpi=N` | Composite RGB PNG of one page. |
 | `GET` | `/jobs/{jobId}/channels?page=N&dpi=N` | List of ink-channel names present on the page. |
 | `GET` | `/jobs/{jobId}/channel/{name}.png?page=N&dpi=N` | One per-ink grayscale PNG. |
@@ -128,10 +161,10 @@ All endpoints are scoped to a `jobId` (1–128 chars of `[a-zA-Z0-9_-]`).
 
 Read this before exposing the server to anything you don't fully control.
 
-- **No auth by default**. The optional `LOUPE_BEARER_TOKEN` gives a
-  single shared secret check; that's it. Multi-tenant isolation,
-  per-user authz, audit logging — all out of scope. Put a real gateway
-  in front of this service.
+- **Auth is deployment-mode driven** via `LOUPE_AUTH_MODE`. `internal`
+  is intended for trusted networks only. `hybrid` lets internal calls
+  pass while enforcing bearer/api-key for external callers. Multi-tenant
+  authz and audit policy still belong in your gateway/app layer.
 - **PDF URL fetching is unguarded**. When a host POSTs
   `{ url: "https://…" }`, the server fetches it as-is. SSRF mitigation
   (block `127.0.0.1`, `169.254.0.0/16`, internal hostnames, etc.) is
@@ -197,10 +230,10 @@ non-cacheable per HTTP spec.
 1. **Put the server behind Cloudflare** with proxy mode on (orange
    cloud). The default Cache Rules will respect the `Cache-Control`
    header above and edge-cache for 1 year.
-2. **Don't set `LOUPE_BEARER_TOKEN`** if you want CDN caching. An
-   `Authorization` header makes Cloudflare bypass the edge cache by
-   default. Move auth to the gateway tier (Cloudflare Access, signed
-   URLs, mTLS at the origin) so the cacheable URL space is unauth'd.
+2. **Avoid header auth on cacheable GETs** if you want CDN caching.
+   `Authorization` and custom API-key headers commonly bypass shared
+   cache tiers. Prefer gateway auth (Cloudflare Access, signed URLs,
+   mTLS at origin) so cacheable URL space stays unauthenticated.
 3. **Pair `DELETE /jobs/{jobId}` with a Cloudflare purge-by-tag call**
    from your control plane. The tag to purge is `job-{jobId}`. Tag
    purges require Cloudflare Enterprise; on lower plans, purge by URL

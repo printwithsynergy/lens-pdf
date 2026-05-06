@@ -46,8 +46,10 @@ ships ESM only.
 
 ## Quick start — pick your tier
 
-LoupePDF ships five integration levels. Start with Tier 1 and drop
-down only when you need more control.
+LoupePDF now ships one canonical viewer architecture
+(`controller -> shell -> stage`) exposed at different integration
+levels. Start with Tier 1 and go deeper only when you need custom
+wiring.
 
 ### Tier 1 — Drop-in production viewer (~3 lines)
 
@@ -65,7 +67,7 @@ mount, every viewer-only feature wired to pdf.js out of the box:
   on / off (defaults to all-on like Output Preview).
 - **Layers** — OCG list with per-layer visibility.
 - **Annotation toolbar / canvas / thread** — pen, arrow, rect,
-  ellipse, text, highlight, sticky note, all in-memory.
+  ellipse, text, highlight, numbered markers + linked notes.
 - **Mobile** — tools collapse into a left-anchored slide-in
   drawer; readouts swap to bottom sheets so they stay legible.
 
@@ -119,28 +121,17 @@ export function DemoPage() {
 }
 ```
 
-### Tier 2 — One-liner viewer (~5 lines)
+### Tier 2 — Alternate entry name (same core path)
 
-`<LoupePDFViewer>` auto-discovers pages, layers, dimensions. Ships
-a responsive toolbar with zoom, layers, color picker, and measure.
+`<LoupePDFViewer>` is an alias over the same full-feature core path as
+`<LoupePDF>`. Use whichever naming reads better in your codebase.
 
 ```tsx
-import { LoupePDFViewer } from "@printwithsynergy/loupe-pdf/components";
+import { LoupePDFViewer } from "@printwithsynergy/loupe-pdf";
 
 export function MyViewer() {
   return <LoupePDFViewer pdfUrl="https://cdn.example.com/proof.pdf" />;
 }
-```
-
-Slot props (`header`, `sidebar`, `footer`) let you replace regions
-without losing the rest of the viewer:
-
-```tsx
-<LoupePDFViewer
-  pdfUrl={url}
-  header={(state) => <MyToolbar zoom={state.zoom} setZoom={state.setZoom} />}
-  footer={<p>Custom footer</p>}
-/>
 ```
 
 ### Tier 3 — Hook + Provider (~20 lines)
@@ -169,7 +160,7 @@ Wire `ViewerHostContext` + `ViewerServicesContext` yourself. Every
 component (`PageCanvas`, `LayerPanel`, `MeasureTool`, etc.) is
 exported and unchanged.
 
-### Shareable links
+### Shareable links (pure client utility)
 
 Generate URLs that open the viewer with a specific PDF and settings:
 
@@ -186,6 +177,45 @@ const link = generateShareLink({
 // On the demo page:
 const params = parseShareParams(new URLSearchParams(window.location.search));
 // → { pdfUrl: "https://...", fullscreen: true, zoom: 150 }
+```
+
+### Server APIs: link generation + annotation CRUD
+
+The reference backend in `server/` now exposes:
+
+- `POST /viewer-links` to generate canonical viewer launch URLs from a
+  config payload.
+- Annotation CRUD under `/jobs/:jobId/annotations`.
+- Compatibility endpoints for the viewer's `AnnotationService`
+  (`/jobs/:jobId/annotations/page/:pageNum`).
+
+Use typed host helpers instead of manual fetch calls:
+
+```ts
+import {
+  createLoupeServerApiClient,
+  createServerAnnotationService,
+} from "@printwithsynergy/loupe-pdf/host";
+
+const api = createLoupeServerApiClient({
+  apiBase: "https://loupe-api.internal",
+  bearerToken: process.env.LOUPE_API_TOKEN,
+});
+
+const link = await api.generateViewerLink({
+  viewerBaseUrl: "https://loupepdf.com/demo",
+  source: "internal",
+  jobId: "job_123",
+  page: 1,
+  zoom: 125,
+});
+
+const annotationService = createServerAnnotationService({
+  apiBase: "https://loupe-api.internal",
+  bearerToken: process.env.LOUPE_API_TOKEN,
+  jobId: "job_123",
+  currentUserEmail: "user@example.com",
+});
 ```
 
 ### PDF validation
@@ -264,11 +294,12 @@ deployment notes, and security caveats.
 
 | Topic | Doc |
 | --- | --- |
-| The one-line `<LoupePDFViewer>` composition | [docs/loupe-pdf-viewer.md](./docs/loupe-pdf-viewer.md) |
+| The one-line `<LoupePDF>` / `<LoupePDFViewer>` composition | [docs/loupe-pdf-viewer.md](./docs/loupe-pdf-viewer.md) |
 | How the contexts, components, and plugins fit together | [docs/architecture.md](./docs/architecture.md) |
 | Wiring `ViewerServices` (page images, layers, separations, TAC, color, densitometer, annotations, reports) | [docs/services.md](./docs/services.md) |
 | Capability detection, debug logging, and the in-browser PDF fallback | [docs/fallback.md](./docs/fallback.md) |
 | Optional Node + Ghostscript backend for preflight-grade tools | [docs/server.md](./docs/server.md) |
+| Link generation API + annotation CRUD API | [docs/server-api.md](./docs/server-api.md) |
 | Per-component props and usage | [docs/components.md](./docs/components.md) |
 | Plugin slots, registration, and the `replaces` mechanism | [docs/plugins.md](./docs/plugins.md) |
 | Built-in `MeasurementUnit`s + custom-unit Protocol | [docs/measurement-units.md](./docs/measurement-units.md) |
