@@ -1,0 +1,102 @@
+components/LoupePDFViewer.tsx
+  e4ff528387c0f56d 3,5,8,10-11,14
+components/index.ts
+  e4ff528387c0f56d 22,24,34-36
+components/useStagePan.ts
+  e4ff528387c0f56d 1-101
+server/src/config.ts
+  e4ff528387c0f56d 14-30,41-49,52-64
+server/src/index.ts
+  e4ff528387c0f56d 17-18,20-21,23,26,28,50,52-61,63-67,69,71-147,204-366,556-590,609-646
+server/README.md
+  s_e4ff528387c0f5::t_c469f3291f75b5 233-236
+  e4ff528387c0f56d 43-47,115-135
+  s_e4ff528387c0f5::t_7e66599e3790b9 143,146-152
+  s_e4ff528387c0f5::t_8cbf137cc6d2f1 164-167
+docs/components.md
+  s_e4ff528387c0f5::t_d8da1d52a167d9 51,61-62
+index.ts
+  e4ff528387c0f56d 38-51,96-97
+host/serverApi.ts
+  e4ff528387c0f56d 1-251
+types/index.ts
+  3f0cdbd772e3e829 219-221
+package.json
+  s_3f0cdbd772e3e8::t_f1831ba0626091 3
+components/viewerTools.ts
+  e4ff528387c0f56d 1-18
+docs/server-api.md
+  e4ff528387c0f56d 1-126
+server/src/storage.ts
+  e4ff528387c0f56d 14,18,28-48,68-71,137-297,309-401
+components/LoupePDFDemo.tsx
+  e4ff528387c0f56d 63,67-68,84,86-89,102-103,249-250,262,269,272,281-286,288-305,312,315-316,320,327,330-331,338,370-437,440-455,458-460,462-490,493-494,496,504,507-509,511-518,522-549,553-554,558,560-564,567,572,574-576,578,580,583-587,593,596-600,602-631,633-654,656,658-663,665-675
+components/useLoupeViewerController.ts
+  e4ff528387c0f56d 1-514
+components/LoupePDF.tsx
+  e4ff528387c0f56d 40-51,60,62-80,89-189
+components/shellPlugins.tsx
+  e4ff528387c0f56d 6,27,41
+host/index.ts
+  e4ff528387c0f56d 257-271
+docs/loupe-pdf-viewer.md
+  s_e4ff528387c0f5::t_ca4c40cc913f78 3,10-12,24-28,30,34-46,50-52,56-58
+README.md
+  e4ff528387c0f56d 49-52,124,126-127,130,163,182-220,297,302
+  s_e4ff528387c0f5::t_4a164411a6bbce 70
+components/LoupePDFDemoStage.tsx
+  e4ff528387c0f56d 1-331
+components/LoupePDFViewerShell.tsx
+  e4ff528387c0f56d 1-354
+browser/index.ts
+  3f0cdbd772e3e829 112-114,167,449
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.1",
+  "base_commit_sha": "745841e0856c28c1c162a1e8a106b7f1bd039613",
+  "prompts": {
+    "3f0cdbd772e3e829": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "35baf435-0446-43c6-8341-50917f7cd5d6",
+        "model": "premium"
+      },
+      "human_author": "Quincy Adams <quincy@thinkneverland.com>",
+      "total_additions": 62,
+      "total_deletions": 183,
+      "accepted_lines": 8,
+      "overriden_lines": 0
+    },
+    "e4ff528387c0f56d": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "a5a7d1a5-2859-4254-a584-2e5b7b3f2b6d",
+        "model": "premium"
+      },
+      "human_author": "Quincy Adams <quincy@thinkneverland.com>",
+      "total_additions": 3092,
+      "total_deletions": 2283,
+      "accepted_lines": 2918,
+      "overriden_lines": 0
+    }
+  },
+  "sessions": {
+    "s_3f0cdbd772e3e8": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "35baf435-0446-43c6-8341-50917f7cd5d6",
+        "model": "premium"
+      },
+      "human_author": "Quincy Adams <quincy@thinkneverland.com>"
+    },
+    "s_e4ff528387c0f5": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "a5a7d1a5-2859-4254-a584-2e5b7b3f2b6d",
+        "model": "premium"
+      },
+      "human_author": "Quincy Adams <quincy@thinkneverland.com>"
+    }
+  }
+}
