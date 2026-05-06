@@ -258,6 +258,7 @@ export {
   createLoupeServerApiClient,
   createServerAnnotationService,
 } from "./serverApi";
+export { adaptCodexDocumentForViewer } from "./codexAdapter";
 export type {
   LoupeServerApiClient,
   LoupeServerApiClientOptions,
@@ -268,6 +269,7 @@ export type {
   UpdateAnnotationRequest,
   ServerAnnotationServiceOptions,
 } from "./serverApi";
+export type { CodexViewerAdapterPayload } from "./codexAdapter";
 
 export { useLoupePDF } from "./useLoupePDF";
 export type { UseLoupePDFOptions, UseLoupePDFReturn } from "./useLoupePDF";

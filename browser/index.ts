@@ -36,6 +36,10 @@
 
 import { useEffect, useState } from "react";
 import * as pdfjs from "pdfjs-dist";
+import {
+  adaptCodexDocumentForViewer,
+  type CodexViewerAdapterPayload,
+} from "../host/codexAdapter";
 import type { ColorSample, ColorSampleInk, DensitometerSample } from "../types";
 import {
   markUnwired,
@@ -109,10 +113,54 @@ export const defaultBrowserWorkerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.ver
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function extractOcgIds(config: any): string[] {
-  // Big-bang codex cutover: layer inventory is authoritative from codex APIs.
-  // Browser-side OCG parsing is intentionally disabled.
-  void config;
-  return [];
+  if (!config || typeof config !== "object") return [];
+  const ids: string[] = [];
+  const push = (id: unknown) => {
+    if (typeof id !== "string" || !id || ids.includes(id)) return;
+    ids.push(id);
+  };
+  try {
+    const groups = config.getGroups?.();
+    if (groups && typeof groups === "object") {
+      for (const key of Object.keys(groups)) push(key);
+    }
+  } catch {
+    /* ignore */
+  }
+  if (ids.length === 0) {
+    try {
+      const order = config.getOrder?.();
+      if (Array.isArray(order)) {
+        const walk = (value: unknown) => {
+          if (Array.isArray(value)) {
+            for (const item of value) walk(item);
+            return;
+          }
+          if (typeof value === "string") {
+            push(value);
+            return;
+          }
+          if (value && typeof value === "object" && "id" in value) {
+            push((value as { id?: unknown }).id);
+          }
+        };
+        walk(order);
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  if (ids.length === 0) {
+    try {
+      const maybeMap = config._groups;
+      if (maybeMap && typeof maybeMap.forEach === "function") {
+        maybeMap.forEach((_: unknown, key: unknown) => push(key));
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  return ids;
 }
 
 /** 1×1 transparent PNG — returned by `getPageImageUrl` while a tile
@@ -284,6 +332,12 @@ export interface BrowserViewerServicesOptions {
   /** Raw PDF URL the browser can fetch. */
   pdfUrl: string;
   /**
+   * Optional codex document payload. When provided, browser services use it
+   * for stable page geometry and layer inventory even though pdf.js OCG
+   * parsing is disabled in this migration phase.
+   */
+  codexDocument?: unknown;
+  /**
    * Optional override for the pdf.js worker URL. Default:
    * {@link defaultBrowserWorkerSrc}.
    */
@@ -378,6 +432,9 @@ export function createBrowserViewerServices(
   const defaultTacLimit = opts.tacLimit ?? 300;
   const authorEmail = opts.annotationAuthorEmail ?? "you@browser.local";
   const workerSrc = opts.workerSrc ?? defaultBrowserWorkerSrc;
+  const codexPayload: CodexViewerAdapterPayload | null = opts.codexDocument
+    ? adaptCodexDocumentForViewer(opts.codexDocument)
+    : null;
 
   if (pdfjs.GlobalWorkerOptions.workerSrc !== workerSrc) {
     pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
@@ -879,6 +936,13 @@ export function createBrowserViewerServices(
         return "";
       },
       listLayers: async () => {
+        if (codexPayload && codexPayload.layers.length > 0) {
+          return codexPayload.layers.map((layer) => ({
+            name: layer.name,
+            ocg_index: layer.ocg_index,
+            default_on: layer.default_on,
+          }));
+        }
         try {
           const doc = await getDoc();
           const config = await doc.getOptionalContentConfig();
@@ -1111,6 +1175,12 @@ export function createBrowserViewerServices(
       return doc.numPages;
     },
     async getPageDimensions(pageNum: number) {
+      if (codexPayload) {
+        const codexPage = codexPayload.pages.find((page) => page.page_num === pageNum);
+        if (codexPage) {
+          return { widthPts: codexPage.width_pts, heightPts: codexPage.height_pts };
+        }
+      }
       const doc = await getDoc();
       const page = await doc.getPage(pageNum);
       const viewport = page.getViewport({ scale: 1 });

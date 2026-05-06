@@ -39,6 +39,7 @@ export {
   createLoupeServerApiClient,
   createServerAnnotationService,
 } from "./host/serverApi";
+export { adaptCodexDocumentForViewer } from "./host";
 export type {
   LoupeServerApiClient,
   LoupeServerApiClientOptions,
@@ -49,6 +50,7 @@ export type {
   UpdateAnnotationRequest,
   ServerAnnotationServiceOptions,
 } from "./host/serverApi";
+export type { CodexViewerAdapterPayload } from "./host/codexAdapter";
 export { useLoupePDF } from "./host/useLoupePDF";
 export type { UseLoupePDFOptions, UseLoupePDFReturn } from "./host/useLoupePDF";
 export { LoupePDFProvider } from "./host/LoupePDFProvider";
