@@ -310,3 +310,12 @@ export type { UseLoupePDFOptions, UseLoupePDFReturn } from "./useLoupePDF";
 
 export { LoupePDFProvider } from "./LoupePDFProvider";
 export type { LoupePDFProviderProps } from "./LoupePDFProvider";
+
+export {
+  createCodexBackedViewerServices,
+  defaultCodexBackedViewerServices,
+} from "./codexHostServices";
+export type {
+  CodexBackedViewerServicesOptions,
+  CodexLikeClient,
+} from "./codexHostServices";
