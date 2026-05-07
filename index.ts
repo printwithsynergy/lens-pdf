@@ -50,7 +50,38 @@ export type {
   UpdateAnnotationRequest,
   ServerAnnotationServiceOptions,
 } from "./host/serverApi";
-export type { CodexViewerAdapterPayload } from "./host/codexAdapter";
+export type {
+  CodexSpotColorantInfo,
+  CodexViewerAdapterPayload,
+} from "./host/codexAdapter";
+
+// Spot-ink swatch colour resolution surface.
+export {
+  resolveSpotSwatchColor,
+  hashHueRgb,
+  labD50ToSrgb,
+  cmykToSrgb,
+  normalizePantoneName,
+  alternatePantoneKey,
+  lookupPantoneSpot,
+  pantoneFormulaGuideMeta,
+  lookupCuratedSpot,
+  curatedSpotEntries,
+} from "./host/spotColor";
+export type {
+  CmykQuad,
+  CodexSpotIntent,
+  CuratedSpotEntry,
+  LabTriplet,
+  PantoneLookupResult,
+  PantoneRefMap,
+  ResolveSpotSwatchColorOptions,
+  RgbTriplet,
+  SpotInkOverride,
+  SpotOverrideMap,
+  SpotSwatchResolution,
+  SpotSwatchSource,
+} from "./host/spotColor";
 export { useLoupePDF } from "./host/useLoupePDF";
 export type { UseLoupePDFOptions, UseLoupePDFReturn } from "./host/useLoupePDF";
 export { LoupePDFProvider } from "./host/LoupePDFProvider";

@@ -32,6 +32,7 @@ const DEFAULT_PAGE: PageInfo = pageInfoFromDimensions(1, 612, 792);
 
 export interface LoupeViewerControllerOptions {
   pdfUrl: string;
+  codexDocument?: unknown;
   workerSrc?: string;
   services?: ViewerServices;
   tools: ReadonlyArray<LoupePDFTool>;
@@ -110,6 +111,7 @@ export interface LoupeViewerControllerResult {
 
 export function useLoupeViewerController({
   pdfUrl,
+  codexDocument,
   workerSrc,
   services: serviceOverrides,
   tools,
@@ -177,15 +179,21 @@ export function useLoupeViewerController({
       setBrowserServices(null);
       return;
     }
+    if (!codexDocument) {
+      setBrowserServices(null);
+      setError("[loupe-pdf] codexDocument is required for LoupePDF metadata/layer services.");
+      return;
+    }
     const next = createBrowserViewerServices({
       pdfUrl,
+      codexDocument,
       workerSrc,
       tokens,
       tacLimit,
     });
     setBrowserServices(next);
     return () => next.dispose();
-  }, [pdfUrl, workerSrc, tacLimit, tokens]);
+  }, [pdfUrl, codexDocument, workerSrc, tacLimit, tokens]);
 
   useEffect(() => {
     const svc = browserServices;

@@ -108,6 +108,8 @@ const DEFAULT_TOOLS = DEFAULT_LOUPE_PDF_TOOLS;
  * @public
  */
 export interface LoupePDFDemoProps {
+  /** Canonical codex document payload for page/layer metadata. */
+  codexDocument?: unknown;
   /** Theme tokens. Defaults to {@link darkThemeTokens}. */
   tokens?: Partial<ThemeTokens>;
   /** Maximum upload size in bytes. Default: 50 MB. */
@@ -219,6 +221,7 @@ function formatMaxSize(bytes: number): string {
  * @public
  */
 export function LoupePDFDemo({
+  codexDocument,
   tokens: tokenOverrides,
   maxFileSize = DEFAULT_MAX_BYTES,
   brand = "LoupePDF",
@@ -287,6 +290,7 @@ export function LoupePDFDemo({
 
   const controller = useLoupeViewerController({
     pdfUrl,
+    codexDocument,
     workerSrc,
     services: serviceOverrides,
     tools,

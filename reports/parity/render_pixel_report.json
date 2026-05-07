@@ -1,0 +1,8 @@
+{
+  "status": "pass",
+  "baseline_path": "reports/parity/baseline/minimal-page1.png",
+  "current_path": "reports/parity/current/minimal-page1.png",
+  "mismatched_pixels": 0,
+  "mismatch_ratio": 0,
+  "allowed_ratio": 0.001
+}

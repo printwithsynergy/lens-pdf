@@ -1,9 +1,13 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { DensitometerSample } from "../types";
 import { isUnwired, logUnwiredHide, useViewerHost, useViewerServices } from "../host";
+import {
+  resolveSpotSwatchColor,
+  type SpotSwatchResolution,
+} from "../host/spotColor";
 import { useIsMobile } from "./useIsMobile";
 
 interface DensitometerToolProps {
@@ -100,18 +104,55 @@ export function DensitometerTool({
   );
 
   // Map channel name to a solid swatch colour for the readout. Process
-  // channels use the standard CMYK primaries; any spot channel hashes
-  // its name to a stable distinct hue so each spot lands on a unique
-  // swatch.
+  // channels use the standard CMYK primaries; spot channels go through
+  // the shared `resolveSpotSwatchColor` resolver so PMS-named spots
+  // present their intent-accurate hue (Pantone DB Lab → sRGB) instead
+  // of a hash-of-name pseudo-random colour. Cache by name to avoid
+  // re-running the resolver on every render.
+  const spotResolutions = useMemo(() => new Map<string, SpotSwatchResolution>(), []);
+  const resolveSpot = useCallback(
+    (name: string): SpotSwatchResolution => {
+      const cached = spotResolutions.get(name);
+      if (cached) return cached;
+      const next = resolveSpotSwatchColor(name);
+      spotResolutions.set(name, next);
+      return next;
+    },
+    [spotResolutions],
+  );
+
   const swatchFor = (name: string): string => {
     const n = name.toLowerCase();
     if (n === "cyan" || n === "c") return "#00b7eb";
     if (n === "magenta" || n === "m") return "#e91e63";
     if (n === "yellow" || n === "y") return "#fdd835";
     if (n === "black" || n === "k") return "#111827";
-    let h = 0;
-    for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
-    return `hsl(${h % 360}, 70%, 45%)`;
+    const { rgb } = resolveSpot(name);
+    return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
+  };
+
+  /** Provenance string surfaced in the swatch tooltip. */
+  const swatchTitle = (name: string): string => {
+    const res = resolveSpot(name);
+    switch (res.source) {
+      case "host":
+        return `${name} — host override`;
+      case "codex":
+        return `${name} — codex extracted`;
+      case "pantone":
+        return `${res.pantone_name ?? name} — Pantone reference`;
+      case "curated":
+        return `${name} — curated mapping`;
+      case "hash":
+      default:
+        return `${name} — approximate (no reference data)`;
+    }
+  };
+
+  /** Approximate sources merit a "~" badge next to the swatch. */
+  const isApproximate = (name: string): boolean => {
+    const res = resolveSpot(name);
+    return res.source === "curated" || res.source === "hash";
   };
 
   // First-letter shorthand for the four CMYK process inks; full name
@@ -311,7 +352,21 @@ export function DensitometerTool({
                             border: "1px solid rgba(255, 255, 255, 0.3)",
                             backgroundColor: swatchFor(ch.name),
                           }}
+                          title={swatchTitle(ch.name)}
                         />
+                        {isApproximate(ch.name) && (
+                          <span
+                            aria-hidden="true"
+                            style={{
+                              fontSize: 9,
+                              color: "#94a3b8",
+                              fontWeight: 700,
+                            }}
+                            title={swatchTitle(ch.name)}
+                          >
+                            ~
+                          </span>
+                        )}
                         <span
                           style={{
                             flex: 1,
@@ -320,7 +375,7 @@ export function DensitometerTool({
                             whiteSpace: "nowrap",
                             color: "#e2e8f0",
                           }}
-                          title={ch.name}
+                          title={swatchTitle(ch.name)}
                         >
                           {ch.name}
                         </span>

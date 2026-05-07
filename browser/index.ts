@@ -38,8 +38,17 @@ import { useEffect, useState } from "react";
 import * as pdfjs from "pdfjs-dist";
 import {
   adaptCodexDocumentForViewer,
+  type CodexSpotColorantInfo,
   type CodexViewerAdapterPayload,
 } from "../host/codexAdapter";
+import {
+  resolveSpotSwatchColor,
+  type CmykQuad,
+  type LabTriplet,
+  type PantoneRefMap,
+  type SpotOverrideMap,
+  type SpotSwatchSource,
+} from "../host/spotColor";
 import type { ColorSample, ColorSampleInk, DensitometerSample } from "../types";
 import {
   markUnwired,
@@ -81,12 +90,26 @@ export interface DetectedInk {
   /** `process` for CMYK plates pdf.js composites in RGB; `spot` for
    *  Separation / DeviceN colorants the host PDF declares. */
   type: "process" | "spot";
-  /** Synthetic alternate sRGB triplet used to estimate coverage from
-   *  the rasterised RGB pixel. For process inks this is the canonical
-   *  CMYK→sRGB primary; for spots it's parsed from the PDF when
-   *  available, otherwise hash-derived from the spot name so each
-   *  spot still gets a stable, distinct hue. */
+  /**
+   * Synthetic alternate sRGB triplet used to estimate coverage from
+   * the rasterised RGB pixel. For process inks this is the canonical
+   * CMYK→sRGB primary; for spots it comes from the `resolveSpotSwatchColor`
+   * resolver (host override → codex Lab/CMYK → bundled Pantone DB →
+   * curated semantic map → hash fallback).
+   */
   altRgb: [number, number, number];
+  /**
+   * Provenance of {@link altRgb} for spot inks. Always `"process"` for
+   * process inks; one of the resolver source labels for spot inks.
+   * UIs can use this to badge approximate swatches.
+   */
+  source: SpotSwatchSource | "process";
+  /** CIE Lab (D50) value when the resolver carried it. */
+  lab?: LabTriplet;
+  /** CMYK approximation when the resolver carried it. */
+  cmyk?: CmykQuad;
+  /** Canonical Pantone name when the resolver matched the bundled DB. */
+  pantone_name?: string;
 }
 
 /**
@@ -99,69 +122,6 @@ export interface DetectedInk {
  * @public
  */
 export const defaultBrowserWorkerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
-
-/**
- * Extract OCG ids from a pdf.js {@link OptionalContentConfig}. pdf.js
- * v4's `getGroups()` returns either:
- *   - `null` when the document has no OCGs
- *   - an Object literal keyed by ref id — `{ "10R": OptionalContentGroup, … }`
- *
- * Older / future versions might return a Map, so this helper accepts
- * both shapes. Falls through to `getOrder()` and per-id `getGroup()`
- * lookups when the primary path returns nothing — some PDFs only
- * surface their OCG list via the order tree even when groups exist.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function extractOcgIds(config: any): string[] {
-  if (!config || typeof config !== "object") return [];
-  const ids: string[] = [];
-  const push = (id: unknown) => {
-    if (typeof id !== "string" || !id || ids.includes(id)) return;
-    ids.push(id);
-  };
-  try {
-    const groups = config.getGroups?.();
-    if (groups && typeof groups === "object") {
-      for (const key of Object.keys(groups)) push(key);
-    }
-  } catch {
-    /* ignore */
-  }
-  if (ids.length === 0) {
-    try {
-      const order = config.getOrder?.();
-      if (Array.isArray(order)) {
-        const walk = (value: unknown) => {
-          if (Array.isArray(value)) {
-            for (const item of value) walk(item);
-            return;
-          }
-          if (typeof value === "string") {
-            push(value);
-            return;
-          }
-          if (value && typeof value === "object" && "id" in value) {
-            push((value as { id?: unknown }).id);
-          }
-        };
-        walk(order);
-      }
-    } catch {
-      /* ignore */
-    }
-  }
-  if (ids.length === 0) {
-    try {
-      const maybeMap = config._groups;
-      if (maybeMap && typeof maybeMap.forEach === "function") {
-        maybeMap.forEach((_: unknown, key: unknown) => push(key));
-      }
-    } catch {
-      /* ignore */
-    }
-  }
-  return ids;
-}
 
 /** 1×1 transparent PNG — returned by `getPageImageUrl` while a tile
  *  is still being lazy-built. Page raster tiles are reactive (the
@@ -331,12 +291,8 @@ function heatmapColor(
 export interface BrowserViewerServicesOptions {
   /** Raw PDF URL the browser can fetch. */
   pdfUrl: string;
-  /**
-   * Optional codex document payload. When provided, browser services use it
-   * for stable page geometry and layer inventory even though pdf.js OCG
-   * parsing is disabled in this migration phase.
-   */
-  codexDocument?: unknown;
+  /** Canonical codex document payload that owns page/layer metadata. */
+  codexDocument: unknown;
   /**
    * Optional override for the pdf.js worker URL. Default:
    * {@link defaultBrowserWorkerSrc}.
@@ -359,6 +315,32 @@ export interface BrowserViewerServicesOptions {
    * service. Default: `"you@browser.local"`.
    */
   annotationAuthorEmail?: string;
+  /**
+   * Per-spot-ink colour overrides — highest precedence in the swatch
+   * resolver. Keys are the spot ink name as it appears in the PDF
+   * (e.g. ``"PANTONE 485 C"`` or ``"Cut"``); values may carry any
+   * combination of ``rgb`` / ``lab`` / ``cmyk`` / ``pantone_name``.
+   *
+   * Use this when:
+   *   - The PDF's Separation / DeviceN colorants don't carry codex
+   *     Lab/CMYK and the bundled Pantone DB doesn't recognise the
+   *     name (custom brand spots, custom finishes, etc.).
+   *   - You want to steer the swatch to a specific brand colour even
+   *     though the bundled Pantone reference would resolve.
+   *
+   * @public
+   */
+  spotOverrides?: SpotOverrideMap;
+  /**
+   * Optional extra Pantone reference entries to merge with the
+   * bundled Formula Guide subset (Coated + Uncoated, ~4,600 colours).
+   * Useful for hosts that ship their own brand palette JSON or want
+   * Color Bridge / Metallics / Pastels & Neons coverage without
+   * regenerating the bundled file. Keys are Pantone names.
+   *
+   * @public
+   */
+  extraPantoneRefs?: PantoneRefMap;
 }
 
 /**
@@ -428,13 +410,18 @@ export interface BrowserViewerServices extends ViewerServices {
 export function createBrowserViewerServices(
   opts: BrowserViewerServicesOptions,
 ): BrowserViewerServices {
+  if (!opts.codexDocument) {
+    throw new Error(
+      "[loupe-pdf] codexDocument is required. loupe-pdf no longer infers metadata from pdf.js.",
+    );
+  }
   const tokens = opts.tokens ?? defaultThemeTokens;
   const defaultTacLimit = opts.tacLimit ?? 300;
   const authorEmail = opts.annotationAuthorEmail ?? "you@browser.local";
   const workerSrc = opts.workerSrc ?? defaultBrowserWorkerSrc;
-  const codexPayload: CodexViewerAdapterPayload | null = opts.codexDocument
-    ? adaptCodexDocumentForViewer(opts.codexDocument)
-    : null;
+  const codexPayload: CodexViewerAdapterPayload = adaptCodexDocumentForViewer(opts.codexDocument);
+  const spotOverrides: SpotOverrideMap = opts.spotOverrides ?? {};
+  const extraPantoneRefs: PantoneRefMap | undefined = opts.extraPantoneRefs;
 
   if (pdfjs.GlobalWorkerOptions.workerSrc !== workerSrc) {
     pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
@@ -517,8 +504,31 @@ export function createBrowserViewerServices(
         const inks: DetectedInk[] = PROCESS_CHANNELS.map((name) => ({
           name,
           type: "process" as const,
+          source: "process" as const,
           altRgb: PROCESS_INK_RGB[name.toLowerCase()] ?? [0, 0, 0],
         }));
+        // Codex spot colorants → resolver. Each spot's name is the
+        // PDF-declared ink name; the resolver picks the best colour
+        // intent across host override / codex / Pantone DB / curated /
+        // hash and reports its source. Process-named colorants are
+        // already filtered out in the codex adapter.
+        for (const colorant of codexPayload.spot_colorants) {
+          const resolution = resolveSpotSwatchColor(colorant.name, {
+            hostOverride: spotOverrides[colorant.name],
+            codex: colorant,
+            extraPantoneRefs,
+          });
+          const ink: DetectedInk = {
+            name: colorant.name,
+            type: "spot",
+            altRgb: resolution.rgb,
+            source: resolution.source,
+          };
+          if (resolution.lab) ink.lab = resolution.lab;
+          if (resolution.cmyk) ink.cmyk = resolution.cmyk;
+          if (resolution.pantone_name) ink.pantone_name = resolution.pantone_name;
+          inks.push(ink);
+        }
         return inks;
       })();
     }
@@ -766,18 +776,12 @@ export function createBrowserViewerServices(
   async function getOcgIds(pageNum: number): Promise<string[]> {
     const cached = ocgIdsPerPage.get(pageNum);
     if (cached) return cached;
-    try {
-      const doc = await getDoc();
-      const config = await doc.getOptionalContentConfig();
-      const ids = extractOcgIds(config);
-      ocgIdsPerPage.set(pageNum, ids);
-      return ids;
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.warn("[loupe-pdf] OCG enumeration failed", err);
-      ocgIdsPerPage.set(pageNum, []);
-      return [];
-    }
+    const ids = codexPayload.layers
+      .sort((a, b) => a.ocg_index - b.ocg_index)
+      .map((layer) => layer.ocg_id)
+      .filter((id): id is string => Boolean(id));
+    ocgIdsPerPage.set(pageNum, ids);
+    return ids;
   }
 
   async function buildLayerUrl(
@@ -936,68 +940,11 @@ export function createBrowserViewerServices(
         return "";
       },
       listLayers: async () => {
-        if (codexPayload && codexPayload.layers.length > 0) {
-          return codexPayload.layers.map((layer) => ({
-            name: layer.name,
-            ocg_index: layer.ocg_index,
-            default_on: layer.default_on,
-          }));
-        }
-        try {
-          const doc = await getDoc();
-          const config = await doc.getOptionalContentConfig();
-          const ids = extractOcgIds(config);
-          if (ids.length === 0) {
-            return [];
-          }
-          // Cache the same list for every page — OCGs are document-
-          // level, so getOcgIds() should resolve to the same set
-          // regardless of which page asked for them.
-          for (let i = 1; i <= doc.numPages; i++) {
-            ocgIdsPerPage.set(i, ids);
-          }
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const cfgAny = config as any;
-          return ids.map((id, index) => {
-            // pdf.js's `getGroup(id)` returns an OCG instance with
-            // `.name`. Older builds expose it via `getGroups()[id]`.
-            // Try the dedicated accessor first, then fall back.
-            let name = `Layer ${index + 1}`;
-            try {
-              const g = cfgAny.getGroup?.(id);
-              if (g?.name) name = g.name;
-            } catch {
-              /* ignore */
-            }
-            if (name === `Layer ${index + 1}`) {
-              try {
-                const groups = cfgAny.getGroups?.();
-                const fromObj = groups?.[id]?.name;
-                if (fromObj) name = fromObj;
-              } catch {
-                /* ignore */
-              }
-            }
-            // pdf.js's isVisible expects `{ type: "OCG", id }`, not
-            // a bare id string — pass that shape so the default-on
-            // flag is correct for layered PDFs.
-            let visible = true;
-            try {
-              visible = cfgAny.isVisible?.({ type: "OCG", id }) ?? true;
-            } catch {
-              /* ignore */
-            }
-            return {
-              name,
-              ocg_index: index,
-              default_on: visible,
-            };
-          });
-        } catch (err) {
-          // eslint-disable-next-line no-console
-          console.warn("[loupe-pdf] listLayers failed", err);
-          return [];
-        }
+        return codexPayload.layers.map((layer) => ({
+          name: layer.name,
+          ocg_index: layer.ocg_index,
+          default_on: layer.default_on,
+        }));
       },
     },
     separations: {
@@ -1175,16 +1122,11 @@ export function createBrowserViewerServices(
       return doc.numPages;
     },
     async getPageDimensions(pageNum: number) {
-      if (codexPayload) {
-        const codexPage = codexPayload.pages.find((page) => page.page_num === pageNum);
-        if (codexPage) {
-          return { widthPts: codexPage.width_pts, heightPts: codexPage.height_pts };
-        }
+      const codexPage = codexPayload.pages.find((page) => page.page_num === pageNum);
+      if (!codexPage) {
+        throw new Error(`[loupe-pdf] Missing codex page metadata for page ${pageNum}.`);
       }
-      const doc = await getDoc();
-      const page = await doc.getPage(pageNum);
-      const viewport = page.getViewport({ scale: 1 });
-      return { widthPts: viewport.width, heightPts: viewport.height };
+      return { widthPts: codexPage.width_pts, heightPts: codexPage.height_pts };
     },
     getInks,
     async prepare(pageNum: number, prepareOpts?: { tacLimit?: number }) {

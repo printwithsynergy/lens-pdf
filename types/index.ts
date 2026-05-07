@@ -92,6 +92,8 @@ export interface DielineResult {
 export interface LayerInfo {
   name: string;
   ocg_index: number;
+  /** Stable codex OCG identifier used for renderer visibility toggles. */
+  ocg_id?: string;
   default_on: boolean;
   /**
    * True when this row is synthesized by the UI rather than sourced from

@@ -59,6 +59,7 @@ import type { LoupePDFTool } from "./viewerTools";
  */
 export interface LoupePDFProps {
   pdfUrl: string;
+  codexDocument?: unknown;
   workerSrc?: string;
   services?: ViewerServices;
   tokens?: Partial<ThemeTokens>;
@@ -88,6 +89,7 @@ export interface LoupePDFProps {
  */
 export function LoupePDF({
   pdfUrl,
+  codexDocument,
   workerSrc,
   services,
   tokens: tokenOverrides,
@@ -125,6 +127,7 @@ export function LoupePDF({
 
   const controller = useLoupeViewerController({
     pdfUrl,
+    codexDocument,
     workerSrc,
     services,
     tools: tools ?? [

@@ -269,7 +269,41 @@ export type {
   UpdateAnnotationRequest,
   ServerAnnotationServiceOptions,
 } from "./serverApi";
-export type { CodexViewerAdapterPayload } from "./codexAdapter";
+export type {
+  CodexSpotColorantInfo,
+  CodexViewerAdapterPayload,
+} from "./codexAdapter";
+
+// Spot-ink swatch resolver — shared by `browser/index.ts`,
+// SeparationCanvas, ColorPickerTool, and DensitometerTool. See
+// `host/spotColor/resolveSpotSwatchColor.ts` for the precedence
+// rules.
+export {
+  resolveSpotSwatchColor,
+  hashHueRgb,
+  labD50ToSrgb,
+  cmykToSrgb,
+  normalizePantoneName,
+  alternatePantoneKey,
+  lookupPantoneSpot,
+  pantoneFormulaGuideMeta,
+  lookupCuratedSpot,
+  curatedSpotEntries,
+} from "./spotColor";
+export type {
+  CmykQuad,
+  CodexSpotIntent,
+  CuratedSpotEntry,
+  LabTriplet,
+  PantoneLookupResult,
+  PantoneRefMap,
+  ResolveSpotSwatchColorOptions,
+  RgbTriplet,
+  SpotInkOverride,
+  SpotOverrideMap,
+  SpotSwatchResolution,
+  SpotSwatchSource,
+} from "./spotColor";
 
 export { useLoupePDF } from "./useLoupePDF";
 export type { UseLoupePDFOptions, UseLoupePDFReturn } from "./useLoupePDF";

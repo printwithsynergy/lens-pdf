@@ -1,6 +1,6 @@
 {
   "name": "@printwithsynergy/loupe-pdf",
-  "version": "0.3.0-beta.33",
+  "version": "0.3.0-beta.34",
   "type": "module",
   "description": "LoupePDF — host-agnostic OSS PDF viewer core. Plugin-driven canvas viewer with overlay / panel / toolbar slots.",
   "license": "AGPL-3.0-or-later",
@@ -98,6 +98,11 @@
     "build": "tsc -p tsconfig.build.json && node scripts/fix-import-extensions.mjs",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
+    "parity:service": "npm run build && node scripts/service-contract-parity.mjs",
+    "parity:render": "npm run build && node scripts/render-parity-check.mjs",
+    "parity:render:baseline": "npm run build && node scripts/render-parity-check.mjs --update-baseline",
+    "audit:parser-surface": "node scripts/parser-surface-audit.mjs",
+    "parity": "npm run audit:parser-surface && npm run parity:service && npm run parity:render",
     "test:watch": "vitest",
     "prepare": "tsc -p tsconfig.build.json && node scripts/fix-import-extensions.mjs"
   },
@@ -105,9 +110,9 @@
     "pdfjs-dist": "^4.0.0"
   },
   "peerDependencies": {
+    "fabric": "^6.0.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "fabric": "^6.0.0"
+    "react-dom": "^19.0.0"
   },
   "peerDependenciesMeta": {
     "fabric": {
@@ -120,6 +125,9 @@
     "@vitejs/plugin-react": "^4.3.4",
     "fabric": "^6.0.0",
     "jsdom": "^26.0.0",
+    "pixelmatch": "^7.2.0",
+    "playwright": "^1.59.1",
+    "pngjs": "^7.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "typescript": "^5.9.3",

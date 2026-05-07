@@ -1,0 +1,20 @@
+{
+  "status": "pass",
+  "fixture": "reports/parity/fixtures/minimal.codex.json",
+  "expected": {
+    "page_count": 1,
+    "layer_count": 0
+  },
+  "actual": {
+    "page_count": 1,
+    "layer_count": 0
+  },
+  "checks": {
+    "schema_version_present": true,
+    "page_count_matches_codex": true,
+    "layer_count_matches_codex": true,
+    "layer_ids_stable": true,
+    "page_numbers_sequential": true
+  },
+  "failures": []
+}

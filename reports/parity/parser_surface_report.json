@@ -1,0 +1,23 @@
+{
+  "status": "pass",
+  "allowlist": [
+    "browser/index.ts",
+    "fallback-pdfjs/index.ts",
+    "host/pdfFallback.ts"
+  ],
+  "findings": [
+    {
+      "file": "browser/index.ts",
+      "hits": 4
+    },
+    {
+      "file": "fallback-pdfjs/index.ts",
+      "hits": 3
+    },
+    {
+      "file": "host/pdfFallback.ts",
+      "hits": 4
+    }
+  ],
+  "violations": []
+}
