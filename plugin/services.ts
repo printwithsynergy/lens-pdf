@@ -267,41 +267,18 @@ export interface I18nService {
 }
 
 /**
- * Optional in-browser fallback that pulls "minimum data" directly from
- * a raw PDF blob when a host hasn't wired a richer service. Hosts that
- * supply this — typically by calling ``createPdfJsFallback(pdfUrl)``
- * exported from ``@printwithsynergy/loupe-pdf/host`` — let the viewer
- * keep tools like PageCanvas, PageNavigator, MeasureTool, LayerPanel,
- * and ColorPickerTool functional without a server backend.
+ * @deprecated Removed in 0.3.0-beta.36. The codex render service
+ * owns every byte-level path; consumers wire a
+ * `@printwithsynergy/codex-client` client into
+ * `createBrowserViewerServices` instead.
  *
- * **Capabilities not covered**: true ink separations (CMYK/spot
- * channels), TAC heatmaps, and the densitometer all require server-
- * side rendering (Ghostscript/MuPDF). pdf.js only renders to RGB, so
- * those tools stay hidden when their dedicated services are unwired.
- *
- * Every method returns a Promise so the adapter can lazy-load pdf.js
- * on first use. ``sampleColorAt`` returns ``null`` on failure to match
- * the {@link ColorSampleService} contract.
+ * Kept as an alias for one cycle so external packages that imported
+ * the type don't fail to typecheck against the published API
+ * surface; the runtime ``createPdfJsFallback`` factory is gone.
  *
  * @public
  */
-export interface PdfFallbackAdapter {
-  getPageCount(): Promise<number>;
-  getPageDimensions(pageNum: number): Promise<{
-    widthPts: number;
-    heightPts: number;
-  }>;
-  renderPageToUrl(args: { pageNum: number; dpi: number }): Promise<string>;
-  listLayers(): Promise<
-    ReadonlyArray<{ name: string; ocg_index: number; default_on: boolean }>
-  >;
-  sampleColorAt(args: {
-    pageNum: number;
-    pdfX: number;
-    pdfY: number;
-    dpi?: number;
-  }): Promise<ColorSample | null>;
-}
+export type PdfFallbackAdapter = never;
 
 /**
  * Theme tokens. Plugins that need brand colours read them from here

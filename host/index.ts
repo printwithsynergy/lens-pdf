@@ -18,7 +18,7 @@
  */
 
 import { createContext, useContext } from "react";
-import type { PdfFallbackAdapter, ViewerServices } from "../plugin/services";
+import type { ViewerServices } from "../plugin/services";
 import {
   defaultThemeTokens,
   isUnwired,
@@ -64,25 +64,17 @@ export interface ViewerHostContextValue {
    */
   debug?: boolean;
   /**
-   * Optional URL to the raw PDF file. Consumed by the pdf.js fallback
-   * adapter (see ``createPdfJsFallback``) and by base components when
-   * no service is wired.
+   * Optional URL to the raw PDF file. Consumed by base components
+   * when no service is wired. The codex-backed
+   * {@link createBrowserViewerServices} factory expects raw bytes
+   * (not a URL); this field stays on the host context only for
+   * legacy components that read it.
    *
-   * **Security**: this is a pure renderer. Whatever URL the host puts
-   * here is fetched by the user's browser as-is — sign it, scope it,
-   * and expire it like any other PDF download link. Never point this
-   * at an unauthenticated path that exposes documents the viewer's
-   * user shouldn't see.
+   * **Security**: this is a pure renderer. Whatever URL the host
+   * puts here is fetched by the user's browser as-is — sign it,
+   * scope it, and expire it like any other PDF download link.
    */
   pdfUrl?: string;
-  /**
-   * Optional in-browser fallback adapter used when a richer service
-   * is unwired. See {@link PdfFallbackAdapter}. Hosts that don't set
-   * this get hide-on-unwired behaviour for every fallback-capable
-   * tool; hosts that set it (e.g. via ``createPdfJsFallback``) get
-   * graceful degradation instead.
-   */
-  pdfFallback?: PdfFallbackAdapter;
 }
 
 /**
@@ -204,7 +196,8 @@ export function logUnwiredHide(componentName: string, serviceName: string): void
   // eslint-disable-next-line no-console
   console.info(
     `[loupe-pdf] ${componentName} hidden — host did not wire \`services.${serviceName}\`. ` +
-      `Provide an implementation, or set \`pdfFallback\` on the host context to use the in-browser PDF fallback.`,
+      `Provide an implementation backed by the codex-pdf HTTP API ` +
+      `(@printwithsynergy/codex-client).`,
   );
 }
 
@@ -213,22 +206,17 @@ export function logUnwiredHide(componentName: string, serviceName: string): void
  * tuple describing how the component should render its data source:
  *
  *   - ``mode: "wired"``   — host provided the dedicated service; use it.
- *   - ``mode: "fallback"`` — service unwired but ``pdfFallback`` is
- *     present; use the fallback adapter.
- *   - ``mode: "hidden"``  — neither is available; render ``null``.
+ *   - ``mode: "hidden"``  — service is unwired; render ``null``.
  *
- * Components are responsible for calling {@link logUnwiredHide} from
- * an effect when they choose to hide; this hook deliberately doesn't
- * log on its own so callers control the message.
+ * The legacy ``"fallback"`` mode (in-browser pdf.js) was removed in
+ * loupe-pdf 0.3.0-beta.36 — codex is now the only render path.
  *
  * @public
  */
 export function useFallbackMode(
   service: object | null | undefined,
-): "wired" | "fallback" | "hidden" {
-  const { pdfFallback } = useViewerHost();
+): "wired" | "hidden" {
   if (!isUnwired(service)) return "wired";
-  if (pdfFallback) return "fallback";
   return "hidden";
 }
 
@@ -245,7 +233,6 @@ export function useFallbackMode(
  */
 export { defaultViewerServices as defaultUnwiredServices };
 
-export { createPdfJsFallback } from "./pdfFallback";
 export { isUnwired, markUnwired } from "../plugin/services";
 
 export { validatePdfFile, validatePdfUrl } from "./pdfValidation";

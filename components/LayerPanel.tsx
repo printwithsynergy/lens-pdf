@@ -136,7 +136,7 @@ export function LayerPanel({
   onSetAllLayers,
 }: LayerPanelProps) {
   const { layers: layerService } = useViewerServices();
-  const { debug, pdfFallback } = useViewerHost();
+  const { debug } = useViewerHost();
   const mode = useFallbackMode(layerService);
   const [layers, setLayers] = useState<LayerInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -147,17 +147,14 @@ export function LayerPanel({
 
   const fetchLayers = useCallback(async () => {
     try {
-      const items =
-        mode === "fallback" && pdfFallback
-          ? await pdfFallback.listLayers()
-          : await layerService.listLayers();
+      const items = await layerService.listLayers();
       setLayers([...items]);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load layers");
     } finally {
       setLoading(false);
     }
-  }, [layerService, pdfFallback, mode]);
+  }, [layerService]);
 
   useEffect(() => {
     if (mode === "hidden") {

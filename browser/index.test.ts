@@ -8,12 +8,43 @@ const minimalPage = {
   boxes: { media: { x0: 0, y0: 0, x1: 612, y1: 792 } },
 };
 
+// Minimal codex stub. The contract tests only exercise inks /
+// layers / page metadata so the stub never has to actually render.
+const stubCodex = {
+  renderHeatmap: async () => ({ png: new Uint8Array(), runs: [] }),
+  sampleColor: async () => ({ x: 0, y: 0, rgb: [0, 0, 0] as [number, number, number], hex: "#000000" }),
+  sampleDensity: async () => ({
+    x: 0,
+    y: 0,
+    channels: [],
+    tac: 0,
+    tac_limit: 300,
+    limit_exceeded: false,
+  }),
+  renderPage: async () => new Uint8Array(),
+  renderLayer: async () => new Uint8Array(),
+  renderSeparations: async () => ({ page_num: 1, dpi: 200, channels: [] }),
+};
+
+const stubBytes = new Uint8Array([0x25, 0x50, 0x44, 0x46]); // "%PDF" magic.
+
 describe("createBrowserViewerServices codex contract", () => {
+  it("rejects construction when codex client is missing", () => {
+    expect(() =>
+      createBrowserViewerServices({
+        // @ts-expect-error Intentional contract violation.
+        codex: undefined,
+        pdfBytes: stubBytes,
+        codexDocument: { schema_version: "1.0.0", pages: [minimalPage], ocgs: [] },
+      }),
+    ).toThrow(/codex client is required/i);
+  });
+
   it("rejects construction when codex metadata is missing", () => {
     expect(() =>
       createBrowserViewerServices({
-        pdfUrl: "https://example.com/test.pdf",
-        // Intentional runtime contract violation for strict codex mode.
+        codex: stubCodex,
+        pdfBytes: stubBytes,
         codexDocument: null as unknown as Record<string, unknown>,
       }),
     ).toThrow(/codexDocument is required/i);
@@ -21,7 +52,8 @@ describe("createBrowserViewerServices codex contract", () => {
 
   it("surfaces layer inventory from codex payload", async () => {
     const services = createBrowserViewerServices({
-      pdfUrl: "https://example.com/test.pdf",
+      codex: stubCodex,
+      pdfBytes: stubBytes,
       codexDocument: {
         schema_version: "1.0.0",
         pages: [minimalPage],
@@ -43,7 +75,8 @@ describe("createBrowserViewerServices codex contract", () => {
 describe("createBrowserViewerServices spot ink resolution", () => {
   it("returns canonical CMYK primaries for the four process inks", async () => {
     const services = createBrowserViewerServices({
-      pdfUrl: "https://example.com/test.pdf",
+      codex: stubCodex,
+      pdfBytes: stubBytes,
       codexDocument: { schema_version: "1.0.0", pages: [minimalPage], ocgs: [] },
     });
 
@@ -58,7 +91,8 @@ describe("createBrowserViewerServices spot ink resolution", () => {
 
   it("resolves a known PANTONE name from codex spot_colorants via the bundled DB", async () => {
     const services = createBrowserViewerServices({
-      pdfUrl: "https://example.com/test.pdf",
+      codex: stubCodex,
+      pdfBytes: stubBytes,
       codexDocument: {
         schema_version: "1.0.0",
         pages: [minimalPage],
@@ -80,7 +114,6 @@ describe("createBrowserViewerServices spot ink resolution", () => {
     expect(spot?.type).toBe("spot");
     expect(spot?.source).toBe("pantone");
     expect(spot?.pantone_name).toBe("PANTONE 185 C");
-    // PANTONE 185 C is a warm red — R should clearly dominate.
     expect(spot?.altRgb[0]).toBeGreaterThan(200);
     expect(spot?.altRgb[1]).toBeLessThan(80);
     expect(spot?.altRgb[2]).toBeLessThan(80);
@@ -88,7 +121,8 @@ describe("createBrowserViewerServices spot ink resolution", () => {
 
   it("uses codex-extracted Lab when codex carries colour intent directly", async () => {
     const services = createBrowserViewerServices({
-      pdfUrl: "https://example.com/test.pdf",
+      codex: stubCodex,
+      pdfBytes: stubBytes,
       codexDocument: {
         schema_version: "1.0.0",
         pages: [minimalPage],
@@ -98,9 +132,7 @@ describe("createBrowserViewerServices spot ink resolution", () => {
             id: "cs-brand",
             family: "Separation",
             canonical: {},
-            spot_colorants: [
-              { name: "Acme Brand Pink", lab: [60, 70, -10] },
-            ],
+            spot_colorants: [{ name: "Acme Brand Pink", lab: [60, 70, -10] }],
           },
         ],
       },
@@ -114,7 +146,8 @@ describe("createBrowserViewerServices spot ink resolution", () => {
 
   it("respects host spotOverrides above codex and Pantone DB", async () => {
     const services = createBrowserViewerServices({
-      pdfUrl: "https://example.com/test.pdf",
+      codex: stubCodex,
+      pdfBytes: stubBytes,
       codexDocument: {
         schema_version: "1.0.0",
         pages: [minimalPage],
@@ -124,9 +157,7 @@ describe("createBrowserViewerServices spot ink resolution", () => {
             id: "cs-185",
             family: "Separation",
             canonical: {},
-            spot_colorants: [
-              { name: "PANTONE 185 C", lab: [50, 70, 50] },
-            ],
+            spot_colorants: [{ name: "PANTONE 185 C", lab: [50, 70, 50] }],
           },
         ],
       },
@@ -143,7 +174,8 @@ describe("createBrowserViewerServices spot ink resolution", () => {
 
   it("flags unknown spot names with source=hash so UIs can mark them approximate", async () => {
     const services = createBrowserViewerServices({
-      pdfUrl: "https://example.com/test.pdf",
+      codex: stubCodex,
+      pdfBytes: stubBytes,
       codexDocument: {
         schema_version: "1.0.0",
         pages: [minimalPage],

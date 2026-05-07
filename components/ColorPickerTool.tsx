@@ -33,7 +33,7 @@ export function ColorPickerTool({
   canvasHeight,
 }: ColorPickerToolProps) {
   const { colorSample } = useViewerServices();
-  const { debug, pdfFallback } = useViewerHost();
+  const { debug } = useViewerHost();
   const mode = useFallbackMode(colorSample);
   const isMobile = useIsMobile();
   const [sample, setSample] = useState<ColorSample | null>(null);
@@ -123,16 +123,13 @@ export function ColorPickerTool({
       setPosition({ x: clickX, y: clickY });
       setLoading(true);
       try {
-        const data =
-          mode === "fallback" && pdfFallback
-            ? await pdfFallback.sampleColorAt({ pageNum, pdfX, pdfY })
-            : await colorSample.sampleAt({ pageNum, pdfX, pdfY });
+        const data = await colorSample.sampleAt({ pageNum, pdfX, pdfY });
         if (data) setSample(data);
       } finally {
         setLoading(false);
       }
     },
-    [colorSample, pdfFallback, mode, pageNum, pageWidthPts, pageHeightPts, canvasWidth, canvasHeight],
+    [colorSample, pageNum, pageWidthPts, pageHeightPts, canvasWidth, canvasHeight],
   );
 
   if (mode === "hidden") return null;

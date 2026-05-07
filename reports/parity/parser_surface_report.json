@@ -1,22 +1,63 @@
 {
   "status": "pass",
   "allowlist": [
-    "browser/index.ts",
-    "fallback-pdfjs/index.ts",
-    "host/pdfFallback.ts"
+    "scripts/build-pantone-bundle.mjs",
+    "scripts/codex-viewer-adapter.mjs",
+    "scripts/fix-import-extensions.mjs",
+    "scripts/parser-surface-audit.mjs",
+    "scripts/rename-jsx-to-js.mjs",
+    "scripts/render-parity-check.mjs",
+    "scripts/render-parity-harness.html",
+    "scripts/service-contract-parity.mjs"
+  ],
+  "patterns": [
+    {
+      "name": "pdfjs-dist import",
+      "regex": "from\\s+[\"']pdfjs-dist[\"']|require\\(\\s*[\"']pdfjs-dist[\"']\\s*\\)"
+    },
+    {
+      "name": "pdf-lib import",
+      "regex": "from\\s+[\"']pdf-lib[\"']|require\\(\\s*[\"']pdf-lib[\"']\\s*\\)"
+    },
+    {
+      "name": "getDocument(",
+      "regex": "\\bgetDocument\\s*\\("
+    },
+    {
+      "name": "OptionalContentConfig",
+      "regex": "\\bOptionalContentConfig\\b"
+    },
+    {
+      "name": "PDFDocumentProxy",
+      "regex": "\\bPDFDocumentProxy\\b"
+    },
+    {
+      "name": "fallback-pdfjs",
+      "regex": "fallback-pdfjs"
+    }
   ],
   "findings": [
     {
-      "file": "browser/index.ts",
-      "hits": 4
-    },
-    {
-      "file": "fallback-pdfjs/index.ts",
-      "hits": 3
-    },
-    {
-      "file": "host/pdfFallback.ts",
-      "hits": 4
+      "file": "scripts/parser-surface-audit.mjs",
+      "hits": 7,
+      "patterns": [
+        {
+          "pattern": "getDocument(",
+          "count": 2
+        },
+        {
+          "pattern": "OptionalContentConfig",
+          "count": 1
+        },
+        {
+          "pattern": "PDFDocumentProxy",
+          "count": 1
+        },
+        {
+          "pattern": "fallback-pdfjs",
+          "count": 3
+        }
+      ]
     }
   ],
   "violations": []

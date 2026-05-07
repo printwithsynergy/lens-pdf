@@ -30,6 +30,30 @@ const FLATTENED_LAYER_INDEX = -1;
 const PTS_TO_PX = DEFAULT_DPI / 72;
 const DEFAULT_PAGE: PageInfo = pageInfoFromDimensions(1, 612, 792);
 
+/**
+ * Pick the codex base URL from the most likely host environments.
+ *
+ * - `import.meta.env.PUBLIC_CODEX_API_BASE_URL` (Astro / Vite)
+ * - `process.env.NEXT_PUBLIC_CODEX_API_BASE_URL` (Next.js)
+ * - Same-origin `/api/codex-proxy` so deploys can keep server-side
+ *   tokens out of the browser.
+ */
+function resolveCodexBaseUrl(): string {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const g = globalThis as any;
+  const env: unknown =
+    (typeof g !== "undefined" && g.__LOUPE_CODEX_API_BASE_URL) ||
+    (typeof g !== "undefined" &&
+      g.process?.env &&
+      (g.process.env.NEXT_PUBLIC_CODEX_API_BASE_URL ||
+        g.process.env.PUBLIC_CODEX_API_BASE_URL ||
+        g.process.env.CODEX_API_BASE_URL));
+  if (typeof env === "string" && env.trim()) {
+    return env.trim().replace(/\/+$/, "");
+  }
+  return "/api/codex-proxy";
+}
+
 export interface LoupeViewerControllerOptions {
   pdfUrl: string;
   codexDocument?: unknown;
@@ -184,15 +208,52 @@ export function useLoupeViewerController({
       setError("[loupe-pdf] codexDocument is required for LoupePDF metadata/layer services.");
       return;
     }
-    const next = createBrowserViewerServices({
-      pdfUrl,
-      codexDocument,
-      workerSrc,
-      tokens,
-      tacLimit,
-    });
-    setBrowserServices(next);
-    return () => next.dispose();
+    let cancelled = false;
+    let services: BrowserViewerServices | null = null;
+    (async () => {
+      try {
+        // Build a same-origin codex client by default. Hosts that need
+        // an explicit base / token construct their own HttpClient and
+        // pass it via `services` overrides.
+        // Optional peer dep — loaded by string at runtime so the
+        // package builds even when the consumer hasn't installed
+        // `@printwithsynergy/codex-client` yet (its types are
+        // optional). Hosts that prefer compile-time validation pass
+        // their own client via the `services` overrides instead.
+        const moduleName = "@printwithsynergy/codex-client";
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+        const clientModule: any = await import(/* @vite-ignore */ moduleName);
+        const codex = new clientModule.HttpClient({
+          baseUrl: resolveCodexBaseUrl(),
+        });
+        // Fetch the PDF once so codex calls don't redo it per request.
+        const resp = await fetch(pdfUrl);
+        if (!resp.ok) {
+          throw new Error(
+            `[loupe-pdf] PDF fetch failed: ${resp.status} ${resp.statusText}`,
+          );
+        }
+        const pdfBytes = await resp.arrayBuffer();
+        if (cancelled) return;
+        services = createBrowserViewerServices({
+          codex,
+          pdfBytes,
+          codexDocument,
+          tokens,
+          tacLimit,
+        });
+        setBrowserServices(services);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "[loupe-pdf] init failed");
+        }
+      }
+    })();
+    void workerSrc; // legacy prop accepted for compat — pdfjs is gone
+    return () => {
+      cancelled = true;
+      services?.dispose();
+    };
   }, [pdfUrl, codexDocument, workerSrc, tacLimit, tokens]);
 
   useEffect(() => {
