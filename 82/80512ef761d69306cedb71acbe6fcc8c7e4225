@@ -1,0 +1,19 @@
+APPROVALS.md
+  s_4d925a565f4237::t_c92045bd3b2708 29-36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.1",
+  "base_commit_sha": "8280512ef761d69306cedb71acbe6fcc8c7e4225",
+  "prompts": {},
+  "sessions": {
+    "s_4d925a565f4237": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "a4e4c49c-f417-4e57-8dfc-7c733b76d7c0",
+        "model": "claude-opus-4-7-thinking-xhigh"
+      },
+      "human_author": "Quincy Adams <quincy@thinkneverland.com>"
+    }
+  }
+}
