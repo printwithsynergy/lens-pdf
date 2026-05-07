@@ -1,0 +1,26 @@
+package.json
+  s_9b5cc9427311dc::t_821c1bdfecc098 115-116,121-122
+  s_9b5cc9427311dc::t_edec14ff03861b 3
+host/codexHostServices.ts
+  s_9b5cc9427311dc::t_57d746c2c9015f 1-110,116-121,123-124,126-127,129-130,132-134,136-138,140-142,146-153,155-157,161-204
+  s_9b5cc9427311dc::t_c07562addab373 122,125,128,131,135,139,143-145,154,158-160
+  s_9b5cc9427311dc::t_a944b50e455385 111-115
+host/index.ts
+  s_9b5cc9427311dc::t_a8fd3c50c28a19 313-321
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.1",
+  "base_commit_sha": "b1e98bbb3c59db23da5581953ffa61cba89b2266",
+  "prompts": {},
+  "sessions": {
+    "s_9b5cc9427311dc": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0dfc135d-672d-426a-9d16-83de130473b9",
+        "model": "claude-opus-4-7-thinking-xhigh"
+      },
+      "human_author": "Quincy Adams <quincy@thinkneverland.com>"
+    }
+  }
+}
