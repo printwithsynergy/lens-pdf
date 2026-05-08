@@ -1,0 +1,25 @@
+CLAUDE.md
+  s_1cf4e1656d4052::t_2273ce33980d77 1-25
+docs/service-ownership-contract.md
+  s_1cf4e1656d4052::t_a5f967e6c009c8 1-36
+.windsurf/rules/service-ownership.md
+  s_1cf4e1656d4052::t_605df56b24f0f4 1-12
+.cursor/rules/service-ownership.mdc
+  s_1cf4e1656d4052::t_6181edfd37f848 1-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "ab3ea6343552ad42a695a7f78791d26e8ea7d720",
+  "prompts": {},
+  "sessions": {
+    "s_1cf4e1656d4052": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "6b6dd342-df77-4bf1-bb1c-2b72518f42db",
+        "model": "premium"
+      },
+      "human_author": "Quincy Adams <quincy@thinkneverland.com>"
+    }
+  }
+}
