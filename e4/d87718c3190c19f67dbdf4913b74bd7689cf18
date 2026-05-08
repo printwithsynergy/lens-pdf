@@ -1,0 +1,19 @@
+package.json
+  s_1cf4e1656d4052::t_36c43fffa5d1bd 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "e4d87718c3190c19f67dbdf4913b74bd7689cf18",
+  "prompts": {},
+  "sessions": {
+    "s_1cf4e1656d4052": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "6b6dd342-df77-4bf1-bb1c-2b72518f42db",
+        "model": "premium"
+      },
+      "human_author": "Quincy Adams <quincy@thinkneverland.com>"
+    }
+  }
+}
