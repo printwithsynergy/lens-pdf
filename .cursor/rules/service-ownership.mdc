@@ -1,0 +1,12 @@
+---
+description: Service ownership boundary for Loupe/Lint/Codex and future offshoots
+alwaysApply: true
+---
+
+# Service Ownership Boundary
+
+- **Loupe owns** PDF rendering and visual inspection UX.
+- **Codex owns** extraction and normalized reusable intelligence.
+- **Lint owns** policy/rules, reporting semantics, and workflow orchestration.
+- Keep this repo UI-focused; do not embed extraction pipelines or policy engines here.
+- For offshoots (Forge, Trap, Impose, Marks, etc.), assign each capability to one owner layer and integrate through contracts.

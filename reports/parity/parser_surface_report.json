@@ -78,11 +78,11 @@
     "findings": [
       {
         "file": "browser/index.test.ts",
-        "hits": 6,
+        "hits": 7,
         "patterns": [
           {
             "pattern": "PANTONE name literal",
-            "count": 6
+            "count": 7
           }
         ]
       },
