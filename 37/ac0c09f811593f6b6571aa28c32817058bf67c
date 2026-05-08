@@ -1,0 +1,19 @@
+CHANGELOG.md
+  s_f2a9cf6cf331fd::t_d75c3d7ffedd7b 9-35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "37ac0c09f811593f6b6571aa28c32817058bf67c",
+  "prompts": {},
+  "sessions": {
+    "s_f2a9cf6cf331fd": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "d3d46a94-285b-4b65-a130-25e630f5d99d",
+        "model": "claude-opus-4-7-thinking-xhigh"
+      },
+      "human_author": "Quincy Adams <quincy@thinkneverland.com>"
+    }
+  }
+}
