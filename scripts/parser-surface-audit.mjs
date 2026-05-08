@@ -40,9 +40,32 @@ const PARSER_PATTERNS = [
   { name: "fallback-pdfjs", re: /fallback-pdfjs/g },
 ];
 
+// Patterns that indicate a parallel Pantone catalogue or colour-math
+// implementation outside the codex authority surface. As of loupe-pdf
+// 0.3.0-beta.37 / codex-pdf 1.4.0, ANY runtime file (other than the
+// thin `host/spotColor/*` adapter package) carrying Pantone NAME
+// literals or hand-rolled colour-math constants is a regression — the
+// codex-client owns those.
+const COLOR_AUTHORITY_PATTERNS = [
+  // PANTONE NAME literal in source code. The adapter itself is
+  // exempt (see allowlist below); fixture / test files are too.
+  { name: "PANTONE name literal", re: /['"]PANTONE\s+[^'"]+['"]/g },
+  // Catch reintroductions of a parallel Pantone bundle by symbol name.
+  { name: "PANTONE catalogue constant", re: /\b(?:PANTONE_REFERENCE|PANTONE_FORMULA_GUIDE|_PANTONE_REFERENCE)\b/g },
+];
+
+// Allowlist for the colour-authority audit. Files in the
+// `host/spotColor/` package are part of the codex adapter and may
+// reference Pantone names + matrices. Tests across the repo also
+// pass real PANTONE names through the resolver as fixtures — those
+// don't constitute a parallel catalogue.
+const COLOR_AUTHORITY_ALLOWLIST_PREFIX = ["host/spotColor/"];
+const COLOR_AUTHORITY_ALLOWLIST_SUFFIX = [".test.ts", ".test.tsx", ".test.mjs", ".test.js"];
+
 async function scan(dir) {
-  const entries = await readdir(dir, { withFileTypes: true });
   const out = [];
+  const colorOut = [];
+  const entries = await readdir(dir, { withFileTypes: true });
   for (const entry of entries) {
     if (
       entry.name === "node_modules" ||
@@ -57,40 +80,92 @@ async function scan(dir) {
     }
     const path = join(dir, entry.name);
     if (entry.isDirectory()) {
-      out.push(...(await scan(path)));
+      const nested = await scan(path);
+      out.push(...nested.parser);
+      colorOut.push(...nested.color);
       continue;
     }
     const ext = extname(entry.name);
     if (![".ts", ".tsx", ".js", ".mjs"].includes(ext)) continue;
     const rel = relative(root, path);
     const content = await readFile(path, "utf8");
-    const fileHits = [];
+
+    const parserHits = [];
     for (const { name, re } of PARSER_PATTERNS) {
       const matches = content.match(re);
-      if (matches) fileHits.push({ pattern: name, count: matches.length });
+      if (matches) parserHits.push({ pattern: name, count: matches.length });
     }
-    if (fileHits.length > 0) {
-      out.push({ file: rel, hits: fileHits.reduce((acc, h) => acc + h.count, 0), patterns: fileHits });
+    if (parserHits.length > 0) {
+      out.push({
+        file: rel,
+        hits: parserHits.reduce((acc, h) => acc + h.count, 0),
+        patterns: parserHits,
+      });
+    }
+
+    const colorHits = [];
+    const lines = content.split("\n");
+    for (const { name, re } of COLOR_AUTHORITY_PATTERNS) {
+      let count = 0;
+      for (const line of lines) {
+        // Skip the line if the literal sits inside a `//` line
+        // comment, a TSDoc/JSDoc `*`-prefixed block-comment line, or
+        // an explicit string-message context.
+        const trimmed = line.trim();
+        if (trimmed.startsWith("//") || trimmed.startsWith("*")) continue;
+        const match = line.match(re);
+        if (!match) continue;
+        // Skip when the match appears AFTER a `//` on the same line.
+        const matchIndex = line.indexOf(match[0]);
+        const commentIndex = line.indexOf("//");
+        if (commentIndex !== -1 && commentIndex < matchIndex) continue;
+        count += match.length;
+      }
+      if (count > 0) colorHits.push({ pattern: name, count });
+    }
+    if (colorHits.length > 0) {
+      colorOut.push({
+        file: rel,
+        hits: colorHits.reduce((acc, h) => acc + h.count, 0),
+        patterns: colorHits,
+      });
     }
   }
-  return out;
+  return { parser: out, color: colorOut };
 }
 
-const findings = await scan(root);
+const { parser: findings, color: colorFindings } = await scan(root);
 const violations = findings.filter((item) => !allowlist.has(item.file));
+const colorViolations = colorFindings.filter(
+  (item) =>
+    !COLOR_AUTHORITY_ALLOWLIST_PREFIX.some((prefix) => item.file.startsWith(prefix)) &&
+    !COLOR_AUTHORITY_ALLOWLIST_SUFFIX.some((suffix) => item.file.endsWith(suffix)) &&
+    !allowlist.has(item.file),
+);
 
 const report = {
-  status: violations.length === 0 ? "pass" : "fail",
+  status: violations.length === 0 && colorViolations.length === 0 ? "pass" : "fail",
   allowlist: Array.from(allowlist).sort(),
   patterns: PARSER_PATTERNS.map(({ name, re }) => ({ name, regex: re.source })),
   findings,
   violations,
+  color_authority: {
+    allowlist_prefix: COLOR_AUTHORITY_ALLOWLIST_PREFIX,
+    patterns: COLOR_AUTHORITY_PATTERNS.map(({ name, re }) => ({ name, regex: re.source })),
+    findings: colorFindings,
+    violations: colorViolations,
+  },
 };
 
 await writeFile(reportPath, JSON.stringify(report, null, 2));
 if (report.status !== "pass") {
-  const bad = violations
-    .map((item) => `${item.file} (${item.patterns?.map((p) => p.pattern).join(", ")})`)
-    .join("\n  ");
-  throw new Error(`Parser surface violation outside allowlist:\n  ${bad}`);
+  const bad = [
+    ...violations.map(
+      (item) => `parser: ${item.file} (${item.patterns?.map((p) => p.pattern).join(", ")})`,
+    ),
+    ...colorViolations.map(
+      (item) => `color: ${item.file} (${item.patterns?.map((p) => p.pattern).join(", ")})`,
+    ),
+  ].join("\n  ");
+  throw new Error(`Parser/color surface violation outside allowlist:\n  ${bad}`);
 }

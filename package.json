@@ -1,6 +1,6 @@
 {
   "name": "@printwithsynergy/loupe-pdf",
-  "version": "0.3.0-beta.36",
+  "version": "0.3.0-beta.37",
   "type": "module",
   "description": "LoupePDF — host-agnostic OSS PDF viewer core. Plugin-driven canvas viewer with overlay / panel / toolbar slots.",
   "license": "AGPL-3.0-or-later",
@@ -103,7 +103,7 @@
     "fabric": "^6.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "@printwithsynergy/codex-client": "^1.3.0"
+    "@printwithsynergy/codex-client": "^1.4.0"
   },
   "peerDependenciesMeta": {
     "fabric": {
@@ -114,7 +114,7 @@
     }
   },
   "devDependencies": {
-    "@printwithsynergy/codex-client": "^1.3.0",
+    "@printwithsynergy/codex-client": "^1.4.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^4.3.4",

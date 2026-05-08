@@ -32,12 +32,40 @@ interface IndexedEntry {
 }
 
 let cachedNormalizedIndex: Map<string, IndexedEntry> | null = null;
+let runtimeInkbook: PantoneRefMap | null = null;
+
+/**
+ * Inject a Pantone inkbook fetched from the codex authority.
+ *
+ * As of loupe-pdf 0.3.0-beta.37 / codex-pdf 1.4.0, the bundled
+ * Formula Guide subset is no longer shipped with this package.
+ * Hosts that want full Pantone-name resolution call this once at
+ * startup with the catalogue retrieved from
+ * :func:`@printwithsynergy/codex-client.HttpClient#getInkbook`.
+ *
+ * Subsequent calls replace the previous catalogue; resolver state
+ * is invalidated so the next lookup rebuilds the index.
+ *
+ * @public
+ */
+export function setBundledPantoneInkbook(map: PantoneRefMap | null): void {
+  runtimeInkbook = map;
+  cachedNormalizedIndex = null;
+}
 
 function buildIndex(): Map<string, IndexedEntry> {
   if (cachedNormalizedIndex) return cachedNormalizedIndex;
   const map = new Map<string, IndexedEntry>();
+  // Static bundled DB (legacy seam — empty in 1.4.0+; kept so existing
+  // unit tests that monkey-patch the file still type-check).
   for (const [name, entry] of Object.entries(pantoneFormulaGuide)) {
     map.set(normalizePantoneName(name), { entry, originalName: name });
+  }
+  // Runtime inkbook injected by the host via setBundledPantoneInkbook.
+  if (runtimeInkbook) {
+    for (const [name, entry] of Object.entries(runtimeInkbook)) {
+      map.set(normalizePantoneName(name), { entry, originalName: name });
+    }
   }
   cachedNormalizedIndex = map;
   return map;

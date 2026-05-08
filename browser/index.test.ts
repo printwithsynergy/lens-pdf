@@ -1,6 +1,26 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createBrowserViewerServices } from "./index";
+import { setBundledPantoneInkbook } from "../host/spotColor";
+
+// codex-pdf 1.4.0 moved the bundled Pantone catalogue out of
+// loupe-pdf into codex. Prime the resolver with the entries this
+// test reaches for; production callers do the same at boot via
+// `createCodexInkbookAdapter`.
+const TEST_INKBOOK = {
+  "PANTONE 185 C": {
+    lab: [49.0, 73.0, 41.0] as readonly [number, number, number],
+    cmyk: [0.0, 91.0, 76.0, 0.0] as readonly [number, number, number, number],
+  },
+};
+
+beforeAll(() => {
+  setBundledPantoneInkbook(TEST_INKBOOK);
+});
+
+afterAll(() => {
+  setBundledPantoneInkbook(null);
+});
 
 const minimalPage = {
   page_num: 1,

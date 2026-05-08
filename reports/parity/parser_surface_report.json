@@ -60,5 +60,67 @@
       ]
     }
   ],
-  "violations": []
+  "violations": [],
+  "color_authority": {
+    "allowlist_prefix": [
+      "host/spotColor/"
+    ],
+    "patterns": [
+      {
+        "name": "PANTONE name literal",
+        "regex": "['\"]PANTONE\\s+[^'\"]+['\"]"
+      },
+      {
+        "name": "PANTONE catalogue constant",
+        "regex": "\\b(?:PANTONE_REFERENCE|PANTONE_FORMULA_GUIDE|_PANTONE_REFERENCE)\\b"
+      }
+    ],
+    "findings": [
+      {
+        "file": "browser/index.test.ts",
+        "hits": 6,
+        "patterns": [
+          {
+            "pattern": "PANTONE name literal",
+            "count": 6
+          }
+        ]
+      },
+      {
+        "file": "host/codexAdapter.test.ts",
+        "hits": 5,
+        "patterns": [
+          {
+            "pattern": "PANTONE name literal",
+            "count": 5
+          }
+        ]
+      },
+      {
+        "file": "host/spotColor/resolveSpotSwatchColor.test.ts",
+        "hits": 46,
+        "patterns": [
+          {
+            "pattern": "PANTONE name literal",
+            "count": 46
+          }
+        ]
+      },
+      {
+        "file": "scripts/parser-surface-audit.mjs",
+        "hits": 5,
+        "patterns": [
+          {
+            "pattern": "PANTONE name literal",
+            "count": 2
+          },
+          {
+            "pattern": "PANTONE catalogue constant",
+            "count": 3
+          }
+        ]
+      }
+    ],
+    "violations": []
+  }
 }

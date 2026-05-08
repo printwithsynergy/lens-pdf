@@ -33,7 +33,18 @@ export type {
 } from "./resolveSpotSwatchColor";
 export { labD50ToSrgb, cmykToSrgb } from "./colorMath";
 export { normalizePantoneName, alternatePantoneKey } from "./normalize";
-export { lookupPantoneSpot, pantoneFormulaGuideMeta } from "./pantone";
+export {
+  lookupPantoneSpot,
+  pantoneFormulaGuideMeta,
+  setBundledPantoneInkbook,
+} from "./pantone";
 export type { PantoneLookupResult, PantoneRefMap } from "./pantone";
 export { lookupCuratedSpot, curatedSpotEntries } from "./curated";
 export type { CuratedSpotEntry } from "./curated";
+
+export { createCodexInkbookAdapter } from "./codexInkbookAdapter";
+export type {
+  CodexInkbookClient,
+  CodexInkbookEntry,
+  CodexInkbookAdapter,
+} from "./codexInkbookAdapter";

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import {
   alternatePantoneKey,
@@ -9,7 +9,40 @@ import {
   lookupPantoneSpot,
   normalizePantoneName,
   resolveSpotSwatchColor,
+  setBundledPantoneInkbook,
 } from "./index";
+
+// As of loupe-pdf 0.3.0-beta.37 / codex-pdf 1.4.0 the bundled Pantone
+// catalogue is no longer shipped with this package. Tests prime the
+// resolver with the same handful of entries the legacy inline JSON
+// covered. Production callers fetch the full inkbook from codex via
+// the codex-client adapter (see `createCodexInkbookAdapter`).
+const TEST_INKBOOK = {
+  "PANTONE 185 C": {
+    lab: [49.0, 73.0, 41.0] as readonly [number, number, number],
+    cmyk: [0.0, 91.0, 76.0, 0.0] as readonly [number, number, number, number],
+  },
+  "PANTONE 485 C": {
+    lab: [49.41, 69.0, 54.0] as readonly [number, number, number],
+    cmyk: [0.0, 73.9, 82.3, 11.4] as readonly [number, number, number, number],
+  },
+  "PANTONE Reflex Blue C": {
+    lab: [22.0, 13.0, -59.0] as readonly [number, number, number],
+    cmyk: [100.0, 89.0, 0.0, 4.0] as readonly [number, number, number, number],
+  },
+  "PANTONE Process Blue C": {
+    lab: [50.0, -20.0, -50.0] as readonly [number, number, number],
+    cmyk: [100.0, 14.0, 0.0, 13.0] as readonly [number, number, number, number],
+  },
+};
+
+beforeAll(() => {
+  setBundledPantoneInkbook(TEST_INKBOOK);
+});
+
+afterAll(() => {
+  setBundledPantoneInkbook(null);
+});
 
 describe("normalizePantoneName", () => {
   it("uppercases and trims whitespace", () => {
