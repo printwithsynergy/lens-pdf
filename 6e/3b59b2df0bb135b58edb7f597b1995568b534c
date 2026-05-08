@@ -1,0 +1,41 @@
+host/spotColor/index.ts
+  s_f2a9cf6cf331fd::t_b76a3a8e6d6e0d 36-40,44-50
+scripts/build-pantone-bundle.mjs
+  s_f2a9cf6cf331fd::t_f445094e4615b2 3-5,7-8,10-12,14-15,17-20,22
+host/spotColor/resolveSpotSwatchColor.test.ts
+  s_f2a9cf6cf331fd::t_4817d85faad1a4 1,12,15-45
+scripts/parser-surface-audit.mjs
+  s_f2a9cf6cf331fd::t_4807b1e4543bf0 67-68,83-85,92-93,96-106,108,126-131,134,137,139-141,143-144,147,152-157,162-170
+  s_f2a9cf6cf331fd::t_2f6a92a57a993a 107,109-124
+  s_f2a9cf6cf331fd::t_09147cb04652bd 43-58,62,64
+  s_f2a9cf6cf331fd::t_bf07530638f078 142
+  s_f2a9cf6cf331fd::t_779fe89d46fc84 59-61,63
+browser/index.test.ts
+  s_f2a9cf6cf331fd::t_110bc670f53e48 1,4-23
+host/spotColor/pantoneFormulaGuide.ts
+  s_f2a9cf6cf331fd::t_a376283ad48428 2,4-30,42-48,50
+host/spotColor/pantone.ts
+  s_f2a9cf6cf331fd::t_362853d4fc77e1 35-54,59-60,64-68
+package.json
+  s_f2a9cf6cf331fd::t_61f51f673c2e6d 117
+  s_f2a9cf6cf331fd::t_b5a89eb3910492 106
+  s_f2a9cf6cf331fd::t_26a1700b361528 3
+host/spotColor/codexInkbookAdapter.ts
+  s_f2a9cf6cf331fd::t_00a7c06ad6bd02 1-135
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.1",
+  "base_commit_sha": "6e3b59b2df0bb135b58edb7f597b1995568b534c",
+  "prompts": {},
+  "sessions": {
+    "s_f2a9cf6cf331fd": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "d3d46a94-285b-4b65-a130-25e630f5d99d",
+        "model": "claude-opus-4-7-thinking-xhigh"
+      },
+      "human_author": "Quincy Adams <quincy@thinkneverland.com>"
+    }
+  }
+}
