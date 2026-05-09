@@ -253,7 +253,7 @@ export function useLoupeViewerController({
     const svc = browserServices;
     if (!svc) {
       setPageCount(1);
-      setToolsLoading(false);
+      setToolsLoading(!!pdfUrl && !!codexDocument);
       return;
     }
     let cancelled = false;
@@ -293,7 +293,7 @@ export function useLoupeViewerController({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [browserServices]);
+  }, [browserServices, pdfUrl, codexDocument]);
 
   useEffect(() => {
     const svc = browserServices;
