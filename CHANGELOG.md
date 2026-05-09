@@ -6,6 +6,16 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0-beta.52] — 2026-05-09
+
+### Changed
+- **Pre-Codex runtime restore** — package contents are restored to the
+  pdf.js fallback/runtime state immediately before the Codex-backed workflow.
+
+### Fixed
+- **Dependency audit cleanup** — `fabric` peer/dev dependency ranges now
+  target 7.3.1, clearing the vulnerabilities reported by npm audit.
+
 ## [0.3.0-beta.30] — 2026-05-05
 
 ### Fixed
