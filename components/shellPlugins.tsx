@@ -21,6 +21,13 @@ export interface LoupePDFFeatureAvailability {
   tacHeatmap: boolean;
   separations: boolean;
   layers: boolean;
+  /** True when the tool is configured but services are still initialising.
+   *  UI should render the button disabled with a loading spinner. */
+  colorPickerPending: boolean;
+  densitometerPending: boolean;
+  tacHeatmapPending: boolean;
+  separationsPending: boolean;
+  layersPending: boolean;
 }
 
 export interface LoupePDFFeatureInputs {
@@ -29,6 +36,8 @@ export interface LoupePDFFeatureInputs {
   detectedInkCount: number;
   layerCount: number;
   isUnwired: (service: object | null | undefined) => boolean;
+  /** True when a PDF is loading but no services (pdfjs or codex) are ready yet. */
+  toolsPending?: boolean;
 }
 
 export function computeFeatureAvailability({
@@ -37,6 +46,7 @@ export function computeFeatureAvailability({
   detectedInkCount,
   layerCount,
   isUnwired,
+  toolsPending = false,
 }: LoupePDFFeatureInputs): LoupePDFFeatureAvailability {
   const toolSet = new Set<LoupePDFTool>(tools);
   const hasColorSampler = !!services && !isUnwired(services.colorSample);
@@ -57,6 +67,11 @@ export function computeFeatureAvailability({
     separations:
       toolSet.has("separations") && hasSeparationService && hasSeparationData,
     layers: toolSet.has("layers") && hasLayerService && hasLayerData,
+    colorPickerPending: toolSet.has("color-picker") && toolsPending,
+    densitometerPending: toolSet.has("densitometer") && toolsPending,
+    tacHeatmapPending: toolSet.has("tac-heatmap") && toolsPending,
+    separationsPending: toolSet.has("separations") && toolsPending,
+    layersPending: toolSet.has("layers") && toolsPending,
   };
 }
 

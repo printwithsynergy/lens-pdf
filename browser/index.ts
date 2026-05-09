@@ -88,8 +88,15 @@ export interface DetectedInk {
 
 /** Options for {@link createBrowserViewerServices}. */
 export interface BrowserViewerServicesOptions {
-  /** Codex client (HttpClient or compatible) used for every render call. */
-  codex: CodexLikeClient & {
+  /**
+   * Codex client (HttpClient or compatible) used for every render call.
+   * When absent, render services (colorSample, densitometer, separations,
+   * tacHeatmap, pageImages) are marked as unwired so the host can supply
+   * pdfjs-backed approximations via `serviceOverrides` or the controller's
+   * `pdfjsServices` prop. Metadata services (getInks, getPageCount,
+   * getPageDimensions, layers.listLayers) still read from `codexDocument`.
+   */
+  codex?: CodexLikeClient & {
     renderPage?: (
       pdf: PdfRef,
       opts?: { page?: number; dpi?: number; ocgOn?: number[]; ocgOff?: number[]; simulateOverprint?: boolean },
@@ -197,15 +204,12 @@ function pngBytesToObjectUrl(bytes: Uint8Array): string {
 export function createBrowserViewerServices(
   opts: BrowserViewerServicesOptions,
 ): BrowserViewerServices {
-  if (!opts.codex) {
+  const hasCodex = !!opts.codex;
+  // Capture for closures below — only accessed when hasCodex is true.
+  const codex = opts.codex;
+  if (hasCodex && (opts.pdfBytes === undefined || opts.pdfBytes === null)) {
     throw new Error(
-      "[loupe-pdf] codex client is required. Construct an HttpClient from " +
-        "@printwithsynergy/codex-client (or compatible) and pass it via { codex }.",
-    );
-  }
-  if (opts.pdfBytes === undefined || opts.pdfBytes === null) {
-    throw new Error(
-      "[loupe-pdf] pdfBytes is required (ArrayBuffer | Uint8Array | Blob | async getter).",
+      "[loupe-pdf] pdfBytes is required when a codex client is provided (ArrayBuffer | Uint8Array | Blob | async getter).",
     );
   }
 
@@ -302,12 +306,12 @@ export function createBrowserViewerServices(
     const existing = pageBuilds.get(key);
     if (existing) return existing;
     const promise = (async () => {
-      if (!opts.codex.renderPage) {
+      if (!codex!.renderPage) {
         throw new Error(
           "[loupe-pdf] codex client missing renderPage(). Use @printwithsynergy/codex-client@>=1.2.0.",
         );
       }
-      const renderPageFn = opts.codex.renderPage;
+      const renderPageFn = codex!.renderPage;
       const png = await withFallbackToBytes((ref) =>
         renderPageFn(ref, { page: pageNum, dpi }),
       );
@@ -324,8 +328,8 @@ export function createBrowserViewerServices(
   // ── Channel separations ────────────────────────────────────────────
 
   async function buildChannelUrls(pageNum: number): Promise<void> {
-    if (!opts.codex.renderSeparations) return;
-    const renderSepsFn = opts.codex.renderSeparations;
+    if (!codex!.renderSeparations) return;
+    const renderSepsFn = codex!.renderSeparations;
     const result = await withFallbackToBytes((ref) =>
       renderSepsFn(ref, {
         page: pageNum,
@@ -363,7 +367,7 @@ export function createBrowserViewerServices(
     if (existing) return existing;
     const promise = (async () => {
       const result = await withFallbackToBytes((ref) =>
-        opts.codex.renderHeatmap(ref, {
+        codex!.renderHeatmap(ref, {
           page: pageNum,
           dpi: ANALYSIS_DPI,
           tacLimit,
@@ -388,12 +392,12 @@ export function createBrowserViewerServices(
     const existing = layerBuilds.get(key);
     if (existing) return existing;
     const promise = (async () => {
-      if (!opts.codex.renderLayer) {
+      if (!codex!.renderLayer) {
         throw new Error(
           "[loupe-pdf] codex client missing renderLayer(). Use @printwithsynergy/codex-client@>=1.2.0.",
         );
       }
-      const renderLayerFn = opts.codex.renderLayer;
+      const renderLayerFn = codex!.renderLayer;
       const all = layerIndicesForPage(pageNum, codexPayload);
       const png = await withFallbackToBytes((ref) =>
         renderLayerFn(ref, {
@@ -452,18 +456,21 @@ export function createBrowserViewerServices(
   // ── Public services ────────────────────────────────────────────────
 
   const services: BrowserViewerServices = {
-    pageImages: {
-      getPageImageUrl: ({ pageNum, dpi }) => {
-        const key = `${pageNum}@${dpi ?? PAGE_DPI}`;
-        if (pageUrls.has(key)) return pageUrls.get(key)!;
-        void buildPageUrl(pageNum, dpi ?? PAGE_DPI).catch(() => {
-          /* error surfaced via notify; component re-renders blank */
-        });
-        return PLACEHOLDER_PNG;
-      },
-    },
+    pageImages: hasCodex
+      ? {
+          getPageImageUrl: ({ pageNum, dpi }) => {
+            const key = `${pageNum}@${dpi ?? PAGE_DPI}`;
+            if (pageUrls.has(key)) return pageUrls.get(key)!;
+            void buildPageUrl(pageNum, dpi ?? PAGE_DPI).catch(() => {
+              /* error surfaced via notify; component re-renders blank */
+            });
+            return PLACEHOLDER_PNG;
+          },
+        }
+      : markUnwired({ getPageImageUrl: () => PLACEHOLDER_PNG }),
     layers: {
       getLayerImageUrl: ({ pageNum, layerIndex }) => {
+        if (!hasCodex) return PLACEHOLDER_PNG;
         const key = `${pageNum}|${layerIndex}`;
         if (layerUrls.has(key)) return layerUrls.get(key)!;
         void buildLayerUrl(pageNum, layerIndex).catch(() => {
@@ -479,66 +486,77 @@ export function createBrowserViewerServices(
         }));
       },
     },
-    separations: {
-      getChannelImageUrl: ({ pageNum, channelName }) =>
-        getChannelUrl(pageNum, channelName),
-    },
-    tacHeatmap: {
-      getHeatmapImageUrl: ({ pageNum, tacLimit }) => {
-        const key = `${pageNum}|${tacLimit ?? defaultTacLimit}`;
-        if (heatmapUrls.has(key)) return heatmapUrls.get(key)!;
-        void buildHeatmap(pageNum, tacLimit ?? defaultTacLimit).catch(() => {
-          /* placeholder until ready */
-        });
-        return PLACEHOLDER_PNG;
-      },
-      listRuns: async ({ pageNum, tacLimit }) => {
-        const limit = tacLimit ?? defaultTacLimit;
-        await buildHeatmap(pageNum, limit);
-        return (heatmapRunsCache.get(`${pageNum}|${limit}`) ?? []) as ReadonlyArray<{
-          x0: number;
-          y0: number;
-          x1: number;
-          y1: number;
-          mean_tac: number;
-          limit: number;
-          exceeds: boolean;
-        }>;
-      },
-    },
-    colorSample: {
-      sampleAt: async ({ pageNum, pdfX, pdfY, dpi }) => {
-        const dim = pageDimsFromCodex(pageNum, codexPayload);
-        const r = await withFallbackToBytes((ref) =>
-          opts.codex.sampleColor(ref, {
-            page: pageNum,
-            x: pdfX,
-            y: pdfY,
-            pageW: dim?.widthPts,
-            pageH: dim?.heightPts,
-            dpi: dpi ?? ANALYSIS_DPI,
-          }),
-        );
-        return { rgb: r.rgb, hex: r.hex } as unknown as ColorSample;
-      },
-    },
-    densitometer: {
-      sampleAt: async ({ pageNum, pdfX, pdfY, dpi, tacLimit }) => {
-        const dim = pageDimsFromCodex(pageNum, codexPayload);
-        const r = await withFallbackToBytes((ref) =>
-          opts.codex.sampleDensity(ref, {
-            page: pageNum,
-            x: pdfX,
-            y: pdfY,
-            pageW: dim?.widthPts,
-            pageH: dim?.heightPts,
-            dpi: dpi ?? ANALYSIS_DPI,
-            tacLimit,
-          }),
-        );
-        return r as unknown as DensitometerSample;
-      },
-    },
+    separations: hasCodex
+      ? {
+          getChannelImageUrl: ({ pageNum, channelName }) =>
+            getChannelUrl(pageNum, channelName),
+        }
+      : markUnwired({ getChannelImageUrl: () => PLACEHOLDER_PNG }),
+    tacHeatmap: hasCodex
+      ? {
+          getHeatmapImageUrl: ({ pageNum, tacLimit }) => {
+            const key = `${pageNum}|${tacLimit ?? defaultTacLimit}`;
+            if (heatmapUrls.has(key)) return heatmapUrls.get(key)!;
+            void buildHeatmap(pageNum, tacLimit ?? defaultTacLimit).catch(() => {
+              /* placeholder until ready */
+            });
+            return PLACEHOLDER_PNG;
+          },
+          listRuns: async ({ pageNum, tacLimit }) => {
+            const limit = tacLimit ?? defaultTacLimit;
+            await buildHeatmap(pageNum, limit);
+            return (heatmapRunsCache.get(`${pageNum}|${limit}`) ?? []) as ReadonlyArray<{
+              x0: number;
+              y0: number;
+              x1: number;
+              y1: number;
+              mean_tac: number;
+              limit: number;
+              exceeds: boolean;
+            }>;
+          },
+        }
+      : markUnwired({
+          getHeatmapImageUrl: () => PLACEHOLDER_PNG,
+          listRuns: async () => [],
+        }),
+    colorSample: hasCodex
+      ? {
+          sampleAt: async ({ pageNum, pdfX, pdfY, dpi }) => {
+            const dim = pageDimsFromCodex(pageNum, codexPayload);
+            const r = await withFallbackToBytes((ref) =>
+              codex!.sampleColor(ref, {
+                page: pageNum,
+                x: pdfX,
+                y: pdfY,
+                pageW: dim?.widthPts,
+                pageH: dim?.heightPts,
+                dpi: dpi ?? ANALYSIS_DPI,
+              }),
+            );
+            return { rgb: r.rgb, hex: r.hex } as unknown as ColorSample;
+          },
+        }
+      : markUnwired({ sampleAt: async () => null }),
+    densitometer: hasCodex
+      ? {
+          sampleAt: async ({ pageNum, pdfX, pdfY, dpi, tacLimit }) => {
+            const dim = pageDimsFromCodex(pageNum, codexPayload);
+            const r = await withFallbackToBytes((ref) =>
+              codex!.sampleDensity(ref, {
+                page: pageNum,
+                x: pdfX,
+                y: pdfY,
+                pageW: dim?.widthPts,
+                pageH: dim?.heightPts,
+                dpi: dpi ?? ANALYSIS_DPI,
+                tacLimit,
+              }),
+            );
+            return r as unknown as DensitometerSample;
+          },
+        }
+      : markUnwired({ sampleAt: async () => { throw new Error("No separations available."); } }),
     annotations: {
       list: async () => Array.from(annotations.values()),
       getForPage: async (pageNum: number) => annotations.get(pageNum) ?? null,
@@ -582,12 +600,14 @@ export function createBrowserViewerServices(
     getInks,
     prepare: async (pageNum: number, opts2?: { tacLimit?: number }) => {
       const dim = pageDimsFromCodex(pageNum, codexPayload);
-      const tacLimit = opts2?.tacLimit ?? defaultTacLimit;
-      // Kick off renders in background; components receive URLs via subscribe()/notify().
-      // Do NOT await — callers must not block on all three renders before getting metadata.
-      void buildPageUrl(pageNum, PAGE_DPI).catch(() => {});
-      void buildChannelUrls(pageNum).catch(() => {});
-      void buildHeatmap(pageNum, tacLimit).catch(() => {});
+      if (hasCodex) {
+        const tacLimit = opts2?.tacLimit ?? defaultTacLimit;
+        // Kick off renders in background; components receive URLs via subscribe()/notify().
+        // Do NOT await — callers must not block on all three renders before getting metadata.
+        void buildPageUrl(pageNum, PAGE_DPI).catch(() => {});
+        void buildChannelUrls(pageNum).catch(() => {});
+        void buildHeatmap(pageNum, tacLimit).catch(() => {});
+      }
       return {
         widthPts: dim?.widthPts ?? 612,
         heightPts: dim?.heightPts ?? 792,
