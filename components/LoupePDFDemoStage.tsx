@@ -161,6 +161,7 @@ export function LoupePDFDemoStage({
             }
             width={canvasW}
             height={canvasH}
+            servicesVersion={shellPluginContext.servicesVersion}
           />
         ) : viewerMode === "layer" &&
           services &&
@@ -175,6 +176,7 @@ export function LoupePDFDemoStage({
             allLayers={allLayerIndices}
             width={canvasW}
             height={canvasH}
+            servicesVersion={shellPluginContext.servicesVersion}
           />
         ) : (
           <PageCanvas

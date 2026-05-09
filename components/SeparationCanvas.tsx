@@ -41,6 +41,8 @@ interface SeparationCanvasProps {
   width: number;
   height: number;
   dpi?: number;
+  /** Increments when the backing service has new rendered channel tiles. Re-fetches stale placeholders. */
+  servicesVersion?: number;
 }
 
 export function SeparationCanvas({
@@ -51,6 +53,7 @@ export function SeparationCanvas({
   width,
   height,
   dpi = DEFAULT_DPI,
+  servicesVersion = 0,
 }: SeparationCanvasProps) {
   const { separations } = useViewerServices();
   const { debug } = useViewerHost();
@@ -63,11 +66,11 @@ export function SeparationCanvas({
     new Set(),
   );
 
-  // Clear cached channel images when page changes
+  // Clear cached channel images when page changes or when service signals new renders.
   useEffect(() => {
     setChannelImages(new Map());
     setLoadingChannels(new Set());
-  }, [pageNum]);
+  }, [pageNum, servicesVersion]);
 
   useEffect(() => {
     if (hidden && debug) logUnwiredHide("SeparationCanvas", "separations");
