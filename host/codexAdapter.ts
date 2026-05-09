@@ -51,18 +51,26 @@ function toNumber(value: unknown, fallback = 0): number {
   return Number.isFinite(next) ? next : fallback;
 }
 
-function toPageInfo(page: Record<string, unknown>, fallbackPageNum: number): PageInfo | null {
-  const boxes = page.boxes;
-  if (!boxes || typeof boxes !== "object") return null;
-  const boxRecord = boxes as Record<string, unknown>;
-  const media = boxRecord.media;
-  if (!media || typeof media !== "object") return null;
-  const mediaRecord = media as Record<string, unknown>;
-  const x0 = toNumber(mediaRecord.x0);
-  const y0 = toNumber(mediaRecord.y0);
-  const x1 = toNumber(mediaRecord.x1, 612);
-  const y1 = toNumber(mediaRecord.y1, 792);
+function toPageInfo(page: Record<string, unknown>, fallbackPageNum: number): PageInfo {
   const pageNum = Math.max(1, Math.trunc(toNumber(page.page_num, fallbackPageNum)));
+  // Try boxes.media first; fall back to direct width_pts/height_pts; then 612×792 defaults.
+  let x0 = 0, y0 = 0, x1 = 612, y1 = 792;
+  const boxes = page.boxes;
+  const boxRecord: Record<string, unknown> = (boxes && typeof boxes === "object")
+    ? (boxes as Record<string, unknown>)
+    : {};
+  if (boxes && typeof boxes === "object") {
+    const media = boxRecord.media;
+    if (media && typeof media === "object") {
+      const m = media as Record<string, unknown>;
+      x0 = toNumber(m.x0, 0);
+      y0 = toNumber(m.y0, 0);
+      x1 = toNumber(m.x1, 612);
+      y1 = toNumber(m.y1, 792);
+    }
+  }
+  if (typeof page.width_pts === "number" && page.width_pts > 0) x1 = x0 + page.width_pts;
+  if (typeof page.height_pts === "number" && page.height_pts > 0) y1 = y0 + page.height_pts;
 
   const toBox = (value: unknown) => {
     if (!value || typeof value !== "object") return null;
@@ -239,8 +247,7 @@ export function adaptCodexDocumentForViewer(raw: unknown): CodexViewerAdapterPay
 
   for (const [index, page] of pageList.entries()) {
     if (!page || typeof page !== "object") continue;
-    const parsed = toPageInfo(page as Record<string, unknown>, index + 1);
-    if (parsed) pages.push(parsed);
+    pages.push(toPageInfo(page as Record<string, unknown>, index + 1));
   }
 
   const ocgs = Array.isArray(doc.ocgs) ? doc.ocgs : [];

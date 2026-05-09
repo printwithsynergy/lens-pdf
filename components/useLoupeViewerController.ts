@@ -210,11 +210,6 @@ export function useLoupeViewerController({
       pdfBytesRef.current = null;
       return;
     }
-    if (!codexDocument) {
-      setBrowserServices(null);
-      setError(null);
-      return;
-    }
     let cancelled = false;
     (async () => {
       try {
@@ -240,14 +235,15 @@ export function useLoupeViewerController({
           pdfBytesRef.current = { url: pdfUrl, bytes: pdfBytes };
         }
         if (cancelled) return;
-        // codex /v1/extract returns pdf_sha256 in the document so we
-        // can use hash-only render calls (no re-upload per page).
+        // codexDocument is optional — when absent, services use CMYK defaults.
+        // When Phase 1 SSE arrives this effect re-runs and upgrades the services
+        // with accurate ink/layer/dimension metadata via the atomic swap below.
         const pdfSha256 =
           (codexDocument as { pdf_sha256?: unknown } | null)?.pdf_sha256;
         const services = createBrowserViewerServices({
           codex,
           pdfBytes,
-          codexDocument,
+          codexDocument: codexDocument ?? undefined,
           tokens,
           tacLimit,
           pdfSha256: typeof pdfSha256 === "string" ? pdfSha256 : undefined,
@@ -277,9 +273,9 @@ export function useLoupeViewerController({
   // Show loading indicator while waiting for services to initialise.
   useEffect(() => {
     if (!browserServices) {
-      setToolsLoading(!!pdfUrl && !!codexDocument);
+      setToolsLoading(!!pdfUrl);
     }
-  }, [browserServices, pdfUrl, codexDocument]);
+  }, [browserServices, pdfUrl]);
 
   useEffect(() => {
     const svc = browserServices;
@@ -287,15 +283,26 @@ export function useLoupeViewerController({
     let cancelled = false;
     setToolsLoading(true);
     (async () => {
+      // Page count + dims — a failure here must NOT prevent tools from appearing.
       try {
         const total = await svc.getPageCount();
         if (cancelled) return;
-        setPageCount(total);
-        const next = Math.min(total, Math.max(1, currentPage));
+        setPageCount(Math.max(1, total));
+        const next = Math.min(Math.max(1, total), Math.max(1, currentPage));
         if (next !== currentPage) setCurrentPage(next);
-        const dims = await svc.getPageDimensions(next);
-        if (cancelled) return;
-        setPage(pageInfoFromDimensions(next, dims.widthPts, dims.heightPts));
+        try {
+          const dims = await svc.getPageDimensions(next);
+          if (!cancelled) setPage(pageInfoFromDimensions(next, dims.widthPts, dims.heightPts));
+        } catch {
+          // Dimension lookup failed (e.g. empty pages from partial extract) — keep default 612×792.
+        }
+      } catch {
+        // Page count unavailable — keep pageCount = 1 and default dimensions.
+      }
+      if (cancelled) return;
+      // Inks + layers are pure in-memory reads from codexPayload; always succeed.
+      // They run regardless of page dim outcome so tool buttons always appear.
+      try {
         const layers = await svc.layers.listLayers();
         if (cancelled) return;
         const indices =

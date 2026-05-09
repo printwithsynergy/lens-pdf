@@ -116,8 +116,14 @@ export interface BrowserViewerServicesOptions {
    * the raw bytes path automatically if the server returns 412.
    */
   pdfSha256?: string;
-  /** Canonical codex document payload that owns page/layer metadata. */
-  codexDocument: unknown;
+  /**
+   * Optional codex document payload (from /v1/extract or SSE stream).
+   * When provided, ink/layer/dimension metadata is read from it.
+   * When absent, services use CMYK defaults and empty layer list —
+   * tools still activate and render calls still work. Pass when
+   * Phase 1 SSE data arrives to upgrade metadata without re-fetching.
+   */
+  codexDocument?: unknown;
   /** Theme tokens. Defaults to the package's neutral light palette. */
   tokens?: ThemeTokens;
   /** Default TAC limit (in percent). Default 300. */
@@ -202,18 +208,15 @@ export function createBrowserViewerServices(
       "[loupe-pdf] pdfBytes is required (ArrayBuffer | Uint8Array | Blob | async getter).",
     );
   }
-  if (!opts.codexDocument) {
-    throw new Error(
-      "[loupe-pdf] codexDocument is required. loupe-pdf no longer infers metadata from pdf.js.",
-    );
-  }
 
   const tokens = opts.tokens ?? defaultThemeTokens;
   const defaultTacLimit = opts.tacLimit ?? 300;
   const authorEmail = opts.annotationAuthorEmail ?? "you@browser.local";
-  const codexPayload: CodexViewerAdapterPayload = adaptCodexDocumentForViewer(
-    opts.codexDocument,
-  );
+  // Use codexDocument metadata when available; fall back to CMYK defaults + empty
+  // layer list so tools activate immediately even before Phase 1 SSE arrives.
+  const codexPayload: CodexViewerAdapterPayload = opts.codexDocument
+    ? adaptCodexDocumentForViewer(opts.codexDocument)
+    : { codex_schema_version: null, page_count: 0, pages: [], layers: [], spot_colorants: [] };
   const spotOverrides: SpotOverrideMap = opts.spotOverrides ?? {};
   const extraPantoneRefs: PantoneRefMap | undefined = opts.extraPantoneRefs;
 
@@ -576,16 +579,15 @@ export function createBrowserViewerServices(
     prepare: async (pageNum: number, opts2?: { tacLimit?: number }) => {
       const dim = pageDimsFromCodex(pageNum, codexPayload);
       const tacLimit = opts2?.tacLimit ?? defaultTacLimit;
-      await Promise.all([
-        buildPageUrl(pageNum, PAGE_DPI),
-        buildChannelUrls(pageNum),
-        buildHeatmap(pageNum, tacLimit),
-      ]);
-      const layerCount = codexPayload.layers.length;
+      // Kick off renders in background; components receive URLs via subscribe()/notify().
+      // Do NOT await — callers must not block on all three renders before getting metadata.
+      void buildPageUrl(pageNum, PAGE_DPI).catch(() => {});
+      void buildChannelUrls(pageNum).catch(() => {});
+      void buildHeatmap(pageNum, tacLimit).catch(() => {});
       return {
         widthPts: dim?.widthPts ?? 612,
         heightPts: dim?.heightPts ?? 792,
-        layerCount,
+        layerCount: codexPayload.layers.length,
       };
     },
     subscribe: (listener: () => void) => {
