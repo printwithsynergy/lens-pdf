@@ -186,6 +186,8 @@ export function useLoupeViewerController({
   const [browserServices, setBrowserServices] = useState<BrowserViewerServices | null>(null);
   const [preparing, setPreparing] = useState(false);
   const [toolsLoading, setToolsLoading] = useState(false);
+  // Cache fetched PDF bytes so codexDocument updates don't re-download the file.
+  const pdfBytesRef = useRef<{ url: string; bytes: ArrayBuffer } | null>(null);
 
   const servicesVersion = useBrowserViewerServicesVersion(browserServices);
 
@@ -202,6 +204,7 @@ export function useLoupeViewerController({
   useEffect(() => {
     if (!pdfUrl) {
       setBrowserServices(null);
+      pdfBytesRef.current = null;
       return;
     }
     if (!codexDocument) {
@@ -210,24 +213,31 @@ export function useLoupeViewerController({
       return;
     }
     let cancelled = false;
-    let services: BrowserViewerServices | null = null;
     (async () => {
       try {
         const codex = new HttpClient({ baseUrl: resolveCodexBaseUrl() });
-        // Fetch the PDF once so codex calls don't redo it per request.
-        const resp = await fetch(pdfUrl);
-        if (!resp.ok) {
-          throw new Error(
-            `[loupe-pdf] PDF fetch failed: ${resp.status} ${resp.statusText}`,
-          );
+        // Re-use cached bytes when codexDocument updates for the same PDF URL —
+        // avoids re-downloading the file on every phase update.
+        let pdfBytes: ArrayBuffer;
+        if (pdfBytesRef.current?.url === pdfUrl) {
+          pdfBytes = pdfBytesRef.current.bytes;
+        } else {
+          const resp = await fetch(pdfUrl);
+          if (!resp.ok) {
+            throw new Error(
+              `[loupe-pdf] PDF fetch failed: ${resp.status} ${resp.statusText}`,
+            );
+          }
+          pdfBytes = await resp.arrayBuffer();
+          if (cancelled) return;
+          pdfBytesRef.current = { url: pdfUrl, bytes: pdfBytes };
         }
-        const pdfBytes = await resp.arrayBuffer();
         if (cancelled) return;
         // codex /v1/extract returns pdf_sha256 in the document so we
         // can use hash-only render calls (no re-upload per page).
         const pdfSha256 =
           (codexDocument as { pdf_sha256?: unknown } | null)?.pdf_sha256;
-        services = createBrowserViewerServices({
+        const services = createBrowserViewerServices({
           codex,
           pdfBytes,
           codexDocument,
@@ -235,7 +245,16 @@ export function useLoupeViewerController({
           tacLimit,
           pdfSha256: typeof pdfSha256 === "string" ? pdfSha256 : undefined,
         });
-        setBrowserServices(services);
+        if (cancelled) {
+          services.dispose();
+          return;
+        }
+        // Atomic swap: dispose previous services only after new ones are ready,
+        // preventing a null flash between codexDocument phase updates.
+        setBrowserServices((prev) => {
+          prev?.dispose();
+          return services;
+        });
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "[loupe-pdf] init failed");
@@ -245,17 +264,19 @@ export function useLoupeViewerController({
     void workerSrc; // legacy prop accepted for compat — pdfjs is gone
     return () => {
       cancelled = true;
-      services?.dispose();
     };
   }, [pdfUrl, codexDocument, workerSrc, tacLimit, tokens]);
 
+  // Show loading indicator while waiting for services to initialise.
+  useEffect(() => {
+    if (!browserServices) {
+      setToolsLoading(!!pdfUrl && !!codexDocument);
+    }
+  }, [browserServices, pdfUrl, codexDocument]);
+
   useEffect(() => {
     const svc = browserServices;
-    if (!svc) {
-      setPageCount(1);
-      setToolsLoading(!!pdfUrl && !!codexDocument);
-      return;
-    }
+    if (!svc) return;
     let cancelled = false;
     setToolsLoading(true);
     (async () => {
@@ -293,7 +314,7 @@ export function useLoupeViewerController({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [browserServices, pdfUrl, codexDocument]);
+  }, [browserServices]);
 
   useEffect(() => {
     const svc = browserServices;
