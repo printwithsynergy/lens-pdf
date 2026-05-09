@@ -680,7 +680,7 @@ export function LoupePDFDemo({
       revokePreviousBlob();
       const blobUrl = URL.createObjectURL(file);
       blobUrlRef.current = blobUrl;
-      setDraftUrl(file.name);
+      setDraftUrl("");
       setCurrentPage(1);
       setViewerMode("page");
       setPdfUrl(blobUrl);
@@ -871,6 +871,12 @@ export function LoupePDFDemo({
   useEffect(() => {
     if (!availability.tacHeatmap && showHeatmap) setShowHeatmap(false);
   }, [availability.tacHeatmap, showHeatmap]);
+
+  // On mobile, dismiss the tools drawer automatically when the user
+  // activates an interactive tool so the canvas is immediately visible.
+  useEffect(() => {
+    if (isMobile && activeTool !== "none") setMobileSidebarOpen(false);
+  }, [activeTool, isMobile]);
 
   // -----------------------------------------------------------------------
   // Render

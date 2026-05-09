@@ -337,6 +337,7 @@ function annotationToolbarPlugin(): LoupePDFShellPlugin {
         canUndo={ctx.canUndo}
         canRedo={ctx.canRedo}
         saving={ctx.savingAnnotation}
+        compact={ctx.isMobile}
       />
     ),
   };

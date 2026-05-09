@@ -39,6 +39,8 @@ interface AnnotationToolbarProps {
   canUndo: boolean;
   canRedo: boolean;
   saving: boolean;
+  /** When true, items stay on one row and overflow scrolls horizontally. */
+  compact?: boolean;
 }
 
 /** Mouse-pointer silhouette — reads as “select” better than a lone △. */
@@ -123,21 +125,24 @@ const PRESET_COLORS = [
 
 const ACCENT = "#e50c6a";
 
-const wrapperStyle: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 6,
-  padding: "6px 10px",
-  borderRadius: 8,
-  border: "1px solid rgba(255, 255, 255, 0.1)",
-  background: "rgba(15, 12, 25, 0.92)",
-  backdropFilter: "blur(8px)",
-  color: "#f5f3f7",
-  fontSize: 13,
-  boxShadow: "0 6px 18px rgba(0, 0, 0, 0.45)",
-  flexWrap: "wrap",
-  position: "relative",
-};
+function wrapperStyle(compact: boolean): CSSProperties {
+  return {
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    padding: "6px 10px",
+    borderRadius: 8,
+    border: "1px solid rgba(255, 255, 255, 0.1)",
+    background: "rgba(15, 12, 25, 0.92)",
+    backdropFilter: "blur(8px)",
+    color: "#f5f3f7",
+    fontSize: 13,
+    boxShadow: "0 6px 18px rgba(0, 0, 0, 0.45)",
+    flexWrap: compact ? "nowrap" : "wrap",
+    overflowX: compact ? "auto" : undefined,
+    position: "relative",
+  };
+}
 
 function toolButtonStyle(active: boolean): CSSProperties {
   return {
@@ -249,6 +254,7 @@ export function AnnotationToolbar({
   canUndo,
   canRedo,
   saving,
+  compact = false,
 }: AnnotationToolbarProps) {
   const [tip, setTip] = useState<{
     text: string;
@@ -313,7 +319,7 @@ export function AnnotationToolbar({
     );
 
   return (
-    <div style={wrapperStyle}>
+    <div style={wrapperStyle(compact)}>
       {tipNode}
       {TOOLS.map((tool) => (
         <button
