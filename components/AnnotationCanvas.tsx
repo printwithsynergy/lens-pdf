@@ -271,7 +271,7 @@ export function AnnotationCanvas({
       }
     }
 
-    init();
+    void init();
 
     return () => {
       cancelled = true;

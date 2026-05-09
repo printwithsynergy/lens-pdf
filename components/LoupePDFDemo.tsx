@@ -110,6 +110,12 @@ const DEFAULT_TOOLS = DEFAULT_LOUPE_PDF_TOOLS;
 export interface LoupePDFDemoProps {
   /** Canonical codex document payload for page/layer metadata. */
   codexDocument?: unknown;
+  /**
+   * Pre-loaded PDF bytes. When provided, the controller uses these directly
+   * instead of fetching from `initialPdfUrl`. Useful when the caller already
+   * has the bytes in memory (e.g. from a file upload or SSE extract response).
+   */
+  pdfBytes?: ArrayBuffer | null;
   /** Theme tokens. Defaults to {@link darkThemeTokens}. */
   tokens?: Partial<ThemeTokens>;
   /** Maximum upload size in bytes. Default: 50 MB. */
@@ -222,6 +228,7 @@ function formatMaxSize(bytes: number): string {
  */
 export function LoupePDFDemo({
   codexDocument,
+  pdfBytes: pdfBytesProp,
   tokens: tokenOverrides,
   maxFileSize = DEFAULT_MAX_BYTES,
   brand = "LoupePDF",
@@ -290,6 +297,7 @@ export function LoupePDFDemo({
 
   const controller = useLoupeViewerController({
     pdfUrl,
+    pdfBytes: pdfBytesProp,
     codexDocument,
     workerSrc,
     services: serviceOverrides,
@@ -306,7 +314,10 @@ export function LoupePDFDemo({
     onError: onErrorProp,
   });
 
-  const displayedError = localError ?? controller.error;
+  // In embedded mode the host owns the chrome — don't render an error
+  // banner inside the viewer. Errors still fire via onError so the host
+  // can surface them in its own UI.
+  const displayedError = embedded ? null : (localError ?? controller.error);
 
   const loadUrl = useCallback(
     (e: React.FormEvent) => {

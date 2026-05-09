@@ -1,8 +1,8 @@
 {
   "name": "@printwithsynergy/loupe-pdf",
-  "version": "0.3.0-beta.45",
+  "version": "0.3.0-beta.46",
   "type": "module",
-  "description": "LoupePDF \u2014 host-agnostic OSS PDF viewer core. Plugin-driven canvas viewer with overlay / panel / toolbar slots.",
+  "description": "LoupePDF — host-agnostic OSS PDF viewer core. Plugin-driven canvas viewer with overlay / panel / toolbar slots.",
   "license": "AGPL-3.0-or-later",
   "author": "Think Neverland LLC",
   "homepage": "https://github.com/Printwithsynergy/loupe-pdf#readme",

@@ -57,6 +57,8 @@ function resolveCodexBaseUrl(): string {
 
 export interface LoupeViewerControllerOptions {
   pdfUrl: string;
+  /** Pre-loaded PDF bytes. When provided, skips the internal fetch(pdfUrl) step so the caller's bytes are reused directly. */
+  pdfBytes?: ArrayBuffer | null;
   codexDocument?: unknown;
   workerSrc?: string;
   services?: ViewerServices;
@@ -136,6 +138,7 @@ export interface LoupeViewerControllerResult {
 
 export function useLoupeViewerController({
   pdfUrl,
+  pdfBytes: pdfBytesProp,
   codexDocument,
   workerSrc,
   services: serviceOverrides,
@@ -216,10 +219,14 @@ export function useLoupeViewerController({
     (async () => {
       try {
         const codex = new HttpClient({ baseUrl: resolveCodexBaseUrl() });
-        // Re-use cached bytes when codexDocument updates for the same PDF URL —
-        // avoids re-downloading the file on every phase update.
+        // Use caller-supplied bytes when available (avoids re-fetching the
+        // blob URL which can fail in some browser contexts or when the blob
+        // has been superseded). Falls back to fetch(pdfUrl) for consumers
+        // that don't supply pdfBytes.
         let pdfBytes: ArrayBuffer;
-        if (pdfBytesRef.current?.url === pdfUrl) {
+        if (pdfBytesProp) {
+          pdfBytes = pdfBytesProp;
+        } else if (pdfBytesRef.current?.url === pdfUrl) {
           pdfBytes = pdfBytesRef.current.bytes;
         } else {
           const resp = await fetch(pdfUrl);
@@ -265,7 +272,7 @@ export function useLoupeViewerController({
     return () => {
       cancelled = true;
     };
-  }, [pdfUrl, codexDocument, workerSrc, tacLimit, tokens]);
+  }, [pdfUrl, pdfBytesProp, codexDocument, workerSrc, tacLimit, tokens]);
 
   // Show loading indicator while waiting for services to initialise.
   useEffect(() => {
