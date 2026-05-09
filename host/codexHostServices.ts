@@ -18,6 +18,7 @@
  */
 
 import type { ViewerServices } from "../plugin/services";
+import type { PdfRef } from "@printwithsynergy/codex-client";
 import { markUnwired, noopI18n, noopTelemetry } from "../plugin/services";
 import { defaultThemeTokens } from "../plugin/services";
 
@@ -31,15 +32,15 @@ import { defaultThemeTokens } from "../plugin/services";
  */
 export interface CodexLikeClient {
   renderHeatmap(
-    pdf: ArrayBuffer | Uint8Array | Blob,
+    pdf: PdfRef,
     opts?: { page?: number; dpi?: number; tacLimit?: number },
   ): Promise<{ png: Uint8Array; runs: unknown[] }>;
   sampleColor(
-    pdf: ArrayBuffer | Uint8Array | Blob,
+    pdf: PdfRef,
     opts: { page?: number; x: number; y: number; pageW?: number; pageH?: number; dpi?: number },
   ): Promise<{ x: number; y: number; rgb: [number, number, number]; hex: string }>;
   sampleDensity(
-    pdf: ArrayBuffer | Uint8Array | Blob,
+    pdf: PdfRef,
     opts: {
       page?: number;
       x: number;

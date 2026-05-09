@@ -223,12 +223,17 @@ export function useLoupeViewerController({
         }
         const pdfBytes = await resp.arrayBuffer();
         if (cancelled) return;
+        // codex /v1/extract returns pdf_sha256 in the document so we
+        // can use hash-only render calls (no re-upload per page).
+        const pdfSha256 =
+          (codexDocument as { pdf_sha256?: unknown } | null)?.pdf_sha256;
         services = createBrowserViewerServices({
           codex,
           pdfBytes,
           codexDocument,
           tokens,
           tacLimit,
+          pdfSha256: typeof pdfSha256 === "string" ? pdfSha256 : undefined,
         });
         setBrowserServices(services);
       } catch (err) {

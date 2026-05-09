@@ -53,6 +53,7 @@ import {
 } from "../plugin/services";
 import { defaultThemeTokens } from "../plugin/services";
 import type { CodexLikeClient } from "../host/codexHostServices";
+import type { PdfRef } from "@printwithsynergy/codex-client";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -90,15 +91,15 @@ export interface BrowserViewerServicesOptions {
   /** Codex client (HttpClient or compatible) used for every render call. */
   codex: CodexLikeClient & {
     renderPage?: (
-      pdf: ArrayBuffer | Uint8Array | Blob,
+      pdf: PdfRef,
       opts?: { page?: number; dpi?: number; ocgOn?: number[]; ocgOff?: number[]; simulateOverprint?: boolean },
     ) => Promise<Uint8Array>;
     renderLayer?: (
-      pdf: ArrayBuffer | Uint8Array | Blob,
+      pdf: PdfRef,
       opts: { page?: number; layerIndex: number; allLayerIndices: number[]; dpi?: number },
     ) => Promise<Uint8Array>;
     renderSeparations?: (
-      pdf: ArrayBuffer | Uint8Array | Blob,
+      pdf: PdfRef,
       opts?: { page?: number; dpi?: number },
     ) => Promise<{
       page_num: number;
@@ -108,6 +109,13 @@ export interface BrowserViewerServicesOptions {
   };
   /** Raw PDF bytes (codex consumes them on every render call). */
   pdfBytes: ArrayBuffer | Uint8Array | Blob | (() => Promise<ArrayBuffer | Uint8Array | Blob>);
+  /**
+   * Optional sha256 of the PDF (hex). When set, codex render calls
+   * pass `{ sha256 }` instead of re-uploading the file every time —
+   * relies on the codex API's blob cache (TTL ~60min). Falls back to
+   * the raw bytes path automatically if the server returns 412.
+   */
+  pdfSha256?: string;
   /** Canonical codex document payload that owns page/layer metadata. */
   codexDocument: unknown;
   /** Theme tokens. Defaults to the package's neutral light palette. */
@@ -253,6 +261,35 @@ export function createBrowserViewerServices(
     return pdfBlobPromise;
   }
 
+  /**
+   * Render-time PDF reference. Uses `{ sha256 }` when the host
+   * supplied `pdfSha256` (codex blob cache hit), otherwise falls
+   * back to uploading the raw blob each call.
+   */
+  async function getPdfRef(): Promise<PdfRef> {
+    if (opts.pdfSha256) return { sha256: opts.pdfSha256 };
+    return getPdfBlob();
+  }
+
+  /**
+   * Run a codex render with hash-only ref; on `412` (blob cache
+   * expired) re-upload the raw PDF and retry once.
+   */
+  async function withFallbackToBytes<T>(
+    call: (ref: PdfRef) => Promise<T>,
+  ): Promise<T> {
+    const ref = await getPdfRef();
+    try {
+      return await call(ref);
+    } catch (err) {
+      const status = (err as { status?: number } | undefined)?.status;
+      if (status === 412 && opts.pdfSha256) {
+        return await call(await getPdfBlob());
+      }
+      throw err;
+    }
+  }
+
   // ── Page raster ────────────────────────────────────────────────────
 
   async function buildPageUrl(pageNum: number, dpi: number): Promise<string> {
@@ -261,13 +298,15 @@ export function createBrowserViewerServices(
     const existing = pageBuilds.get(key);
     if (existing) return existing;
     const promise = (async () => {
-      const pdf = await getPdfBlob();
       if (!opts.codex.renderPage) {
         throw new Error(
           "[loupe-pdf] codex client missing renderPage(). Use @printwithsynergy/codex-client@>=1.2.0.",
         );
       }
-      const png = await opts.codex.renderPage(pdf, { page: pageNum, dpi });
+      const renderPageFn = opts.codex.renderPage;
+      const png = await withFallbackToBytes((ref) =>
+        renderPageFn(ref, { page: pageNum, dpi }),
+      );
       const url = trackBlob(pngBytesToObjectUrl(png));
       pageUrls.set(key, url);
       pageBuilds.delete(key);
@@ -282,11 +321,13 @@ export function createBrowserViewerServices(
 
   async function buildChannelUrls(pageNum: number): Promise<void> {
     if (!opts.codex.renderSeparations) return;
-    const pdf = await getPdfBlob();
-    const result = await opts.codex.renderSeparations(pdf, {
-      page: pageNum,
-      dpi: ANALYSIS_DPI,
-    });
+    const renderSepsFn = opts.codex.renderSeparations;
+    const result = await withFallbackToBytes((ref) =>
+      renderSepsFn(ref, {
+        page: pageNum,
+        dpi: ANALYSIS_DPI,
+      }),
+    );
     for (const ch of result.channels) {
       const key = `${pageNum}|${ch.name}`;
       if (channelUrls.has(key)) continue;
@@ -317,12 +358,13 @@ export function createBrowserViewerServices(
     const existing = heatmapBuilds.get(key);
     if (existing) return existing;
     const promise = (async () => {
-      const pdf = await getPdfBlob();
-      const result = await opts.codex.renderHeatmap(pdf, {
-        page: pageNum,
-        dpi: ANALYSIS_DPI,
-        tacLimit,
-      });
+      const result = await withFallbackToBytes((ref) =>
+        opts.codex.renderHeatmap(ref, {
+          page: pageNum,
+          dpi: ANALYSIS_DPI,
+          tacLimit,
+        }),
+      );
       const url = trackBlob(pngBytesToObjectUrl(result.png));
       heatmapUrls.set(key, url);
       heatmapRunsCache.set(key, result.runs as ReadonlyArray<unknown>);
@@ -347,14 +389,16 @@ export function createBrowserViewerServices(
           "[loupe-pdf] codex client missing renderLayer(). Use @printwithsynergy/codex-client@>=1.2.0.",
         );
       }
-      const pdf = await getPdfBlob();
+      const renderLayerFn = opts.codex.renderLayer;
       const all = layerIndicesForPage(pageNum, codexPayload);
-      const png = await opts.codex.renderLayer(pdf, {
-        page: pageNum,
-        layerIndex,
-        allLayerIndices: all,
-        dpi: ANALYSIS_DPI,
-      });
+      const png = await withFallbackToBytes((ref) =>
+        renderLayerFn(ref, {
+          page: pageNum,
+          layerIndex,
+          allLayerIndices: all,
+          dpi: ANALYSIS_DPI,
+        }),
+      );
       const url = trackBlob(pngBytesToObjectUrl(png));
       layerUrls.set(key, url);
       layerBuilds.delete(key);
@@ -457,32 +501,34 @@ export function createBrowserViewerServices(
     },
     colorSample: {
       sampleAt: async ({ pageNum, pdfX, pdfY, dpi }) => {
-        const pdf = await getPdfBlob();
         const dim = pageDimsFromCodex(pageNum, codexPayload);
-        const r = await opts.codex.sampleColor(pdf, {
-          page: pageNum,
-          x: pdfX,
-          y: pdfY,
-          pageW: dim?.widthPts,
-          pageH: dim?.heightPts,
-          dpi: dpi ?? ANALYSIS_DPI,
-        });
+        const r = await withFallbackToBytes((ref) =>
+          opts.codex.sampleColor(ref, {
+            page: pageNum,
+            x: pdfX,
+            y: pdfY,
+            pageW: dim?.widthPts,
+            pageH: dim?.heightPts,
+            dpi: dpi ?? ANALYSIS_DPI,
+          }),
+        );
         return { rgb: r.rgb, hex: r.hex } as unknown as ColorSample;
       },
     },
     densitometer: {
       sampleAt: async ({ pageNum, pdfX, pdfY, dpi, tacLimit }) => {
-        const pdf = await getPdfBlob();
         const dim = pageDimsFromCodex(pageNum, codexPayload);
-        const r = await opts.codex.sampleDensity(pdf, {
-          page: pageNum,
-          x: pdfX,
-          y: pdfY,
-          pageW: dim?.widthPts,
-          pageH: dim?.heightPts,
-          dpi: dpi ?? ANALYSIS_DPI,
-          tacLimit,
-        });
+        const r = await withFallbackToBytes((ref) =>
+          opts.codex.sampleDensity(ref, {
+            page: pageNum,
+            x: pdfX,
+            y: pdfY,
+            pageW: dim?.widthPts,
+            pageH: dim?.heightPts,
+            dpi: dpi ?? ANALYSIS_DPI,
+            tacLimit,
+          }),
+        );
         return r as unknown as DensitometerSample;
       },
     },
