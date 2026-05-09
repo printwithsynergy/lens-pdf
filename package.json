@@ -1,8 +1,8 @@
 {
   "name": "@printwithsynergy/loupe-pdf",
-  "version": "0.3.0-beta.51",
+  "version": "0.3.0-beta.30",
   "type": "module",
-  "description": "LoupePDF — host-agnostic OSS PDF viewer core. Plugin-driven canvas viewer with overlay / panel / toolbar slots.",
+  "description": "LoupePDF \u2014 host-agnostic OSS PDF viewer core. Plugin-driven canvas viewer with overlay / panel / toolbar slots.",
   "license": "AGPL-3.0-or-later",
   "author": "Think Neverland LLC",
   "homepage": "https://github.com/Printwithsynergy/loupe-pdf#readme",
@@ -47,6 +47,10 @@
       "types": "./dist/host/index.d.ts",
       "import": "./dist/host/index.js"
     },
+    "./fallback-pdfjs": {
+      "types": "./dist/fallback-pdfjs/index.d.ts",
+      "import": "./dist/fallback-pdfjs/index.js"
+    },
     "./browser": {
       "types": "./dist/browser/index.d.ts",
       "import": "./dist/browser/index.js"
@@ -62,24 +66,13 @@
   },
   "typesVersions": {
     "*": {
-      "components": [
-        "./dist/components/index.d.ts"
-      ],
-      "host": [
-        "./dist/host/index.d.ts"
-      ],
-      "plugin": [
-        "./dist/plugin/index.d.ts"
-      ],
-      "browser": [
-        "./dist/browser/index.d.ts"
-      ],
-      "types": [
-        "./dist/types/index.d.ts"
-      ],
-      "units": [
-        "./dist/units/index.d.ts"
-      ]
+      "components": ["./dist/components/index.d.ts"],
+      "host": ["./dist/host/index.d.ts"],
+      "plugin": ["./dist/plugin/index.d.ts"],
+      "fallback-pdfjs": ["./dist/fallback-pdfjs/index.d.ts"],
+      "browser": ["./dist/browser/index.d.ts"],
+      "types": ["./dist/types/index.d.ts"],
+      "units": ["./dist/units/index.d.ts"]
     }
   },
   "files": [
@@ -91,38 +84,28 @@
     "build": "tsc -p tsconfig.build.json && node scripts/fix-import-extensions.mjs",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "parity:service": "npm run build && node scripts/service-contract-parity.mjs",
-    "parity:render": "npm run build && node scripts/render-parity-check.mjs",
-    "parity:render:baseline": "npm run build && node scripts/render-parity-check.mjs --update-baseline",
-    "audit:parser-surface": "node scripts/parser-surface-audit.mjs",
-    "parity": "npm run audit:parser-surface && npm run parity:service && npm run parity:render",
     "test:watch": "vitest",
     "prepare": "tsc -p tsconfig.build.json && node scripts/fix-import-extensions.mjs"
   },
+  "dependencies": {
+    "pdfjs-dist": "^4.0.0"
+  },
   "peerDependencies": {
-    "fabric": "^6.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "@printwithsynergy/codex-client": "^1.5.0"
+    "fabric": "^6.0.0"
   },
   "peerDependenciesMeta": {
     "fabric": {
       "optional": true
-    },
-    "@printwithsynergy/codex-client": {
-      "optional": false
     }
   },
   "devDependencies": {
-    "@printwithsynergy/codex-client": "^1.5.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^4.3.4",
     "fabric": "^6.0.0",
     "jsdom": "^26.0.0",
-    "pixelmatch": "^7.2.0",
-    "playwright": "^1.59.1",
-    "pngjs": "^7.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "typescript": "^5.9.3",

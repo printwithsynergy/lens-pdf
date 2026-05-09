@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { ColorSample } from "../types";
 import {
   logUnwiredHide,
@@ -9,10 +9,6 @@ import {
   useViewerHost,
   useViewerServices,
 } from "../host";
-import {
-  resolveSpotSwatchColor,
-  type SpotSwatchResolution,
-} from "../host/spotColor";
 import { useIsMobile } from "./useIsMobile";
 
 interface ColorPickerToolProps {
@@ -33,72 +29,25 @@ export function ColorPickerTool({
   canvasHeight,
 }: ColorPickerToolProps) {
   const { colorSample } = useViewerServices();
-  const { debug } = useViewerHost();
+  const { debug, pdfFallback } = useViewerHost();
   const mode = useFallbackMode(colorSample);
   const isMobile = useIsMobile();
   const [sample, setSample] = useState<ColorSample | null>(null);
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Ink swatches: fixed CMYK primaries for process channels; spot
-  // channels go through the shared `resolveSpotSwatchColor` resolver
-  // so PMS-named spots show their intent-accurate hue (Pantone DB Lab
-  // → sRGB) instead of a hash-of-name pseudo-random colour. Cache by
-  // ink name so we don't re-run the resolver on every render.
-  const spotResolutions = useMemo(() => new Map<string, SpotSwatchResolution>(), []);
-  const resolveSpot = useCallback(
-    (name: string): SpotSwatchResolution => {
-      const cached = spotResolutions.get(name);
-      if (cached) return cached;
-      const next = resolveSpotSwatchColor(name);
-      spotResolutions.set(name, next);
-      return next;
-    },
-    [spotResolutions],
-  );
-
+  // Ink swatches: fixed CMYK primaries for process channels, deterministic
+  // hash-to-hue for spot channels so each spot stays visually stable across
+  // samples.
   const swatchFor = (name: string): string => {
     const n = name.toLowerCase();
     if (n === "cyan" || n === "c") return "#00b7eb";
     if (n === "magenta" || n === "m") return "#e91e63";
     if (n === "yellow" || n === "y") return "#fdd835";
     if (n === "black" || n === "k") return "#111827";
-    const { rgb } = resolveSpot(name);
-    return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
-  };
-
-  /**
-   * Tooltip describing the spot swatch's provenance — surfaces the
-   * resolver source ("from Pantone reference", "approximate hash
-   * fallback", etc.) so users can tell intent-accurate swatches
-   * apart from approximations.
-   */
-  const swatchTitle = (name: string): string => {
-    const res = resolveSpot(name);
-    switch (res.source) {
-      case "host":
-        return `${name} — host override`;
-      case "codex":
-        return `${name} — codex extracted`;
-      case "pantone":
-        return `${res.pantone_name ?? name} — Pantone reference`;
-      case "curated":
-        return `${name} — curated mapping`;
-      case "hash":
-      default:
-        return `${name} — approximate (no reference data)`;
-    }
-  };
-
-  /**
-   * True for spot resolver sources that shouldn't be presented as
-   * intent-accurate. UI surfaces a small "~" badge so reviewers can
-   * tell when a swatch comes from the curated semantic map or hash
-   * fallback rather than a referenced colour.
-   */
-  const isApproximate = (name: string): boolean => {
-    const res = resolveSpot(name);
-    return res.source === "curated" || res.source === "hash";
+    let h = 0;
+    for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+    return `hsl(${h % 360}, 70%, 45%)`;
   };
 
   const processAbbr = (name: string): string => {
@@ -123,13 +72,16 @@ export function ColorPickerTool({
       setPosition({ x: clickX, y: clickY });
       setLoading(true);
       try {
-        const data = await colorSample.sampleAt({ pageNum, pdfX, pdfY });
+        const data =
+          mode === "fallback" && pdfFallback
+            ? await pdfFallback.sampleColorAt({ pageNum, pdfX, pdfY })
+            : await colorSample.sampleAt({ pageNum, pdfX, pdfY });
         if (data) setSample(data);
       } finally {
         setLoading(false);
       }
     },
-    [colorSample, pageNum, pageWidthPts, pageHeightPts, canvasWidth, canvasHeight],
+    [colorSample, pdfFallback, mode, pageNum, pageWidthPts, pageHeightPts, canvasWidth, canvasHeight],
   );
 
   if (mode === "hidden") return null;
@@ -328,22 +280,7 @@ export function ColorPickerTool({
                             backgroundColor: swatchFor(ink.name),
                             flexShrink: 0,
                           }}
-                          title={swatchTitle(ink.name)}
                         />
-                        {isApproximate(ink.name) && (
-                          <span
-                            aria-hidden="true"
-                            style={{
-                              fontSize: 9,
-                              color: "#94a3b8",
-                              fontWeight: 700,
-                              marginRight: -2,
-                            }}
-                            title={swatchTitle(ink.name)}
-                          >
-                            ~
-                          </span>
-                        )}
                         <span
                           style={{
                             overflow: "hidden",
@@ -351,7 +288,7 @@ export function ColorPickerTool({
                             whiteSpace: "nowrap",
                             color: "#e2e8f0",
                           }}
-                          title={swatchTitle(ink.name)}
+                          title={ink.name}
                         >
                           {ink.name}
                         </span>

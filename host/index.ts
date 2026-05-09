@@ -18,7 +18,7 @@
  */
 
 import { createContext, useContext } from "react";
-import type { ViewerServices } from "../plugin/services";
+import type { PdfFallbackAdapter, ViewerServices } from "../plugin/services";
 import {
   defaultThemeTokens,
   isUnwired,
@@ -64,17 +64,25 @@ export interface ViewerHostContextValue {
    */
   debug?: boolean;
   /**
-   * Optional URL to the raw PDF file. Consumed by base components
-   * when no service is wired. The codex-backed
-   * {@link createBrowserViewerServices} factory expects raw bytes
-   * (not a URL); this field stays on the host context only for
-   * legacy components that read it.
+   * Optional URL to the raw PDF file. Consumed by the pdf.js fallback
+   * adapter (see ``createPdfJsFallback``) and by base components when
+   * no service is wired.
    *
-   * **Security**: this is a pure renderer. Whatever URL the host
-   * puts here is fetched by the user's browser as-is — sign it,
-   * scope it, and expire it like any other PDF download link.
+   * **Security**: this is a pure renderer. Whatever URL the host puts
+   * here is fetched by the user's browser as-is — sign it, scope it,
+   * and expire it like any other PDF download link. Never point this
+   * at an unauthenticated path that exposes documents the viewer's
+   * user shouldn't see.
    */
   pdfUrl?: string;
+  /**
+   * Optional in-browser fallback adapter used when a richer service
+   * is unwired. See {@link PdfFallbackAdapter}. Hosts that don't set
+   * this get hide-on-unwired behaviour for every fallback-capable
+   * tool; hosts that set it (e.g. via ``createPdfJsFallback``) get
+   * graceful degradation instead.
+   */
+  pdfFallback?: PdfFallbackAdapter;
 }
 
 /**
@@ -196,8 +204,7 @@ export function logUnwiredHide(componentName: string, serviceName: string): void
   // eslint-disable-next-line no-console
   console.info(
     `[loupe-pdf] ${componentName} hidden — host did not wire \`services.${serviceName}\`. ` +
-      `Provide an implementation backed by the codex-pdf HTTP API ` +
-      `(@printwithsynergy/codex-client).`,
+      `Provide an implementation, or set \`pdfFallback\` on the host context to use the in-browser PDF fallback.`,
   );
 }
 
@@ -206,17 +213,22 @@ export function logUnwiredHide(componentName: string, serviceName: string): void
  * tuple describing how the component should render its data source:
  *
  *   - ``mode: "wired"``   — host provided the dedicated service; use it.
- *   - ``mode: "hidden"``  — service is unwired; render ``null``.
+ *   - ``mode: "fallback"`` — service unwired but ``pdfFallback`` is
+ *     present; use the fallback adapter.
+ *   - ``mode: "hidden"``  — neither is available; render ``null``.
  *
- * The legacy ``"fallback"`` mode (in-browser pdf.js) was removed in
- * loupe-pdf 0.3.0-beta.36 — codex is now the only render path.
+ * Components are responsible for calling {@link logUnwiredHide} from
+ * an effect when they choose to hide; this hook deliberately doesn't
+ * log on its own so callers control the message.
  *
  * @public
  */
 export function useFallbackMode(
   service: object | null | undefined,
-): "wired" | "hidden" {
+): "wired" | "fallback" | "hidden" {
+  const { pdfFallback } = useViewerHost();
   if (!isUnwired(service)) return "wired";
+  if (pdfFallback) return "fallback";
   return "hidden";
 }
 
@@ -233,6 +245,7 @@ export function useFallbackMode(
  */
 export { defaultViewerServices as defaultUnwiredServices };
 
+export { createPdfJsFallback } from "./pdfFallback";
 export { isUnwired, markUnwired } from "../plugin/services";
 
 export { validatePdfFile, validatePdfUrl } from "./pdfValidation";
@@ -241,68 +254,8 @@ export type { PdfValidationResult } from "./pdfValidation";
 export { generateShareLink, parseShareParams } from "./shareLink";
 export type { ShareLinkOptions, ParsedShareParams } from "./shareLink";
 
-export {
-  createLoupeServerApiClient,
-  createServerAnnotationService,
-} from "./serverApi";
-export { adaptCodexDocumentForViewer } from "./codexAdapter";
-export type {
-  LoupeServerApiClient,
-  LoupeServerApiClientOptions,
-  GenerateViewerLinkRequest,
-  GenerateViewerLinkResponse,
-  ServerAnnotationRecord,
-  CreateAnnotationRequest,
-  UpdateAnnotationRequest,
-  ServerAnnotationServiceOptions,
-} from "./serverApi";
-export type {
-  CodexSpotColorantInfo,
-  CodexViewerAdapterPayload,
-} from "./codexAdapter";
-
-// Spot-ink swatch resolver — shared by `browser/index.ts`,
-// SeparationCanvas, ColorPickerTool, and DensitometerTool. See
-// `host/spotColor/resolveSpotSwatchColor.ts` for the precedence
-// rules.
-export {
-  resolveSpotSwatchColor,
-  hashHueRgb,
-  labD50ToSrgb,
-  cmykToSrgb,
-  normalizePantoneName,
-  alternatePantoneKey,
-  lookupPantoneSpot,
-  pantoneFormulaGuideMeta,
-  lookupCuratedSpot,
-  curatedSpotEntries,
-} from "./spotColor";
-export type {
-  CmykQuad,
-  CodexSpotIntent,
-  CuratedSpotEntry,
-  LabTriplet,
-  PantoneLookupResult,
-  PantoneRefMap,
-  ResolveSpotSwatchColorOptions,
-  RgbTriplet,
-  SpotInkOverride,
-  SpotOverrideMap,
-  SpotSwatchResolution,
-  SpotSwatchSource,
-} from "./spotColor";
-
 export { useLoupePDF } from "./useLoupePDF";
 export type { UseLoupePDFOptions, UseLoupePDFReturn } from "./useLoupePDF";
 
 export { LoupePDFProvider } from "./LoupePDFProvider";
 export type { LoupePDFProviderProps } from "./LoupePDFProvider";
-
-export {
-  createCodexBackedViewerServices,
-  defaultCodexBackedViewerServices,
-} from "./codexHostServices";
-export type {
-  CodexBackedViewerServicesOptions,
-  CodexLikeClient,
-} from "./codexHostServices";

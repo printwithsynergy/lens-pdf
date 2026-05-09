@@ -1,70 +1,232 @@
-# loupe-pdf-server (DEPRECATED)
+# loupe-pdf-server
 
-> **DEPRECATED — 0.3.0-beta.36.** This Ghostscript-backed reference
-> server is superseded by [`codex-pdf`](https://pypi.org/project/codex-pdf/),
-> which exposes the same surface (page raster, OCG-isolated layers,
-> separations, TAC heatmap, color picker, densitometer) over a
-> documented HTTP contract with a Python + TypeScript client SDK.
->
-> The folder will be removed in `0.4.0`. Anyone still running this
-> service should migrate to `codex-pdf >= 1.3.0`. New deploys should
-> never pick this up.
+A small Express + Ghostscript service that supplies the LoupePDF viewer
+with everything the in-browser pdf.js fallback can't: real ink
+separations (CMYK + spot inks), per-pixel TAC heatmaps, point
+densitometer readings, and color samples derived from the actual
+rendered raster.
 
-## Why
+This is a **reference implementation**. Use it directly if it fits, or
+read the source as a contract guide and write your own.
 
-`codex-pdf` is the **canonical PDF byte-level engine** for Think
-Neverland tools. It owns:
+## Run
 
-- `POST /v1/render/page` — one PNG per page with overprint simulation.
-- `POST /v1/render/separations` — per-channel rasters from
-  `gs -sDEVICE=tiffsep`.
-- `POST /v1/render/heatmap` — TAC heatmap PNG + per-text-run readings.
-- `POST /v1/render/layer` — OCG-isolated RGBA tile.
-- `POST /v1/sample/color` / `POST /v1/sample/density` — point samples.
-- `POST /v1/walk/content-stream` / `POST /v1/walk/type4` — analyzer
-  side-channels (lint analysers, Type-4 PostScript evaluator).
-- SSRF-hardened URL ingestion, Basic + Bearer + API-key + Internal
-  auth, content-addressed cache (memory + Redis), a Railway
-  Dockerfile, a Python `HttpClient`, and a TS
-  `@printwithsynergy/codex-client@1.3.0`.
+```sh
+cd server
+npm install
+npm run build
+LOUPE_JOBS_DIR=/tmp/loupe-jobs LOUPE_CACHE_DIR=/tmp/loupe-cache npm start
+```
 
-## Migration
+Or via Docker:
 
-1. Deploy `codex-pdf` (Railway, Fly, your own k8s, etc.). Reference
-   config: <https://github.com/printwithsynergy/codex-pdf/blob/main/Dockerfile>
-   and <https://github.com/printwithsynergy/codex-pdf/blob/main/railway.toml>.
-2. Set `CODEX_API_BASE`, `CODEX_BEARER_TOKEN` (or Basic Auth creds)
-   on the codex deployment.
-3. Replace consumer code that talked to this server with
-   `@printwithsynergy/codex-client`:
+```sh
+docker build -t loupe-pdf-server ./server
+docker run -p 3000:3000 \
+  -v loupe-jobs:/var/lib/loupe-pdf/jobs \
+  loupe-pdf-server
+```
 
-   ```ts
-   import { HttpClient } from "@printwithsynergy/codex-client";
+The image already includes Ghostscript. The only host requirement is
+storage for uploaded PDFs (a Docker volume, an EFS mount, etc.).
 
-   const codex = new HttpClient({
-     baseUrl: process.env.CODEX_API_BASE,
-     bearerToken: process.env.CODEX_API_TOKEN,
-   });
+## Configure
 
-   const png = await codex.renderPage(pdfBytes, { page: 1, dpi: 300 });
-   const seps = await codex.renderSeparations(pdfBytes, { page: 1 });
-   const sample = await codex.sampleDensity(pdfBytes, { x: 100, y: 200 });
-   ```
+Environment variables, all optional except where noted:
 
-4. Wire `loupe-pdf/browser/index.ts`'s `createBrowserViewerServices`
-   with the same `codex` instance — it now consumes the codex client
-   exclusively (no pdf.js fallback).
-5. Decommission this directory.
+| Var | Default | Purpose |
+| --- | --- | --- |
+| `PORT` | `3000` | HTTP port. |
+| `LOUPE_JOBS_DIR` | `/var/lib/loupe-pdf/jobs` | Where uploaded PDFs land on disk. |
+| `LOUPE_CACHE_DIR` | `/var/cache/loupe-pdf` | Render cache (currently in-memory; reserved for future on-disk caching). |
+| `LOUPE_MAX_UPLOAD_MIB` | `100` | Refuse uploads larger than this. |
+| `LOUPE_BEARER_TOKEN` | unset | When set, every request must carry `Authorization: Bearer <token>`. Coarse single-secret auth meant for private-network deploys; put a real gateway in front for anything else. |
+| `GS_BIN` | `gs` | Path / name of the Ghostscript binary. |
 
-## Why removal in 0.4.0
+## Wire into the viewer
 
-The `loupe-pdf/server/` Ghostscript reference duplicates the codex
-implementation, and keeping two copies in sync risks subtle drift
-in TAC computation, separation channel ordering, OCG-toggle
-semantics, and overprint simulation. Codex is the canonical source.
+```ts
+import type { ViewerServices } from "@printwithsynergy/loupe-pdf/plugin";
 
-If you have constraints that block migrating to codex (regulated
-environment that can't run a Python service, a self-hosted JS-only
-stack, etc.), pin `@printwithsynergy/loupe-pdf @ 0.3.0-beta.34` —
-that release still ships the in-browser pdf.js path. New work
-should target codex.
+const apiBase = "https://separations.example.com";
+const jobId = "job-abc";
+
+// Register the PDF before you render anything. This can be done at
+// upload time on your own backend rather than inside the viewer.
+await fetch(`${apiBase}/jobs/${jobId}/source`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ url: signedPdfUrl }),
+});
+
+// Then point the viewer's services at the same base URL:
+const services: ViewerServices = {
+  pageImages: {
+    getPageImageUrl: ({ pageNum, dpi }) =>
+      `${apiBase}/jobs/${jobId}/page/${pageNum}.png?dpi=${dpi}`,
+  },
+  separations: {
+    getChannelImageUrl: ({ pageNum, channelName, dpi }) =>
+      `${apiBase}/jobs/${jobId}/channel/${encodeURIComponent(channelName)}.png?page=${pageNum}&dpi=${dpi}`,
+  },
+  tacHeatmap: {
+    getHeatmapImageUrl: ({ pageNum, dpi, tacLimit }) =>
+      `${apiBase}/jobs/${jobId}/tac.png?page=${pageNum}&dpi=${dpi}&limit=${tacLimit}`,
+    listRuns: async () => [], // run-level metadata isn't part of this server yet
+  },
+  colorSample: {
+    sampleAt: async ({ pageNum, pdfX, pdfY, dpi = 150 }) => {
+      const r = await fetch(
+        `${apiBase}/jobs/${jobId}/color?page=${pageNum}&x=${pdfX}&y=${pdfY}&dpi=${dpi}&pageWidthPts=${pageWidthPts}&pageHeightPts=${pageHeightPts}`,
+      );
+      return r.ok ? await r.json() : null;
+    },
+  },
+  densitometer: {
+    sampleAt: async ({ pageNum, pdfX, pdfY, dpi = 150, tacLimit }) => {
+      const r = await fetch(`${apiBase}/jobs/${jobId}/density`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          page: pageNum,
+          x: pdfX,
+          y: pdfY,
+          pageWidthPts,
+          pageHeightPts,
+          dpi,
+          tacLimit,
+        }),
+      });
+      if (!r.ok) {
+        if (r.status === 422) throw new Error("No separations available for this page.");
+        throw new Error(`Sampling failed (${r.status})`);
+      }
+      return await r.json();
+    },
+  },
+  // …leave layers / annotations / reports unwired or wire them to your own services.
+} as ViewerServices;
+```
+
+## Endpoint reference
+
+All endpoints are scoped to a `jobId` (1–128 chars of `[a-zA-Z0-9_-]`).
+
+| Method | Path | Notes |
+| --- | --- | --- |
+| `GET` | `/healthz` | Liveness. |
+| `POST` | `/jobs/{jobId}/source` | Register a PDF. Body: `application/pdf` raw bytes **or** `application/json` `{ "url": "https://…" }` to fetch on the server's behalf. |
+| `DELETE` | `/jobs/{jobId}` | Drop cached state for the job. |
+| `GET` | `/jobs/{jobId}/page/{pageNum}.png?dpi=N` | Composite RGB PNG of one page. |
+| `GET` | `/jobs/{jobId}/channels?page=N&dpi=N` | List of ink-channel names present on the page. |
+| `GET` | `/jobs/{jobId}/channel/{name}.png?page=N&dpi=N` | One per-ink grayscale PNG. |
+| `GET` | `/jobs/{jobId}/tac.png?page=N&dpi=N&limit=N` | TAC heatmap PNG (transparent under the limit). |
+| `GET` | `/jobs/{jobId}/color?page=N&x=…&y=…&pageWidthPts=…&pageHeightPts=…&dpi=N` | Single-pixel `ColorSample` JSON. |
+| `POST` | `/jobs/{jobId}/density` | `DensitometerSample` JSON; body fields: `page`, `x`, `y`, `pageWidthPts`, `pageHeightPts`, `dpi`, `tacLimit`. |
+
+## Security
+
+Read this before exposing the server to anything you don't fully control.
+
+- **No auth by default**. The optional `LOUPE_BEARER_TOKEN` gives a
+  single shared secret check; that's it. Multi-tenant isolation,
+  per-user authz, audit logging — all out of scope. Put a real gateway
+  in front of this service.
+- **PDF URL fetching is unguarded**. When a host POSTs
+  `{ url: "https://…" }`, the server fetches it as-is. SSRF mitigation
+  (block `127.0.0.1`, `169.254.0.0/16`, internal hostnames, etc.) is
+  not built in — do it at your egress layer, or avoid the URL flow and
+  upload PDFs directly.
+- **Ghostscript with `-dSAFER`** is on by default but Ghostscript has
+  had sandbox bypasses historically. Run the container with
+  `--read-only`, drop capabilities, and treat any uploaded PDF as
+  hostile.
+- **Resource exhaustion**: a malicious PDF can keep Ghostscript busy.
+  The 60-second per-render timeout protects against the most obvious
+  cases; pair with a request rate limit and a per-tenant concurrent-
+  render cap.
+- **PDF storage** is filesystem-based and unencrypted at rest. Use
+  encrypted storage if any of the PDFs you process need protection at
+  rest.
+- **Logs include URLs and sizes**. Don't ship them to a service that
+  shouldn't see those.
+
+## Performance notes
+
+- Ghostscript's `tiffsep` device is the bottleneck — 1–4 seconds per
+  page at 150 DPI on a 4-core machine, much more for image-heavy
+  pages or high DPIs. Prefer 96–150 DPI for viewer tiles, only render
+  300+ when the user explicitly zooms in.
+- The in-memory cache holds 256 entries / 30 minutes. For multi-pod
+  deployments, swap `cache.ts` for a Redis-backed implementation —
+  every cacheable surface routes through `getOrRender` helpers in
+  `index.ts`, so the change is contained.
+- `sharp` decodes channel PNGs once per pixel sample. For
+  high-frequency densitometer use, keep one rendered job hot and
+  consider returning the channel rasters as raw planar buffers
+  cached alongside the PNG.
+
+## Cloudflare / CDN edge caching
+
+Every per-job response is marked **immutable** with a 1-year TTL and
+tagged with `Cache-Tag: job-{jobId}`. A given
+`(jobId, page, dpi, channel)` tuple never changes — the only way the
+content changes is replacing the source PDF, which means a new
+`jobId` (or a `DELETE /jobs/{jobId}` followed by re-upload).
+
+Cache headers emitted on cacheable responses:
+
+```
+Cache-Control: public, max-age=31536000, immutable, s-maxage=31536000
+Cache-Tag: job-{jobId}
+```
+
+Cacheable endpoints (GETs only):
+
+- `/jobs/{jobId}/page/{n}.png` — composite RGB
+- `/jobs/{jobId}/channel/{name}.png` — per-ink raster
+- `/jobs/{jobId}/tac.png` — TAC heatmap
+- `/jobs/{jobId}/channels` — channel list JSON
+- `/jobs/{jobId}/color` — point sample JSON (deterministic per coord)
+
+POST endpoints (`/jobs/{jobId}/source`, `/jobs/{jobId}/density`) are
+non-cacheable per HTTP spec.
+
+### Wiring at Cloudflare
+
+1. **Put the server behind Cloudflare** with proxy mode on (orange
+   cloud). The default Cache Rules will respect the `Cache-Control`
+   header above and edge-cache for 1 year.
+2. **Don't set `LOUPE_BEARER_TOKEN`** if you want CDN caching. An
+   `Authorization` header makes Cloudflare bypass the edge cache by
+   default. Move auth to the gateway tier (Cloudflare Access, signed
+   URLs, mTLS at the origin) so the cacheable URL space is unauth'd.
+3. **Pair `DELETE /jobs/{jobId}` with a Cloudflare purge-by-tag call**
+   from your control plane. The tag to purge is `job-{jobId}`. Tag
+   purges require Cloudflare Enterprise; on lower plans, purge by URL
+   (you'll need to enumerate the tiles your viewer fetched) or rely on
+   the immutable URL pattern (new `jobId` = new URLs = no cache hit).
+4. **Optional: enable Cloudflare Polish** to recompress PNGs at the
+   edge — helpful for the per-channel rasters which are mostly
+   grayscale and compress well.
+
+The server emits no `Set-Cookie` headers, so the default Cloudflare
+heuristic ("don't cache responses with cookies") doesn't bite.
+
+## Limitations
+
+- ICC output intent embedded in the PDF is honoured by Ghostscript;
+  if you need to override it (e.g., always render to GRACoL2006), pass
+  `-sDefaultRGBProfile=...` / `-sDefaultCMYKProfile=...` to Ghostscript
+  in `ghostscript.ts`. Not exposed via env vars yet.
+- The `tacHeatmap.listRuns` per-text-run TAC list isn't implemented —
+  the heatmap renders fine, but the hover-tooltip layer in
+  `TACHeatmapOverlay` will be empty. Adding it requires walking the
+  PDF's text content stream and intersecting each run's bbox with the
+  rasterised TAC image.
+- Annotations, layers (OCGs), and report exports are not part of this
+  server — wire those to your own services.
+
+## License
+
+AGPL-3.0-or-later, same as LoupePDF itself. See [`../LICENSE`](../LICENSE).

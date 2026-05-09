@@ -21,67 +21,17 @@ const PROCESS_SWATCH: Record<string, string> = {
   Black: "#111827",
 };
 
-function Spinner() {
-  return (
-    <>
-      <style>{`@keyframes loupe-pdf-spin { to { transform: rotate(360deg); } }`}</style>
-      <span
-        aria-hidden
-        style={{
-          display: "inline-block",
-          width: 12,
-          height: 12,
-          border: "2px solid currentColor",
-          borderTopColor: "transparent",
-          borderRadius: "50%",
-          animation: "loupe-pdf-spin 0.8s linear infinite",
-          flexShrink: 0,
-        }}
-      />
-    </>
-  );
-}
-
 function ToolRadio({
   label,
   active,
   onToggle,
   swatch,
-  pending = false,
 }: {
   label: string;
   active: boolean;
   onToggle: () => void;
   swatch?: ReactNode;
-  pending?: boolean;
 }) {
-  if (pending) {
-    return (
-      <div
-        style={{ ...rowStyle, opacity: 0.5, cursor: "not-allowed" }}
-        title="Loading…"
-        aria-disabled="true"
-      >
-        <Spinner />
-        {swatch ? (
-          <span
-            aria-hidden
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: 14,
-              height: 14,
-              flex: "0 0 auto",
-            }}
-          >
-            {swatch}
-          </span>
-        ) : null}
-        <span>{label}</span>
-      </div>
-    );
-  }
   return (
     <label style={rowStyle}>
       <input type="radio" checked={active} onChange={onToggle} />
@@ -153,13 +103,11 @@ function modeToolsPlugin(): LoupePDFShellPlugin {
         setActiveTool,
         availability,
       } = ctx;
-      const {
-        separations, layers, colorPicker, densitometer, measure, annotate, tacHeatmap,
-        colorPickerPending, densitometerPending, tacHeatmapPending, separationsPending, layersPending,
-      } = availability;
+      const { separations, layers, colorPicker, densitometer, measure, annotate, tacHeatmap } =
+        availability;
       return (
         <>
-          {(separations || layers || separationsPending || layersPending) && (
+          {(separations || layers) && (
             <>
               <h2 style={headingStyle}>View</h2>
               <div style={modeButtonGroupStyle()}>
@@ -170,33 +118,21 @@ function modeToolsPlugin(): LoupePDFShellPlugin {
                 >
                   Page
                 </button>
-                {(separations || separationsPending) && (
+                {separations && (
                   <button
                     type="button"
-                    style={{
-                      ...modeButtonStyle(tokens, viewerMode === "separation", "middle"),
-                      ...(separationsPending ? { opacity: 0.5, cursor: "not-allowed", gap: 4 } : {}),
-                    }}
-                    onClick={separations ? () => setViewerMode("separation") : undefined}
-                    disabled={separationsPending}
-                    title={separationsPending ? "Loading…" : undefined}
+                    style={modeButtonStyle(tokens, viewerMode === "separation", "middle")}
+                    onClick={() => setViewerMode("separation")}
                   >
-                    {separationsPending && <Spinner />}
                     Separations
                   </button>
                 )}
-                {(layers || layersPending) && (
+                {layers && (
                   <button
                     type="button"
-                    style={{
-                      ...modeButtonStyle(tokens, viewerMode === "layer", "right"),
-                      ...(layersPending ? { opacity: 0.5, cursor: "not-allowed", gap: 4 } : {}),
-                    }}
-                    onClick={layers ? () => setViewerMode("layer") : undefined}
-                    disabled={layersPending}
-                    title={layersPending ? "Loading…" : undefined}
+                    style={modeButtonStyle(tokens, viewerMode === "layer", "right")}
+                    onClick={() => setViewerMode("layer")}
                   >
-                    {layersPending && <Spinner />}
                     Layers
                   </button>
                 )}
@@ -216,7 +152,7 @@ function modeToolsPlugin(): LoupePDFShellPlugin {
               ctx.setAnnotationTool("pointer");
             }}
           />
-          {(colorPicker || colorPickerPending) && (
+          {colorPicker && (
             <ToolRadio
               label="Color picker"
               active={activeTool === "color-picker"}
@@ -224,10 +160,9 @@ function modeToolsPlugin(): LoupePDFShellPlugin {
                 setActiveTool((prev) => (prev === "color-picker" ? "none" : "color-picker"))
               }
               swatch={COLOR_PICKER_SWATCH}
-              pending={colorPickerPending}
             />
           )}
-          {(densitometer || densitometerPending) && (
+          {densitometer && (
             <ToolRadio
               label="Densitometer"
               active={activeTool === "densitometer"}
@@ -235,7 +170,6 @@ function modeToolsPlugin(): LoupePDFShellPlugin {
                 setActiveTool((prev) => (prev === "densitometer" ? "none" : "densitometer"))
               }
               swatch={DENSITOMETER_SWATCH}
-              pending={densitometerPending}
             />
           )}
           {measure && (
@@ -256,26 +190,15 @@ function modeToolsPlugin(): LoupePDFShellPlugin {
               }
             />
           )}
-          {(tacHeatmap || tacHeatmapPending) && (
-            tacHeatmapPending ? (
-              <div
-                style={{ ...rowStyle, opacity: 0.5, cursor: "not-allowed" }}
-                title="Loading…"
-                aria-disabled="true"
-              >
-                <Spinner />
-                <span>TAC heatmap (limit 300%)</span>
-              </div>
-            ) : (
-              <label style={rowStyle}>
-                <input
-                  type="checkbox"
-                  checked={ctx.showHeatmap}
-                  onChange={(e) => ctx.setShowHeatmap(e.target.checked)}
-                />
-                <span>TAC heatmap (limit 300%)</span>
-              </label>
-            )
+          {tacHeatmap && (
+            <label style={rowStyle}>
+              <input
+                type="checkbox"
+                checked={ctx.showHeatmap}
+                onChange={(e) => ctx.setShowHeatmap(e.target.checked)}
+              />
+              <span>TAC heatmap (limit 300%)</span>
+            </label>
           )}
         </>
       );

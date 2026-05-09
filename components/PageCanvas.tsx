@@ -77,7 +77,7 @@ export function PageCanvas({
   cropToTrim = false,
 }: PageCanvasProps) {
   const { pageImages } = useViewerServices();
-  const { debug } = useViewerHost();
+  const { debug, pdfFallback } = useViewerHost();
   const mode = useFallbackMode(pageImages);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [tileImg, setTileImg] = useState<HTMLImageElement | null>(null);
@@ -239,12 +239,23 @@ export function PageCanvas({
       img.src = cdnUrl ?? src;
     };
 
-    startLoad(proxyUrl);
+    if (mode === "fallback" && pdfFallback) {
+      pdfFallback
+        .renderPageToUrl({ pageNum: page.page_num, dpi: requestedDpi })
+        .then((url) => {
+          if (!cancelled) startLoad(url);
+        })
+        .catch(() => {
+          if (!cancelled) setLoading(false);
+        });
+    } else {
+      startLoad(proxyUrl);
+    }
 
     return () => {
       cancelled = true;
     };
-  }, [proxyUrl, page.page_num, requestedDpi, tileCdnBase, mode, debug]);
+  }, [proxyUrl, page.page_num, requestedDpi, tileCdnBase, mode, pdfFallback, debug]);
 
   // Animate pulse for selected item
   useEffect(() => {

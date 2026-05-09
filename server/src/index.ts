@@ -14,18 +14,11 @@ import morgan from "morgan";
 import { config } from "./config.js";
 import {
   assertValidJobId,
-  createAnnotation,
-  deleteAnnotation,
   ensureJobsDir,
-  getAnnotationById,
-  getAnnotationForPage,
   jobExists,
-  listAnnotations,
   saveSourceFromStream,
   saveSourceFromUrl,
-  saveAnnotationForPage,
   sourcePath,
-  updateAnnotation,
   ValidationError,
 } from "./storage.js";
 import {
@@ -47,104 +40,21 @@ import {
 const app = express();
 app.disable("x-powered-by");
 app.use(morgan("tiny"));
-app.use(express.json({ limit: "5mb" }));
+app.use(express.json({ limit: "1mb" }));
+
+if (config.bearerToken) {
+  app.use((req, res, next) => {
+    const auth = req.header("authorization");
+    if (auth !== `Bearer ${config.bearerToken}`) {
+      res.status(401).json({ error: "Unauthorised" });
+      return;
+    }
+    next();
+  });
+}
 
 app.get("/healthz", (_req, res) => {
   res.json({ ok: true });
-});
-
-app.use((req, res, next) => {
-  if (req.path === "/healthz") {
-    next();
-    return;
-  }
-  if (isRequestAuthorized(req)) {
-    next();
-    return;
-  }
-  res.status(401).json({
-    error: "Unauthorised",
-    auth_mode: config.authMode,
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Viewer link generation
-// ---------------------------------------------------------------------------
-
-app.post("/viewer-links", (req, res, next) => {
-  try {
-    const body = req.body as Partial<{
-      viewerBaseUrl: string;
-      source: string;
-      lintpdfToken: string;
-      viewerToken: string;
-      jobId: string;
-      pdfUrl: string;
-      apiBase: string;
-      page: number;
-      zoom: number;
-      tool: string;
-      panel: string;
-      mode: "page" | "separation" | "layer";
-      extras: Record<string, string | number | boolean>;
-      expiresAt: string;
-      metadata: Record<string, unknown>;
-    }>;
-    const viewerBaseUrl = normalizeViewerBaseUrl(
-      body.viewerBaseUrl ?? config.viewerBaseUrl,
-    );
-    const source = normalizeSource(body.source ?? "loupe");
-    const query: Record<string, string> = { source };
-    if (typeof body.lintpdfToken === "string" && body.lintpdfToken.trim()) {
-      query.lintpdf_token = body.lintpdfToken.trim();
-    }
-    if (typeof body.viewerToken === "string" && body.viewerToken.trim()) {
-      query.viewer_token = body.viewerToken.trim();
-    }
-    if (typeof body.jobId === "string" && body.jobId.trim()) {
-      query.job_id = body.jobId.trim();
-    }
-    if (typeof body.pdfUrl === "string" && body.pdfUrl.trim()) {
-      query.url = body.pdfUrl.trim();
-    }
-    if (typeof body.apiBase === "string" && body.apiBase.trim()) {
-      query.api_base = body.apiBase.trim();
-    }
-    if (isPositiveInt(body.page)) query.page = String(body.page);
-    if (isPositiveInt(body.zoom)) query.zoom = String(body.zoom);
-    if (typeof body.tool === "string" && body.tool.trim()) query.tool = body.tool.trim();
-    if (typeof body.panel === "string" && body.panel.trim()) query.panel = body.panel.trim();
-    if (
-      body.mode === "page" ||
-      body.mode === "separation" ||
-      body.mode === "layer"
-    ) {
-      query.mode = body.mode;
-    }
-    if (body.extras && typeof body.extras === "object") {
-      for (const [key, value] of Object.entries(body.extras)) {
-        if (!key || value === undefined || value === null) continue;
-        query[key] = String(value);
-      }
-    }
-    const url = new URL(viewerBaseUrl);
-    for (const [key, value] of Object.entries(query)) {
-      url.searchParams.set(key, value);
-    }
-    const expiresAt = normalizeExpiresAt(body.expiresAt);
-    if (expiresAt) url.searchParams.set("expires_at", expiresAt);
-    res.status(201).json({
-      viewer_url: url.toString(),
-      viewer_base_url: viewerBaseUrl,
-      query,
-      expires_at: expiresAt,
-      metadata:
-        body.metadata && typeof body.metadata === "object" ? body.metadata : {},
-    });
-  } catch (err) {
-    next(err);
-  }
 });
 
 // ---------------------------------------------------------------------------
@@ -196,169 +106,6 @@ app.delete("/jobs/:jobId", async (req, res, next) => {
     assertValidJobId(jobId);
     invalidateJob(jobId);
     res.status(204).end();
-  } catch (err) {
-    next(err);
-  }
-});
-
-// ---------------------------------------------------------------------------
-// Annotation CRUD
-// ---------------------------------------------------------------------------
-
-app.get("/jobs/:jobId/annotations", async (req, res, next) => {
-  try {
-    const { jobId } = req.params;
-    await assertJob(jobId);
-    const rows = await listAnnotations(jobId);
-    sendJsonCached(res, rows, jobId);
-  } catch (err) {
-    next(err);
-  }
-});
-
-app.get("/jobs/:jobId/annotations/:annotationId", async (req, res, next) => {
-  try {
-    const { jobId, annotationId } = req.params;
-    await assertJob(jobId);
-    const row = await getAnnotationById(jobId, annotationId);
-    if (!row) {
-      res.status(404).json({ error: "Annotation not found." });
-      return;
-    }
-    sendJsonCached(res, row, jobId);
-  } catch (err) {
-    next(err);
-  }
-});
-
-app.post("/jobs/:jobId/annotations", async (req, res, next) => {
-  try {
-    const { jobId } = req.params;
-    await assertJob(jobId);
-    const body = req.body as Partial<{
-      pageNum: number;
-      authorEmail: string;
-      authorName: string | null;
-      fabricJson: unknown;
-      number: number | null;
-      linkedNotes: unknown[];
-      metadata: Record<string, unknown>;
-    }>;
-    if (!isPositiveInt(body.pageNum)) {
-      throw new ValidationError("Body field \"pageNum\" must be a positive integer.");
-    }
-    if (typeof body.authorEmail !== "string" || !body.authorEmail.includes("@")) {
-      throw new ValidationError("Body field \"authorEmail\" must be a valid email.");
-    }
-    const row = await createAnnotation(jobId, {
-      pageNum: body.pageNum,
-      authorEmail: body.authorEmail,
-      authorName:
-        body.authorName === null || typeof body.authorName === "string"
-          ? body.authorName
-          : null,
-      fabricJson: body.fabricJson,
-      number:
-        body.number === null || typeof body.number === "number"
-          ? body.number
-          : null,
-      linkedNotes: Array.isArray(body.linkedNotes) ? body.linkedNotes : [],
-      metadata:
-        body.metadata && typeof body.metadata === "object" ? body.metadata : {},
-    });
-    res.status(201).json(row);
-  } catch (err) {
-    next(err);
-  }
-});
-
-app.put("/jobs/:jobId/annotations/:annotationId", async (req, res, next) => {
-  try {
-    const { jobId, annotationId } = req.params;
-    await assertJob(jobId);
-    const body = req.body as Partial<{
-      pageNum: number;
-      authorEmail: string;
-      authorName: string | null;
-      fabricJson: unknown;
-      number: number | null;
-      linkedNotes: unknown[];
-      metadata: Record<string, unknown>;
-    }>;
-    const row = await updateAnnotation(jobId, annotationId, {
-      ...(body.pageNum !== undefined ? { pageNum: body.pageNum } : {}),
-      ...(body.authorEmail !== undefined
-        ? { authorEmail: body.authorEmail }
-        : {}),
-      ...(body.authorName !== undefined ? { authorName: body.authorName } : {}),
-      ...(body.fabricJson !== undefined ? { fabricJson: body.fabricJson } : {}),
-      ...(body.number !== undefined ? { number: body.number } : {}),
-      ...(body.linkedNotes !== undefined ? { linkedNotes: body.linkedNotes } : {}),
-      ...(body.metadata !== undefined ? { metadata: body.metadata } : {}),
-    });
-    if (!row) {
-      res.status(404).json({ error: "Annotation not found." });
-      return;
-    }
-    res.json(row);
-  } catch (err) {
-    next(err);
-  }
-});
-
-app.delete("/jobs/:jobId/annotations/:annotationId", async (req, res, next) => {
-  try {
-    const { jobId, annotationId } = req.params;
-    await assertJob(jobId);
-    const deleted = await deleteAnnotation(jobId, annotationId);
-    if (!deleted) {
-      res.status(404).json({ error: "Annotation not found." });
-      return;
-    }
-    res.status(204).end();
-  } catch (err) {
-    next(err);
-  }
-});
-
-// Compatibility endpoints for `AnnotationService` shape used by components.
-app.get("/jobs/:jobId/annotations/page/:pageNum", async (req, res, next) => {
-  try {
-    const { jobId } = req.params;
-    const pageNum = parsePageNum(req.params.pageNum);
-    const authorEmail = req.query.authorEmail;
-    if (typeof authorEmail !== "string" || !authorEmail.includes("@")) {
-      throw new ValidationError("Query param authorEmail is required.");
-    }
-    await assertJob(jobId);
-    const row = await getAnnotationForPage(jobId, pageNum, authorEmail);
-    res.json(row);
-  } catch (err) {
-    next(err);
-  }
-});
-
-app.post("/jobs/:jobId/annotations/page/:pageNum", async (req, res, next) => {
-  try {
-    const { jobId } = req.params;
-    const pageNum = parsePageNum(req.params.pageNum);
-    const body = req.body as Partial<{
-      authorEmail: string;
-      authorName: string | null;
-      fabricJson: unknown;
-    }>;
-    if (typeof body.authorEmail !== "string" || !body.authorEmail.includes("@")) {
-      throw new ValidationError("Body field \"authorEmail\" must be a valid email.");
-    }
-    await assertJob(jobId);
-    const row = await saveAnnotationForPage(
-      jobId,
-      pageNum,
-      body.authorEmail,
-      typeof body.authorName === "string" ? body.authorName : null,
-      body.fabricJson ?? {},
-    );
-    res.json(row);
   } catch (err) {
     next(err);
   }
@@ -553,41 +300,6 @@ async function getOrRenderSeparations(jobId: string, pageNum: number, dpi: numbe
   return seps;
 }
 
-function isRequestAuthorized(req: Request): boolean {
-  if (config.authMode === "internal") {
-    return isTrustedInternalRequest(req);
-  }
-  if (config.authMode === "bearer") {
-    return hasValidBearer(req);
-  }
-  if (config.authMode === "api-key") {
-    return hasValidApiKey(req);
-  }
-  // hybrid
-  return isTrustedInternalRequest(req) || hasValidBearer(req) || hasValidApiKey(req);
-}
-
-function isTrustedInternalRequest(req: Request): boolean {
-  if (config.internalToken) {
-    return req.header("x-loupe-internal-token") === config.internalToken;
-  }
-  const ip = (req.ip || "").replace(/^::ffff:/, "");
-  if (ip === "127.0.0.1" || ip === "::1" || ip === "localhost") return true;
-  if (ip.startsWith("10.") || ip.startsWith("192.168.")) return true;
-  if (/^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(ip)) return true;
-  return false;
-}
-
-function hasValidBearer(req: Request): boolean {
-  if (!config.bearerToken) return false;
-  return req.header("authorization") === `Bearer ${config.bearerToken}`;
-}
-
-function hasValidApiKey(req: Request): boolean {
-  if (!config.apiKey) return false;
-  return req.header("x-api-key") === config.apiKey;
-}
-
 function parsePageNum(raw: unknown): number {
   const n = Number(raw);
   if (!Number.isInteger(n) || n < 1) {
@@ -604,46 +316,6 @@ function parseDpi(raw: unknown, fallback = 150): number {
     );
   }
   return Math.round(n);
-}
-
-function isPositiveInt(value: unknown): value is number {
-  return Number.isInteger(value) && Number(value) > 0;
-}
-
-function normalizeViewerBaseUrl(value: string): string {
-  const trimmed = value.trim();
-  if (!trimmed) {
-    throw new ValidationError("viewerBaseUrl must not be empty.");
-  }
-  const parsed = new URL(trimmed);
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    throw new ValidationError("viewerBaseUrl must be http(s).");
-  }
-  return parsed.toString();
-}
-
-function normalizeSource(value: string): string {
-  const source = value.trim();
-  if (!source) return "loupe";
-  if (!/^[a-zA-Z0-9_.-]{1,64}$/.test(source)) {
-    throw new ValidationError("source must match [a-zA-Z0-9_.-]{1,64}.");
-  }
-  return source;
-}
-
-function normalizeExpiresAt(value: unknown): string | null {
-  if (value === undefined || value === null || value === "") return null;
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return new Date(value).toISOString();
-  }
-  if (typeof value === "string") {
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) {
-      throw new ValidationError("expiresAt must be a valid ISO datetime.");
-    }
-    return parsed.toISOString();
-  }
-  throw new ValidationError("expiresAt must be an ISO string or epoch milliseconds.");
 }
 
 function assertNum(v: unknown, name: string): asserts v is number {

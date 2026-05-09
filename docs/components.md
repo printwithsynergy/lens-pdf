@@ -48,18 +48,17 @@ export function ProofPage() {
 | `pdfUrl` | `string` | _(required)_ | PDF the viewer will load. |
 | `workerSrc` | `string` | `defaultPdfWorkerSrc` | Override the pdf.js worker URL. |
 | `services` | `ViewerServices` | _browser services_ | Pass wired services to swap any feature from the in-browser approximation to a backend. |
-| `tools` | `ReadonlyArray<LoupePDFTool>` | all | Subset of tools to show in the sidebar. |
+| `tools` | `ReadonlyArray<LoupePDFViewerTool>` | all | Subset of tools to show in the sidebar. |
 | `initialZoom` | `number` | `80` | Starting zoom percentage. |
 | `initialPage` | `number` | `1` | Starting page (1-indexed). |
 | `tokens` | `Partial<ThemeTokens>` | `darkThemeTokens` | Theme override merged onto the dark palette. |
+| `brand` / `brandLogoUrl` | `string` | _(none)_ | Optional brand label / logo. |
 | `items` | `OverlayItem[]` | `[]` | Preflight findings (error / warning / advisory bboxes). |
 | `selectedItem` | `OverlayItem \| null` | _(internal)_ | Controlled selection. |
 | `onItemSelect` | `(item) => void` | _(internal)_ | Selection callback. |
 | `dieline` | `DielineResult` | _(none)_ | Dieline geometry overlay. |
 | `showBoxOverlays` | `boolean` | `false` | Render trim / bleed / crop popovers. |
 | `cropToTrim` | `boolean` | `false` | Clip the canvas to the page's TrimBox (falls back to BleedBox, then CropBox). |
-| `preset` | `"demo" \| "minimal"` | `"minimal"` | First-party shell preset baseline. |
-| `plugins` | `LoupePDFShellPlugin[]` | `[]` | Additional shell plugins / overrides. |
 | `onPageChange` / `onZoomChange` / `onError` | callbacks | _(none)_ | Lifecycle hooks. |
 
 CMYK / TAC are RGB-derived approximations when no backend is wired.

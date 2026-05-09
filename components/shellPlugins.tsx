@@ -3,7 +3,7 @@
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import type { ThemeTokens, ViewerServices } from "../plugin/services";
 import type { AnnotationTool } from "./AnnotationToolbar";
-import type { LoupePDFTool } from "./viewerTools";
+import type { LoupePDFDemoTool } from "./LoupePDFDemo";
 
 export type ViewerMode = "page" | "separation" | "layer";
 export type PointerTool =
@@ -21,23 +21,14 @@ export interface LoupePDFFeatureAvailability {
   tacHeatmap: boolean;
   separations: boolean;
   layers: boolean;
-  /** True when the tool is configured but services are still initialising.
-   *  UI should render the button disabled with a loading spinner. */
-  colorPickerPending: boolean;
-  densitometerPending: boolean;
-  tacHeatmapPending: boolean;
-  separationsPending: boolean;
-  layersPending: boolean;
 }
 
 export interface LoupePDFFeatureInputs {
-  tools: ReadonlyArray<LoupePDFTool>;
+  tools: ReadonlyArray<LoupePDFDemoTool>;
   services: ViewerServices | null;
   detectedInkCount: number;
   layerCount: number;
   isUnwired: (service: object | null | undefined) => boolean;
-  /** True when a PDF is loading but no services (pdfjs or codex) are ready yet. */
-  toolsPending?: boolean;
 }
 
 export function computeFeatureAvailability({
@@ -46,9 +37,8 @@ export function computeFeatureAvailability({
   detectedInkCount,
   layerCount,
   isUnwired,
-  toolsPending = false,
 }: LoupePDFFeatureInputs): LoupePDFFeatureAvailability {
-  const toolSet = new Set<LoupePDFTool>(tools);
+  const toolSet = new Set<LoupePDFDemoTool>(tools);
   const hasColorSampler = !!services && !isUnwired(services.colorSample);
   const hasDensitometer = !!services && !isUnwired(services.densitometer);
   const hasMeasurement = true;
@@ -64,13 +54,9 @@ export function computeFeatureAvailability({
     measure: toolSet.has("measure") && hasMeasurement,
     annotate: toolSet.has("annotate") && hasAnnotations,
     tacHeatmap: toolSet.has("tac-heatmap") && hasTacHeatmap,
-    separations: toolSet.has("separations") && hasSeparationService,
+    separations:
+      toolSet.has("separations") && hasSeparationService && hasSeparationData,
     layers: toolSet.has("layers") && hasLayerService && hasLayerData,
-    colorPickerPending: toolSet.has("color-picker") && toolsPending,
-    densitometerPending: toolSet.has("densitometer") && toolsPending,
-    tacHeatmapPending: toolSet.has("tac-heatmap") && toolsPending,
-    separationsPending: toolSet.has("separations") && (toolsPending || (hasSeparationService && !hasSeparationData)),
-    layersPending: toolSet.has("layers") && toolsPending,
   };
 }
 

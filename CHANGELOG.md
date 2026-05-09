@@ -6,54 +6,6 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [0.3.0-beta.37] — 2026-05-08
-
-### Changed
-- **Spot-color authority moved to codex.** The bundled
-  `host/spotColor/pantoneFormulaGuide.ts` (≈290 kB Pantone Formula
-  Guide subset) is now an empty stub. Hosts retrieve the Pantone
-  catalogue from any deployed codex sidecar via
-  `@printwithsynergy/codex-client@^1.4.0`'s `HttpClient.getInkbook()`
-  and prime the resolver via the new
-  `createCodexInkbookAdapter({codex}).ensure()` helper.
-- **Resolver behaviour unchanged for callers.**
-  `resolveSpotSwatchColor`'s host → codex → pantone → curated → hash
-  precedence ladder still holds. `setBundledPantoneInkbook(map)` is
-  exposed for hosts that want to inject a custom catalogue directly.
-- **Parser-surface audit hardened.** Any runtime file outside
-  `host/spotColor/` (or test files) carrying a `'PANTONE …'` literal
-  or a `PANTONE_REFERENCE` / `PANTONE_FORMULA_GUIDE` constant fails
-  the audit. Audit reports `status: pass` on the current tree.
-- **Codex-client peer dep bumped** to `^1.4.0`.
-
-### Removed
-- Bundled Pantone Formula Guide JSON in `pantoneFormulaGuide.ts`.
-  Hosts must call `createCodexInkbookAdapter` (recommended) or
-  `setBundledPantoneInkbook` to populate the resolver's catalogue.
-- `scripts/build-pantone-bundle.mjs` is now a no-op stub pointing
-  operators at the codex-client recipe.
-
-## [0.3.0-beta.32] — 2026-05-06
-
-### Added
-- **Server viewer-link API** — reference backend now exposes
-  `POST /viewer-links` to generate canonical hosted viewer launch URLs
-  from config payloads (page/zoom/tool/source/token/query metadata).
-- **Annotation CRUD API** — reference backend now supports full
-  annotation CRUD (`/jobs/:jobId/annotations`) plus per-page compatibility
-  endpoints used by the viewer annotation service contract.
-- **Typed host server helpers** — new host-level helpers
-  (`createLoupeServerApiClient`, `createServerAnnotationService`) provide
-  typed link-generation and annotation-service adapters for downstream apps.
-
-### Changed
-- **Hybrid auth support in reference backend** — auth mode is now
-  configurable (`internal`, `bearer`, `api-key`, `hybrid`) with dedicated
-  env vars and unified middleware enforcement.
-- **Docs refresh for unified viewer architecture** — README and reference
-  docs updated to reflect the canonical `controller -> shell -> stage`
-  path, current integration tiers, and new server API examples.
-
 ## [0.3.0-beta.30] — 2026-05-05
 
 ### Fixed

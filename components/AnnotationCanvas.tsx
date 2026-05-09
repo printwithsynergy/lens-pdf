@@ -11,9 +11,6 @@ interface AnnotationCanvasProps {
   height: number;
   activeTool: AnnotationTool;
   strokeColor: string;
-  /** When false, Fabric.js canvas elements have pointer-events disabled so
-   *  pan mode can receive mouse/touch events even when the canvas is mounted. */
-  active?: boolean;
   onSavingChange?: (saving: boolean) => void;
   onHistoryChange?: (canUndo: boolean, canRedo: boolean) => void;
   /**
@@ -54,7 +51,6 @@ export function AnnotationCanvas({
   height,
   activeTool,
   strokeColor,
-  active = true,
   onSavingChange,
   onHistoryChange,
   onIndexedAnnotationsChange,
@@ -196,7 +192,6 @@ export function AnnotationCanvas({
     let cancelled = false;
 
     async function init() {
-      try {
       const fabric = await import("fabric");
       if (cancelled || !canvasElRef.current) return;
 
@@ -264,14 +259,9 @@ export function AnnotationCanvas({
       canvas.on("selection:cleared", onSelection);
 
       setLoaded(true);
-      } catch {
-        // Fabric.js failed to initialize (e.g. mobile Safari buildForm bug
-        // in fabric 6.x). Annotation canvas degrades gracefully — other
-        // tools are unaffected.
-      }
     }
 
-    void init();
+    init();
 
     return () => {
       cancelled = true;
@@ -310,18 +300,6 @@ export function AnnotationCanvas({
     canvas.setDimensions({ width, height });
     canvas.renderAll();
   }, [width, height]);
-
-  // ── Block Fabric.js pointer-events when not in annotate mode ──
-  // Fabric.js sets pointer-events: auto directly on its canvas elements,
-  // which overrides the parent wrapper's pointer-events: none via CSS.
-  // We must also set pointer-events on the Fabric canvas elements themselves.
-  useEffect(() => {
-    const canvas = fabricRef.current;
-    if (!canvas) return;
-    const pe = active ? "auto" : "none";
-    if (canvas.upperCanvasEl) canvas.upperCanvasEl.style.pointerEvents = pe;
-    if (canvas.wrapperEl) canvas.wrapperEl.style.pointerEvents = pe;
-  }, [active]);
 
   // ── Tool switching ───────────────────────────────────────────
 
@@ -516,7 +494,7 @@ export function AnnotationCanvas({
       style={{
         position: "absolute",
         inset: 0,
-        pointerEvents: active ? "auto" : "none",
+        pointerEvents: "auto",
         zIndex: 20,
       }}
     >
