@@ -206,7 +206,7 @@ export function useLoupeViewerController({
     }
     if (!codexDocument) {
       setBrowserServices(null);
-      setError("[loupe-pdf] codexDocument is required for LoupePDF metadata/layer services.");
+      setError(null);
       return;
     }
     let cancelled = false;
