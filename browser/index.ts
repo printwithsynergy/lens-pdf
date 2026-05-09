@@ -212,11 +212,12 @@ export function createBrowserViewerServices(
   const tokens = opts.tokens ?? defaultThemeTokens;
   const defaultTacLimit = opts.tacLimit ?? 300;
   const authorEmail = opts.annotationAuthorEmail ?? "you@browser.local";
-  // Use codexDocument metadata when available; fall back to CMYK defaults + empty
-  // layer list so tools activate immediately even before Phase 1 SSE arrives.
+  // Use codexDocument metadata when available; fall back to empty payload so tools
+  // that don't need ink data (color picker, densitometer, TAC) activate immediately
+  // while separations stay hidden until the real channel list arrives.
   const codexPayload: CodexViewerAdapterPayload = opts.codexDocument
     ? adaptCodexDocumentForViewer(opts.codexDocument)
-    : { codex_schema_version: null, page_count: 0, pages: [], layers: [], spot_colorants: [] };
+    : { codex_schema_version: null, page_count: 0, pages: [], layers: [], spot_colorants: [], process_channels: [] };
   const spotOverrides: SpotOverrideMap = opts.spotOverrides ?? {};
   const extraPantoneRefs: PantoneRefMap | undefined = opts.extraPantoneRefs;
 
@@ -417,7 +418,10 @@ export function createBrowserViewerServices(
   async function getInks(): Promise<DetectedInk[]> {
     if (!inksPromise) {
       inksPromise = (async () => {
-        const inks: DetectedInk[] = PROCESS_CHANNELS.map((name) => ({
+        // Use only channels confirmed by the document's color spaces.
+        // process_channels is [] when codexDocument is absent or the PDF
+        // doesn't use process inks (e.g. RGB-only or spot-only files).
+        const inks: DetectedInk[] = codexPayload.process_channels.map((name) => ({
           name,
           type: "process" as const,
           source: "process" as const,

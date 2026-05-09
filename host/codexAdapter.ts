@@ -44,6 +44,19 @@ export interface CodexViewerAdapterPayload {
    * to attempt a Pantone lookup by name.
    */
   spot_colorants: CodexSpotColorantInfo[];
+  /**
+   * Process ink channels actually present in the document, derived
+   * from its color spaces. Only includes channels confirmed by the
+   * codex color space data — not a hardcoded CMYK assumption.
+   *
+   * Examples:
+   *  - CMYK PDF: ["Cyan", "Magenta", "Yellow", "Black"]
+   *  - Grayscale PDF: ["Black"]
+   *  - RGB-only PDF: []
+   *  - Spot-only PDF: [] (spots are in spot_colorants)
+   *  - No codexDocument: [] (unknown until extract completes)
+   */
+  process_channels: string[];
 }
 
 function toNumber(value: unknown, fallback = 0): number {
@@ -194,6 +207,56 @@ function mergeSpotInfo(
   };
 }
 
+/**
+ * Derive the process ink channels actually present from the codex
+ * color_spaces array. Only channels confirmed by the document's color
+ * space declarations are included — never a hardcoded CMYK assumption.
+ *
+ * Recognized families (from codex-pdf extract/color.py):
+ *   DeviceCMYK → Cyan, Magenta, Yellow, Black
+ *   DeviceGray → Black
+ *   DeviceN    → any component names that match process ink names
+ *   DeviceRGB / ICCBased / Lab / etc. → no process channels
+ */
+function extractProcessChannels(colorSpaces: unknown): string[] {
+  if (!Array.isArray(colorSpaces)) return [];
+  const channels = new Set<string>();
+  for (const space of colorSpaces) {
+    if (!space || typeof space !== "object") continue;
+    const cs = space as Record<string, unknown>;
+    const family = typeof cs.family === "string" ? cs.family : "";
+    if (family === "DeviceCMYK") {
+      channels.add("Cyan");
+      channels.add("Magenta");
+      channels.add("Yellow");
+      channels.add("Black");
+    } else if (family === "DeviceGray") {
+      channels.add("Black");
+    } else if (family === "DeviceN") {
+      // DeviceN can mix process + spot components — pick out any process names.
+      const colorants = Array.isArray(cs.spot_colorants) ? cs.spot_colorants : [];
+      for (const colorant of colorants) {
+        if (!colorant || typeof colorant !== "object") continue;
+        const name = typeof (colorant as Record<string, unknown>).name === "string"
+          ? ((colorant as Record<string, unknown>).name as string).trim()
+          : "";
+        const lower = name.toLowerCase();
+        if (lower === "cyan") channels.add("Cyan");
+        else if (lower === "magenta") channels.add("Magenta");
+        else if (lower === "yellow") channels.add("Yellow");
+        else if (lower === "black" || lower === "k") channels.add("Black");
+      }
+    }
+    // DeviceRGB, ICCBased, Lab, CalRGB, CalGray, Separation, Pattern → no process channels
+  }
+  // Return channels in canonical CMYK order, then any extras (K-only, etc.)
+  const ordered: string[] = [];
+  for (const ch of ["Cyan", "Magenta", "Yellow", "Black"]) {
+    if (channels.has(ch)) ordered.push(ch);
+  }
+  return ordered;
+}
+
 function extractSpotColorants(
   colorSpaces: unknown,
 ): CodexSpotColorantInfo[] {
@@ -273,5 +336,6 @@ export function adaptCodexDocumentForViewer(raw: unknown): CodexViewerAdapterPay
     pages,
     layers,
     spot_colorants: extractSpotColorants(doc.color_spaces),
+    process_channels: extractProcessChannels(doc.color_spaces),
   };
 }
