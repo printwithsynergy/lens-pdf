@@ -9,7 +9,13 @@ import {
   type DetectedInk,
 } from "../browser";
 import { isUnwired } from "../host";
-import type { ThemeTokens, ViewerServices } from "../plugin/services";
+import {
+  markUnwired,
+  noopI18n,
+  noopTelemetry,
+  type ThemeTokens,
+  type ViewerServices,
+} from "../plugin/services";
 import type { OverlayItem } from "../plugin/types";
 import { DEFAULT_DPI, pageInfoFromDimensions, type DielineResult, type PageInfo } from "../types";
 import type { AnnotationTool } from "./AnnotationToolbar";
@@ -55,6 +61,28 @@ function resolveCodexBaseUrl(): string {
   return "/api/codex-proxy";
 }
 
+/** Build a complete ViewerServices from partial pdfjs-backed services.
+ *  Missing slots are filled with markUnwired() stubs so computeFeatureAvailability
+ *  correctly identifies them as absent rather than erroring on undefined access. */
+function buildPdfjsFullServices(
+  partial: Partial<ViewerServices>,
+  tokens: ThemeTokens,
+): ViewerServices {
+  return {
+    pageImages: partial.pageImages ?? markUnwired({ getPageImageUrl: () => "" }),
+    layers: partial.layers ?? markUnwired({ listLayers: async () => [], getLayerImageUrl: () => "" }),
+    separations: partial.separations ?? markUnwired({ getChannelImageUrl: () => "" }),
+    tacHeatmap: partial.tacHeatmap ?? markUnwired({ getHeatmapImageUrl: () => "", listRuns: async () => [] }),
+    colorSample: partial.colorSample ?? markUnwired({ sampleAt: async () => null }),
+    densitometer: partial.densitometer ?? markUnwired({ sampleAt: async () => { throw new Error("No separations available."); } }),
+    annotations: partial.annotations ?? markUnwired({ list: async () => [], getForPage: async () => null, saveForPage: async () => {}, remove: async () => {} }),
+    reports: partial.reports ?? markUnwired({ getHtmlReportUrl: () => "", getPdfDownloadUrl: () => "" }),
+    telemetry: partial.telemetry ?? noopTelemetry,
+    i18n: partial.i18n ?? noopI18n,
+    tokens: partial.tokens ?? tokens,
+  };
+}
+
 export interface LoupeViewerControllerOptions {
   pdfUrl: string;
   /** Pre-loaded PDF bytes. When provided, skips the internal fetch(pdfUrl) step so the caller's bytes are reused directly. */
@@ -62,6 +90,10 @@ export interface LoupeViewerControllerOptions {
   codexDocument?: unknown;
   workerSrc?: string;
   services?: ViewerServices;
+  /** Optional pdfjs-backed services for approximate tools before codex responds.
+   *  When provided, tools activate immediately with approximate values. When codex
+   *  services arrive, they silently upgrade each slot. */
+  pdfjsServices?: Partial<ViewerServices>;
   tools: ReadonlyArray<LoupePDFTool>;
   initialPage: number;
   initialZoom: number;
@@ -142,6 +174,7 @@ export function useLoupeViewerController({
   codexDocument,
   workerSrc,
   services: serviceOverrides,
+  pdfjsServices: pdfjsServicesProp,
   tools,
   initialPage,
   initialZoom,
@@ -373,43 +406,49 @@ export function useLoupeViewerController({
   }, [browserServices, currentPage, viewerMode, showHeatmap, tacLimit]);
 
   const services: ViewerServices | null = useMemo(() => {
-    if (serviceOverrides && browserServices) {
+    // 3-tier priority: serviceOverrides (host intent) > codex (accurate) > pdfjs (approximate)
+    // "source" is the best available render layer — codex once loaded, pdfjs until then.
+    const source: ViewerServices | null =
+      browserServices ??
+      (pdfjsServicesProp ? buildPdfjsFullServices(pdfjsServicesProp, tokens) : null);
+
+    if (serviceOverrides && source) {
       return {
         pageImages: isUnwired(serviceOverrides.pageImages)
-          ? browserServices.pageImages
+          ? source.pageImages
           : serviceOverrides.pageImages,
         layers: isUnwired(serviceOverrides.layers)
-          ? browserServices.layers
+          ? source.layers
           : serviceOverrides.layers,
         separations: isUnwired(serviceOverrides.separations)
-          ? browserServices.separations
+          ? source.separations
           : serviceOverrides.separations,
         tacHeatmap: isUnwired(serviceOverrides.tacHeatmap)
-          ? browserServices.tacHeatmap
+          ? source.tacHeatmap
           : serviceOverrides.tacHeatmap,
         colorSample: isUnwired(serviceOverrides.colorSample)
-          ? browserServices.colorSample
+          ? source.colorSample
           : serviceOverrides.colorSample,
         densitometer: isUnwired(serviceOverrides.densitometer)
-          ? browserServices.densitometer
+          ? source.densitometer
           : serviceOverrides.densitometer,
         annotations: isUnwired(serviceOverrides.annotations)
-          ? browserServices.annotations
+          ? source.annotations
           : serviceOverrides.annotations,
         reports: isUnwired(serviceOverrides.reports)
-          ? browserServices.reports
+          ? source.reports
           : serviceOverrides.reports,
         telemetry: isUnwired(serviceOverrides.telemetry)
-          ? browserServices.telemetry
+          ? source.telemetry
           : serviceOverrides.telemetry,
         i18n: isUnwired(serviceOverrides.i18n)
-          ? browserServices.i18n
+          ? source.i18n
           : serviceOverrides.i18n,
-        tokens: serviceOverrides.tokens ?? browserServices.tokens,
+        tokens: serviceOverrides.tokens ?? source.tokens,
       };
     }
-    return serviceOverrides ?? browserServices ?? null;
-  }, [serviceOverrides, browserServices]);
+    return serviceOverrides ?? source;
+  }, [serviceOverrides, pdfjsServicesProp, browserServices, tokens]);
 
   const scale = zoom / 100;
   const canvasW = Math.round(page.width_pts * PTS_TO_PX * scale);
@@ -456,8 +495,9 @@ export function useLoupeViewerController({
         detectedInkCount: detectedInks.length,
         layerCount: allLayerIndices.length,
         isUnwired,
+        toolsPending: !services && !!pdfUrl,
       }),
-    [tools, services, detectedInks.length, allLayerIndices.length],
+    [tools, services, detectedInks.length, allLayerIndices.length, pdfUrl],
   );
 
   const shellPluginContext = useMemo(
