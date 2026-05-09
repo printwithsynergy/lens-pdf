@@ -25,6 +25,7 @@ import {
 } from "./shellPlugins";
 import { useStagePan } from "./useStagePan";
 import type { LoupePDFTool } from "./viewerTools";
+import { HttpClient } from "@printwithsynergy/codex-client";
 
 const FLATTENED_LAYER_INDEX = -1;
 const PTS_TO_PX = DEFAULT_DPI / 72;
@@ -212,20 +213,7 @@ export function useLoupeViewerController({
     let services: BrowserViewerServices | null = null;
     (async () => {
       try {
-        // Build a same-origin codex client by default. Hosts that need
-        // an explicit base / token construct their own HttpClient and
-        // pass it via `services` overrides.
-        // Optional peer dep — loaded by string at runtime so the
-        // package builds even when the consumer hasn't installed
-        // `@printwithsynergy/codex-client` yet (its types are
-        // optional). Hosts that prefer compile-time validation pass
-        // their own client via the `services` overrides instead.
-        const moduleName = "@printwithsynergy/codex-client";
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
-        const clientModule: any = await import(/* @vite-ignore */ moduleName);
-        const codex = new clientModule.HttpClient({
-          baseUrl: resolveCodexBaseUrl(),
-        });
+        const codex = new HttpClient({ baseUrl: resolveCodexBaseUrl() });
         // Fetch the PDF once so codex calls don't redo it per request.
         const resp = await fetch(pdfUrl);
         if (!resp.ok) {
