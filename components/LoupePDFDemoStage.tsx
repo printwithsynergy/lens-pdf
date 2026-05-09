@@ -231,6 +231,7 @@ export function LoupePDFDemoStage({
               width={canvasW}
               height={canvasH}
               activeTool={annotationTool}
+              active={activeTool === "annotate"}
               strokeColor={strokeColor}
               onSavingChange={setSavingAnnotation}
               onHistoryChange={onAnnotationHistoryChange}
