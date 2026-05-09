@@ -140,6 +140,13 @@ export interface LoupePDFDemoProps {
    * unwired capability. This keeps LintPDF/backends optional.
    */
   services?: ViewerServices;
+  /**
+   * Optional pdfjs-backed approximate services for tools that should
+   * activate immediately while codex is loading. Slots provided here
+   * become active as soon as the caller supplies them; when the codex
+   * services arrive, they silently replace these via the 3-tier merge.
+   */
+  pdfjsServices?: Partial<ViewerServices>;
   /** Optional footer content below the viewer. */
   footer?: ReactNode;
   /** When true, renders full-viewport with fixed positioning. */
@@ -239,6 +246,7 @@ export function LoupePDFDemo({
   tacLimit = 300,
   workerSrc,
   services: serviceOverrides,
+  pdfjsServices,
   footer,
   fullscreen: initialFullscreen = false,
   initialPdfUrl,
@@ -301,6 +309,7 @@ export function LoupePDFDemo({
     codexDocument,
     workerSrc,
     services: serviceOverrides,
+    pdfjsServices,
     tools,
     initialPage,
     initialZoom,
