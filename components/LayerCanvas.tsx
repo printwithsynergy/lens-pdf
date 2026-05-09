@@ -31,6 +31,8 @@ interface LayerCanvasProps {
   width: number;
   height: number;
   dpi?: number;
+  /** Increments when the backing service has new rendered tiles. Re-fetches stale placeholders. */
+  servicesVersion?: number;
 }
 
 export function LayerCanvas({
@@ -41,6 +43,7 @@ export function LayerCanvas({
   width,
   height,
   dpi = DEFAULT_DPI,
+  servicesVersion = 0,
 }: LayerCanvasProps) {
   const { layers: layerService } = useViewerServices();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -49,12 +52,11 @@ export function LayerCanvas({
   );
   const [loadingLayers, setLoadingLayers] = useState<Set<number>>(new Set());
 
-  // Drop the cache when the page changes — different page = different
-  // OCG set, even if indices happen to overlap numerically.
+  // Drop the cache when the page changes or when the service signals new renders.
   useEffect(() => {
     setLayerImages(new Map());
     setLoadingLayers(new Set());
-  }, [pageNum]);
+  }, [pageNum, servicesVersion]);
 
   const loadLayer = useCallback(
     async (layerIndex: number) => {

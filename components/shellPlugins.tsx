@@ -64,13 +64,12 @@ export function computeFeatureAvailability({
     measure: toolSet.has("measure") && hasMeasurement,
     annotate: toolSet.has("annotate") && hasAnnotations,
     tacHeatmap: toolSet.has("tac-heatmap") && hasTacHeatmap,
-    separations:
-      toolSet.has("separations") && hasSeparationService && hasSeparationData,
+    separations: toolSet.has("separations") && hasSeparationService,
     layers: toolSet.has("layers") && hasLayerService && hasLayerData,
     colorPickerPending: toolSet.has("color-picker") && toolsPending,
     densitometerPending: toolSet.has("densitometer") && toolsPending,
     tacHeatmapPending: toolSet.has("tac-heatmap") && toolsPending,
-    separationsPending: toolSet.has("separations") && toolsPending,
+    separationsPending: toolSet.has("separations") && (toolsPending || (hasSeparationService && !hasSeparationData)),
     layersPending: toolSet.has("layers") && toolsPending,
   };
 }

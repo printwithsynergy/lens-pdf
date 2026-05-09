@@ -524,17 +524,41 @@ export function createBrowserViewerServices(
       ? {
           sampleAt: async ({ pageNum, pdfX, pdfY, dpi }) => {
             const dim = pageDimsFromCodex(pageNum, codexPayload);
-            const r = await withFallbackToBytes((ref) =>
-              codex!.sampleColor(ref, {
-                page: pageNum,
-                x: pdfX,
-                y: pdfY,
-                pageW: dim?.widthPts,
-                pageH: dim?.heightPts,
-                dpi: dpi ?? ANALYSIS_DPI,
-              }),
+            const baseOpts = {
+              page: pageNum,
+              x: pdfX,
+              y: pdfY,
+              pageW: dim?.widthPts,
+              pageH: dim?.heightPts,
+              dpi: dpi ?? ANALYSIS_DPI,
+            };
+            const [colorRes, densityRes] = await Promise.allSettled([
+              withFallbackToBytes((ref) => codex!.sampleColor(ref, baseOpts)),
+              withFallbackToBytes((ref) =>
+                codex!.sampleDensity(ref, { ...baseOpts, tacLimit: defaultTacLimit }),
+              ),
+            ]);
+            if (colorRes.status === "rejected") return null;
+            const cr = colorRes.value;
+            const dr = densityRes.status === "fulfilled" ? densityRes.value : null;
+            const processChSet = new Set(
+              codexPayload.process_channels.map((n: string) => n.toLowerCase()),
             );
-            return { rgb: r.rgb, hex: r.hex } as unknown as ColorSample;
+            const inks = dr?.channels?.map((ch) => ({
+              name: ch.name,
+              percent: ch.percent,
+              type: processChSet.has(ch.name.toLowerCase())
+                ? ("process" as const)
+                : ("spot" as const),
+            }));
+            return {
+              x: cr.x,
+              y: cr.y,
+              rgb: cr.rgb,
+              hex: cr.hex,
+              tac: dr?.tac ?? null,
+              inks,
+            };
           },
         }
       : markUnwired({ sampleAt: async () => null }),
