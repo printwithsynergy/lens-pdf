@@ -196,6 +196,7 @@ export function AnnotationCanvas({
     let cancelled = false;
 
     async function init() {
+      try {
       const fabric = await import("fabric");
       if (cancelled || !canvasElRef.current) return;
 
@@ -263,6 +264,11 @@ export function AnnotationCanvas({
       canvas.on("selection:cleared", onSelection);
 
       setLoaded(true);
+      } catch {
+        // Fabric.js failed to initialize (e.g. mobile Safari buildForm bug
+        // in fabric 6.x). Annotation canvas degrades gracefully — other
+        // tools are unaffected.
+      }
     }
 
     init();
