@@ -301,7 +301,7 @@ function formatMaxSize(bytes: number): string {
 export function LoupePDFDemo({
   tokens: tokenOverrides,
   maxFileSize = DEFAULT_MAX_BYTES,
-  brand = "LoupePDF",
+  brand,
   brandLogoUrl,
   className,
   tools = DEFAULT_TOOLS,
@@ -351,6 +351,13 @@ export function LoupePDFDemo({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [JSON.stringify(tokenOverrides)],
   );
+  // Brand resolution: explicit prop > tokens.logo* > built-in default.
+  // Lets a host bundle its identity (colors + logo + label) into one
+  // tokens object without dropping the existing prop API.
+  const effectiveBrand = brand ?? tokens.logoText ?? "LoupePDF";
+  const effectiveLogoUrl = brandLogoUrl ?? tokens.logoUrl;
+  const effectiveLogoMaxHeight = tokens.logoMaxHeight ?? 24;
+  const effectiveLogoAlt = tokens.logoAlt;
 
   // -----------------------------------------------------------------------
   // Responsive layout
@@ -1123,16 +1130,21 @@ export function LoupePDFDemo({
                       overflow: "hidden",
                     }}
                   >
-                    {brandLogoUrl && (
+                    {effectiveLogoUrl && (
                       <img
-                        src={brandLogoUrl}
-                        alt=""
-                        aria-hidden="true"
-                        style={{ width: 24, height: 24, flexShrink: 0 }}
+                        src={effectiveLogoUrl}
+                        alt={effectiveLogoAlt ?? ""}
+                        aria-hidden={effectiveLogoAlt ? undefined : "true"}
+                        style={{
+                          height: effectiveLogoMaxHeight,
+                          width: "auto",
+                          maxHeight: effectiveLogoMaxHeight,
+                          flexShrink: 0,
+                        }}
                       />
                     )}
                     <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
-                      {brand}
+                      {effectiveBrand}
                     </span>
                     <span style={{ opacity: 0.4 }}>&middot;</span>
                     <span
@@ -1265,15 +1277,19 @@ export function LoupePDFDemo({
             ) : (
               <>
                 <div style={brandStyle}>
-                  {brandLogoUrl && (
+                  {effectiveLogoUrl && (
                     <img
-                      src={brandLogoUrl}
-                      alt=""
-                      aria-hidden="true"
-                      style={{ width: 24, height: 24 }}
+                      src={effectiveLogoUrl}
+                      alt={effectiveLogoAlt ?? ""}
+                      aria-hidden={effectiveLogoAlt ? undefined : "true"}
+                      style={{
+                        height: effectiveLogoMaxHeight,
+                        width: "auto",
+                        maxHeight: effectiveLogoMaxHeight,
+                      }}
                     />
                   )}
-                  <span>{brand}</span>
+                  <span>{effectiveBrand}</span>
                   <span style={{ opacity: 0.4 }}>&middot;</span>
                   <span style={{ opacity: 0.6, fontWeight: 400, fontSize: 13 }}>
                     demo
@@ -1569,15 +1585,15 @@ export function LoupePDFDemo({
               </div>
             ) : !pdfUrl ? (
               <div style={emptyStateStyle}>
-                {brandLogoUrl && (
+                {effectiveLogoUrl && (
                   <img
-                    src={brandLogoUrl}
-                    alt=""
-                    aria-hidden="true"
-                    style={{ width: 64, height: 64, opacity: 0.85 }}
+                    src={effectiveLogoUrl}
+                    alt={effectiveLogoAlt ?? ""}
+                    aria-hidden={effectiveLogoAlt ? undefined : "true"}
+                    style={{ height: 64, width: "auto", maxHeight: 64, opacity: 0.85 }}
                   />
                 )}
-                <h2 style={{ margin: 0 }}>{brand} demo viewer</h2>
+                <h2 style={{ margin: 0 }}>{effectiveBrand} demo viewer</h2>
                 <p style={{ margin: 0, maxWidth: 380 }}>
                   Paste a PDF URL above or drag-and-drop a file anywhere
                   on this page to start inspecting.
@@ -1854,7 +1870,7 @@ export function LoupePDFDemo({
         </div>
 
         <footer style={footerStyle(tokens)}>
-          <span>{brand} &middot; AGPL-3.0</span>
+          <span>{effectiveBrand} &middot; AGPL-3.0</span>
           {footer}
         </footer>
       </div>

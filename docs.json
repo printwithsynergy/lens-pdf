@@ -56,8 +56,9 @@
       "pages": [
         { "title": "Changelog", "href": "/CHANGELOG" },
         { "title": "Contributing", "href": "/docs/contributing" },
-        { "title": "Code of Conduct", "href": "/CODE_OF_CONDUCT" },
-        { "title": "Security policy", "href": "/SECURITY" }
+        { "title": "Security policy", "href": "/docs/security" },
+        { "title": "Licensing", "href": "/docs/licensing" },
+        { "title": "Code of Conduct", "href": "/CODE_OF_CONDUCT" }
       ]
     }
   ]

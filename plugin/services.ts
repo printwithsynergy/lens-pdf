@@ -305,7 +305,10 @@ export interface PdfFallbackAdapter {
 
 /**
  * Theme tokens. Plugins that need brand colours read them from here
- * rather than hardcoding hex strings.
+ * rather than hardcoding hex strings. The optional `logo*` fields let
+ * a host bundle its full visual identity (colours + logo + label) into
+ * a single object — `<LoupePDFDemo>` reads them as a fallback when the
+ * equivalent props (`brand`, `brandLogoUrl`) are not set.
  *
  * @public
  */
@@ -315,6 +318,14 @@ export interface ThemeTokens {
   readonly bg: string;
   readonly fg: string;
   readonly border: string;
+  /** Optional brand logo image URL shown in the demo top bar. Any URL the browser can fetch — PNG / SVG / `data:` URI. */
+  readonly logoUrl?: string;
+  /** Optional brand label shown next to the logo. Mirrors the `brand` prop on `<LoupePDFDemo>`. Default: `"LoupePDF"`. */
+  readonly logoText?: string;
+  /** Optional pixel cap on the rendered logo height. Width is auto so non-square logos keep their aspect ratio. Default: 24. */
+  readonly logoMaxHeight?: number;
+  /** Optional alt text for the logo `<img>`. When omitted, the logo is `aria-hidden` and `logoText` carries the meaning. */
+  readonly logoAlt?: string;
 }
 
 /**

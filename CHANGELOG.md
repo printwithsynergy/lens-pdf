@@ -6,6 +6,33 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0-beta.64] — 2026-05-10
+
+### Added
+- **Custom logo + label via `ThemeTokens`** — `logoUrl`, `logoText`,
+  `logoMaxHeight`, and `logoAlt` are now optional fields on
+  `ThemeTokens`, letting a host bundle its full visual identity
+  (colours + logo + label) into one tokens object instead of passing
+  separate `brandLogoUrl` / `brand` props. Resolution order in
+  `<LoupePDFDemo>` / `<LoupePDF>`: explicit prop > tokens > built-in
+  default. Top-bar and welcome-screen logo `<img>` tags now use
+  `height` + `width: auto` so non-square logos keep their aspect ratio.
+
+### Changed
+- **"Rasterising page & computing CMYK…" loader is now a bottom pill** —
+  was a full-viewer dim overlay that covered the artwork while
+  separations / TAC were warming up. Replaced with a compact pill at
+  the bottom-centre of the viewer (rounded, subtle shadow,
+  `pointer-events: none`) so users can keep reviewing the page
+  underneath while the analysis raster builds.
+
+### Docs
+- **Security policy and Licensing pages** added to the docs site
+  Project group, sitting next to Contributing. Security policy is
+  promoted from the root `SECURITY.md` into a proper docs page;
+  Licensing covers the AGPL-3.0-or-later terms, third-party licences,
+  and how to request commercial alternatives.
+
 ## [0.3.0-beta.63] — 2026-05-10
 
 ### Added
