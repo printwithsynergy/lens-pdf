@@ -22,6 +22,14 @@ interface ThemeTokens {
   readonly bg: string;        // surface background
   readonly fg: string;        // foreground / body text
   readonly border: string;    // hairline border
+  // Optional brand-identity fields read by <LoupePDFDemo> as a
+  // fallback when the equivalent props (`brand`, `brandLogoUrl`)
+  // aren't set. Lets a host bundle palette + logo + label into a
+  // single tokens object.
+  readonly logoUrl?: string;        // brand logo image URL
+  readonly logoText?: string;       // brand label (default: "LoupePDF")
+  readonly logoMaxHeight?: number;  // pixel cap on logo height (default: 24)
+  readonly logoAlt?: string;        // alt text for the logo <img>
 }
 ```
 
@@ -45,8 +53,8 @@ import { defaultThemeTokens } from "@printwithsynergy/loupe-pdf/plugin";
 import { darkThemeTokens } from "@printwithsynergy/loupe-pdf/plugin";
 
 // {
-//   primary: "#f5f3f7",
-//   accent:  "#e50c6a",
+//   primary: "#0f172a",
+//   accent:  "#3b82f6",
 //   bg:      "#0e0a14",
 //   fg:      "#f5f3f7",
 //   border:  "#2b2138",

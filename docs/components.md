@@ -45,20 +45,27 @@ export function ProofPage() {
 
 | Prop | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `pdfUrl` | `string` | _(required)_ | PDF the viewer will load. |
-| `workerSrc` | `string` | `defaultPdfWorkerSrc` | Override the pdf.js worker URL. |
+| `pdfUrl` | `string` | _(required)_ | PDF the viewer will load. Changing it swaps the document and resets to `initialPage`. |
+| `workerSrc` | `string` | `defaultBrowserWorkerSrc` | Override the pdf.js worker URL. |
 | `services` | `ViewerServices` | _browser services_ | Pass wired services to swap any feature from the in-browser approximation to a backend. |
-| `tools` | `ReadonlyArray<LoupePDFViewerTool>` | all | Subset of tools to show in the sidebar. |
+| `tools` | `ReadonlyArray<LoupePDFDemoTool>` | all | Subset of tools to show in the sidebar. |
 | `initialZoom` | `number` | `80` | Starting zoom percentage. |
 | `initialPage` | `number` | `1` | Starting page (1-indexed). |
-| `tokens` | `Partial<ThemeTokens>` | `darkThemeTokens` | Theme override merged onto the dark palette. |
-| `brand` / `brandLogoUrl` | `string` | _(none)_ | Optional brand label / logo. |
+| `tacLimit` | `number` | `300` | TAC limit (in percent) for the heatmap + densitometer. |
+| `tokens` | `Partial<ThemeTokens>` | `darkThemeTokens` | Theme override merged onto the dark palette. Add `logoUrl` / `logoText` / `logoMaxHeight` / `logoAlt` to bundle brand identity into the tokens object. |
+| `brand` / `brandLogoUrl` | `string` | _(none)_ | Optional brand label / logo. Falls back to `tokens.logoText` / `tokens.logoUrl` when the props are unset. |
 | `items` | `OverlayItem[]` | `[]` | Preflight findings (error / warning / advisory bboxes). |
 | `selectedItem` | `OverlayItem \| null` | _(internal)_ | Controlled selection. |
 | `onItemSelect` | `(item) => void` | _(internal)_ | Selection callback. |
-| `dieline` | `DielineResult` | _(none)_ | Dieline geometry overlay. |
+| `dieline` | `DielineResult \| null` | _(none)_ | Dieline geometry overlay. |
 | `showBoxOverlays` | `boolean` | `false` | Render trim / bleed / crop popovers. |
 | `cropToTrim` | `boolean` | `false` | Clip the canvas to the page's TrimBox (falls back to BleedBox, then CropBox). |
+| `fullscreen` | `boolean` | `false` | Fixed-position full-viewport mode. |
+| `footer` | `ReactNode` | _(none)_ | Extra content in the footer bar. |
+| `className` | `string` | _(none)_ | Class on the outermost div. |
+| `preset` | `"demo" \| "minimal"` | `"minimal"` | First-party plugin preset baseline. |
+| `plugins` | `ReadonlyArray<LoupePDFShellPlugin>` | `[]` | Extra shell plugins; use `replaces` to override built-ins. |
+| `codex` | `MinimalCodexClient` | _(none)_ | Optional codex client; when set, the viewer silently upgrades separations / TAC / layers to Ghostscript-rendered plates as `extractStream` events arrive. |
 | `onPageChange` / `onZoomChange` / `onError` | callbacks | _(none)_ | Lifecycle hooks. |
 
 CMYK / TAC are RGB-derived approximations when no backend is wired.
@@ -87,20 +94,26 @@ export function DemoPage() {
 
 | Prop | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `brand` | `string` | `"LoupePDF"` | Label in the top bar. |
-| `brandLogoUrl` | `string` | _(none)_ | Logo image URL. |
-| `tokens` | `Partial<ThemeTokens>` | `darkThemeTokens` | Merged onto the dark palette. |
+| `brand` | `string` | `tokens.logoText` ?? `"LoupePDF"` | Label in the top bar. |
+| `brandLogoUrl` | `string` | `tokens.logoUrl` | Logo image URL. |
+| `tokens` | `Partial<ThemeTokens>` | `darkThemeTokens` | Merged onto the dark palette. Add `logoUrl` / `logoText` / `logoMaxHeight` / `logoAlt` to bundle brand identity into the tokens object. |
 | `maxFileSize` | `number` | `50 * 1024 * 1024` (50 MB) | Max upload size in bytes. |
-| `services` | `ViewerServices` | `defaultUnwiredServices` | Optional wired services for hosts with a backend. |
+| `services` | `ViewerServices` | _browser services_ | Optional overrides for hosts with a backend. Unwired fields auto-fall through to the in-browser pdf.js services. |
+| `workerSrc` | `string` | `defaultBrowserWorkerSrc` | Override the pdf.js worker URL. |
 | `initialZoom` | `number` | `80` | Starting zoom percentage. |
+| `tacLimit` | `number` | `300` | TAC limit (in percent) for the heatmap + densitometer. |
 | `fullscreen` | `boolean` | `false` | Fixed-position full-viewport mode. |
 | `initialPdfUrl` | `string` | _(none)_ | Pre-loaded PDF URL (e.g. from [share-link params](./share-links.md)). |
 | `initialPage` | `number` | `1` | Starting page (1-indexed). |
 | `footer` | `ReactNode` | _(none)_ | Extra content in the footer bar. |
 | `className` | `string` | _(none)_ | Class on the outermost div. |
 | `tools` | `ReadonlyArray<LoupePDFDemoTool>` | all | Feature ids to keep enabled (`color-picker`, `densitometer`, `measure`, `annotate`, `tac-heatmap`, `separations`, `layers`). |
+| `items` / `selectedItem` / `onItemSelect` | preflight props | _(none)_ | Same as on `<LoupePDF>` — preflight findings + controlled selection. |
+| `dieline` / `showBoxOverlays` / `cropToTrim` | print-production props | _(off / none)_ | Same as on `<LoupePDF>`. |
+| `onPageChange` / `onZoomChange` / `onError` | callbacks | _(none)_ | Lifecycle hooks. |
 | `preset` | `"demo" \| "minimal"` | `"demo"` | First-party plugin preset baseline. `LoupePDF` uses `"minimal"`. |
-| `plugins` | `LoupePDFShellPlugin[]` | `[]` | Extra shell plugins; use `replaces` to override built-ins. |
+| `plugins` | `ReadonlyArray<LoupePDFShellPlugin>` | `[]` | Extra shell plugins; use `replaces` to override built-ins. |
+| `codex` | `MinimalCodexClient` | _(none)_ | Optional codex client; when set, the viewer silently upgrades separations / TAC / layers to Ghostscript-rendered plates as `extractStream` events arrive. |
 
 #### Built-in features
 
@@ -391,15 +404,15 @@ Service deps: `separations.getChannelImageUrl`.
 
 ## Annotations
 
-The annotation suite needs the optional `fabric@^6` peer dep installed in
+The annotation suite needs the optional `fabric@^7` peer dep installed in
 your host app, and respects `ViewerHostContext.readOnly` to suppress
 saves in share-link / public-token modes.
 
 ### `AnnotationToolbar`
 
 A tool-and-color toolbar. Supported tools are `pointer`, `pen`, `arrow`,
-`rectangle`, `ellipse`, `text`, `highlight`, and `sticky` (sticky-note
-card). The host owns the active-tool state and undo/redo stack.
+`rectangle`, `ellipse`, `text`, and `highlight`. The host owns the
+active-tool state and undo/redo stack.
 
 ```tsx
 <AnnotationToolbar

@@ -38,7 +38,7 @@ npm install react react-dom
 npm install fabric
 ```
 
-Requires `react@^19` and `react-dom@^19`. `fabric@^6` is an optional peer
+Requires `react@^19` and `react-dom@^19`. `fabric@^7` is an optional peer
 used by the annotation components. `pdfjs-dist@^4` is a regular
 dependency — it comes along automatically and powers the
 `createBrowserViewerServices` factory exposed at `/browser`. The package

@@ -18,7 +18,9 @@ The viewer core MUST NOT import:
 - a literal backend route string anywhere in source — every URL is
   composed by a `ViewerServices` URL builder the host supplies.
 
-CI typecheck flags violations. Anything domain-shaped (findings,
+CI typecheck catches type-level violations (missing types, unresolved
+imports, banned protocol shapes); reviewers enforce the spirit of the
+boundary on every PR. Anything domain-shaped (findings,
 brand-spec violations, audit verdicts, host-specific configuration)
 lives in plugin packs — the core namespace stays unbranded so any
 host can mount it with zero coupling to a particular SaaS.

@@ -46,9 +46,10 @@ export function MyViewer() {
 | `mode` | `"scroll"` \| `"single"` | `"scroll"` | Page rendering mode. |
 | `tools` | `ReadonlyArray<"zoom"\|"layers"\|"color-picker"\|"measure">` | all four | Toolbar contents. Pass `[]` for no toolbar. |
 | `initialZoom` | `number` | `100` | Starting zoom percent. |
-| `header` | `ReactNode \| ((state: LoupePDFViewerState) => ReactNode)` | _(built-in toolbar)_ | Replace the default toolbar. Receives viewer state when a function. |
-| `sidebar` | `ReactNode \| ((state: LoupePDFViewerState) => ReactNode)` | _(none)_ | Inject a sidebar next to the page list. |
-| `footer` | `ReactNode \| ((state: LoupePDFViewerState) => ReactNode)` | _(none)_ | Inject a footer below the page list. |
+| `brand` | `string` | _(none)_ | Optional brand label rendered in the top-left of the toolbar. |
+| `header` | `(state: LoupePDFViewerState) => ReactNode` | _(built-in toolbar)_ | Replace the default toolbar. Receives viewer state. |
+| `sidebar` | `(state: LoupePDFViewerState) => ReactNode` | _(none)_ | Inject a sidebar next to the page list. |
+| `footer` | `ReactNode` | _(none)_ | Static footer content rendered below the viewer stage. |
 
 ## What gets hidden when no services are wired
 
@@ -93,8 +94,9 @@ import { LoupePDFViewer } from "@printwithsynergy/loupe-pdf/components";
 ```
 
 `LoupePDFViewerState` exposes: `zoom`, `setZoom`, `currentPage`,
-`setCurrentPage`, `pageCount`, `layers`, `enabledLayers`, `toggleLayer`,
-`activeTool`, `setActiveTool`.
+`setCurrentPage`, `pageCount`, `activeTool`, `setActiveTool`,
+`enabledLayers`, `toggleLayer`, `setAllLayers`, `hasLayers`,
+`layersOpen`, `setLayersOpen`.
 
 ## Custom layouts
 
