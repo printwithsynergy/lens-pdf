@@ -878,6 +878,31 @@ export function LoupePDFDemo({
     if (isMobile && activeTool !== "none") setMobileSidebarOpen(false);
   }, [activeTool, isMobile]);
 
+  // Match the document background to the viewer's dark bg so overscroll
+  // bounce (iOS rubber-band, macOS elastic scroll) shows the same colour
+  // as the viewer chrome instead of the host page's white body background.
+  // Only applies in standalone (non-embedded) mode; embedded consumers own
+  // their own page background.
+  useEffect(() => {
+    if (embedded || typeof document === "undefined") return;
+    const html = document.documentElement;
+    const body = document.body;
+    const prevHtmlBg = html.style.backgroundColor;
+    const prevBodyBg = body.style.backgroundColor;
+    const prevHtmlOverscroll = html.style.overscrollBehavior;
+    const prevBodyOverscroll = body.style.overscrollBehavior;
+    html.style.backgroundColor = tokens.bg;
+    body.style.backgroundColor = tokens.bg;
+    html.style.overscrollBehavior = "none";
+    body.style.overscrollBehavior = "none";
+    return () => {
+      html.style.backgroundColor = prevHtmlBg;
+      body.style.backgroundColor = prevBodyBg;
+      html.style.overscrollBehavior = prevHtmlOverscroll;
+      body.style.overscrollBehavior = prevBodyOverscroll;
+    };
+  }, [embedded, tokens.bg]);
+
   // -----------------------------------------------------------------------
   // Render
   // -----------------------------------------------------------------------
