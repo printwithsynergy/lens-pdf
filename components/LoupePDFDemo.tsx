@@ -1043,30 +1043,46 @@ export function LoupePDFDemo({
                       demo
                     </span>
                   </div>
-                  {/* Accordion toggle */}
+                  {/* Accordion toggle — icon changes with file state */}
                   <button
                     type="button"
-                    aria-label={mobileUrlBarOpen ? "Hide open PDF controls" : "Open PDF"}
+                    aria-label={mobileUrlBarOpen ? "Close file controls" : pdfUrl ? "Change file" : "Open a PDF"}
                     aria-expanded={mobileUrlBarOpen}
                     onClick={() => setMobileUrlBarOpen((v) => !v)}
                     style={{
                       flexShrink: 0,
+                      width: 36,
                       height: 36,
-                      paddingInline: 12,
                       borderRadius: 8,
-                      border: `1px solid ${mobileUrlBarOpen ? tokens.border : tokens.accent}`,
-                      background: mobileUrlBarOpen ? "rgba(255,255,255,0.06)" : tokens.accent,
-                      color: "#fff",
+                      border: `1px solid ${(pdfUrl || preparing) ? tokens.accent : tokens.border}`,
+                      background: (pdfUrl || preparing) ? `${tokens.accent}22` : "transparent",
+                      color: (pdfUrl || preparing) ? tokens.accent : tokens.fg,
                       cursor: "pointer",
-                      fontSize: 13,
-                      fontWeight: 600,
                       display: "flex",
                       alignItems: "center",
-                      gap: 5,
-                      whiteSpace: "nowrap",
+                      justifyContent: "center",
+                      opacity: mobileUrlBarOpen ? 0.6 : 1,
+                      transition: "opacity 0.15s",
                     }}
                   >
-                    {mobileUrlBarOpen ? "▲" : "Open PDF"}
+                    {preparing ? (
+                      // Spinner
+                      <svg width={16} height={16} viewBox="0 0 16 16" fill="none" aria-hidden>
+                        <circle cx={8} cy={8} r={6} stroke="currentColor" strokeWidth={2} strokeOpacity={0.25} />
+                        <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth={2} strokeLinecap="round"
+                          style={{ transformOrigin: "8px 8px", animation: "loupe-pdf-tools-spin 0.7s linear infinite" }} />
+                      </svg>
+                    ) : pdfUrl ? (
+                      // Filled document — file is loaded
+                      <svg width={16} height={16} viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+                        <path d="M4 2a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V6.414A1 1 0 0 0 12.707 6L9 2.293A1 1 0 0 0 8.586 2H4zm4 .5V6a1 1 0 0 0 1 1h3.5L8 2.5z" />
+                      </svg>
+                    ) : (
+                      // Outline folder — nothing loaded yet
+                      <svg width={16} height={16} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={1.5} aria-hidden>
+                        <path d="M2 5a1 1 0 0 1 1-1h3.586a1 1 0 0 1 .707.293L8.414 5.4A1 1 0 0 0 9.121 5.7H13a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5z" strokeLinejoin="round" />
+                      </svg>
+                    )}
                   </button>
                 </div>
                 {/* Collapsible URL / upload form */}
