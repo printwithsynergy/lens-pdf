@@ -65,9 +65,14 @@ import type { CSSProperties, ReactNode } from "react";
 import {
   createBrowserViewerServices,
   useBrowserViewerServicesVersion,
+  createCodexOverlayServices,
+  extractInksFromColorWorld,
+  extractLayersFromOcgs,
   PROCESS_CHANNELS,
   type BrowserViewerServices,
   type DetectedInk,
+  type MinimalCodexClient,
+  type CodexOverlayServices,
 } from "../browser";
 import type { ThemeTokens, ViewerServices } from "../plugin/services";
 import { darkThemeTokens } from "../plugin/services";
@@ -241,6 +246,25 @@ export interface LoupePDFDemoProps {
    * slots. Use `replaces` on your plugin to override a built-in one.
    */
   plugins?: ReadonlyArray<LoupePDFShellPlugin>;
+  /**
+   * Optional codex client. When provided, `<LoupePDFDemo>` fires
+   * `extractStream` in the background after each PDF loads. As codex
+   * events arrive the viewer silently upgrades:
+   *
+   * - `colorWorld` → separations panel shows pikepdf-accurate ink list
+   *   (including spots inside compressed streams that the browser's
+   *   regex parser misses).
+   * - `phase2_complete` → separations, TAC heatmap, and layers switch
+   *   to Ghostscript-rendered plates (higher fidelity than the
+   *   pdfjs RGB-approximated versions).
+   *
+   * Tools remain fully active on pdfjs throughout — there is no loading
+   * state or disabled period. Codex is a silent quality upgrade.
+   *
+   * Accepts any object satisfying {@link MinimalCodexClient} —
+   * including `HttpClient` from `@printwithsynergy/codex-client`.
+   */
+  codex?: MinimalCodexClient;
 }
 
 // ---------------------------------------------------------------------------
@@ -301,6 +325,7 @@ export function LoupePDFDemo({
   onError: onErrorProp,
   preset = "demo",
   plugins: customPlugins = [],
+  codex,
 }: LoupePDFDemoProps) {
   const overlayItems = useMemo<readonly OverlayItem[]>(
     () => items ?? [],
@@ -453,6 +478,7 @@ export function LoupePDFDemo({
   // -----------------------------------------------------------------------
   const [browserServices, setBrowserServices] =
     useState<BrowserViewerServices | null>(null);
+  const [codexOverlay, setCodexOverlay] = useState<CodexOverlayServices | null>(null);
   const [preparing, setPreparing] = useState(false);
   const [toolsLoading, setToolsLoading] = useState(false);
 
@@ -462,6 +488,13 @@ export function LoupePDFDemo({
   // fresh blob URL. AnnotationThread reads it as `refreshKey` so the
   // sidebar list re-fetches after AnnotationCanvas persists a drawing.
   const servicesVersion = useBrowserViewerServicesVersion(browserServices);
+
+  // Subscribe to codex overlay notifications (blob URLs for Ghostscript renders).
+  const [codexVersion, setCodexVersion] = useState(0);
+  useEffect(() => {
+    if (!codexOverlay) return;
+    return codexOverlay.subscribe(() => setCodexVersion((v) => v + 1));
+  }, [codexOverlay]);
 
   // Build / dispose services whenever the PDF URL changes.
   useEffect(() => {
@@ -478,6 +511,63 @@ export function LoupePDFDemo({
     setBrowserServices(next);
     return () => next.dispose();
   }, [pdfUrl, workerSrc, tacLimit, tokens, serviceOverrides]);
+
+  // Codex background extraction — fires extractStream in parallel with pdfjs.
+  // As SSE events arrive the viewer silently upgrades ink list + renders.
+  useEffect(() => {
+    if (!pdfUrl || !codex) {
+      setCodexOverlay(null);
+      return;
+    }
+    let cancelled = false;
+    let overlay: CodexOverlayServices | null = null;
+    let layerData: Array<{ name: string; ocg_index: number; default_on: boolean }> = [];
+
+    (async () => {
+      const res = await fetch(pdfUrl);
+      if (!res.ok || cancelled) return;
+      const bytes = new Uint8Array(await res.arrayBuffer());
+      if (cancelled) return;
+
+      await codex.extractStream(bytes, {
+        granular: true,
+        onColorWorld: (data) => {
+          if (cancelled) return;
+          const inks = extractInksFromColorWorld(data);
+          setDetectedInks(inks);
+          setEnabledChannels(new Set(inks.map((i) => i.name)));
+        },
+        onOcgs: (data) => {
+          if (cancelled) return;
+          layerData = extractLayersFromOcgs(data);
+        },
+        onPhase2: (doc) => {
+          if (cancelled) return;
+          overlay = createCodexOverlayServices(codex, doc.pdf_sha256, tacLimit, layerData);
+          setCodexOverlay(overlay);
+          // Update layer indices from codex's accurate OCG list.
+          if (layerData.length > 0) {
+            const indices = layerData.map((l) => l.ocg_index);
+            setAllLayerIndices(indices);
+            setEnabledLayers(new Set(indices));
+          }
+        },
+      });
+    })().catch((err) => {
+      // eslint-disable-next-line no-console
+      console.warn("[loupe-pdf] codex overlay extraction failed", err);
+    });
+
+    return () => {
+      cancelled = true;
+      if (overlay) {
+        overlay.dispose();
+        overlay = null;
+      }
+      setCodexOverlay(null);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pdfUrl, codex, tacLimit]);
 
   // Resolve page count + initial layer list when services come online.
   useEffect(() => {
@@ -580,45 +670,58 @@ export function LoupePDFDemo({
   }, [browserServices, currentPage, viewerMode, showHeatmap, tacLimit]);
 
   const services: ViewerServices | null = useMemo(() => {
-    if (serviceOverrides && browserServices) {
-      // Hybrid mode: prefer host-provided services when wired, but keep
-      // browser/pdf.js RGB simulation for any missing backend capability.
+    if (!browserServices) return serviceOverrides ?? null;
+    // Base: pdfjs services with optional host overrides on top.
+    const base: ViewerServices = serviceOverrides
+      ? {
+          pageImages: isUnwired(serviceOverrides.pageImages)
+            ? browserServices.pageImages
+            : serviceOverrides.pageImages,
+          layers: isUnwired(serviceOverrides.layers)
+            ? browserServices.layers
+            : serviceOverrides.layers,
+          separations: isUnwired(serviceOverrides.separations)
+            ? browserServices.separations
+            : serviceOverrides.separations,
+          tacHeatmap: isUnwired(serviceOverrides.tacHeatmap)
+            ? browserServices.tacHeatmap
+            : serviceOverrides.tacHeatmap,
+          colorSample: isUnwired(serviceOverrides.colorSample)
+            ? browserServices.colorSample
+            : serviceOverrides.colorSample,
+          densitometer: isUnwired(serviceOverrides.densitometer)
+            ? browserServices.densitometer
+            : serviceOverrides.densitometer,
+          annotations: isUnwired(serviceOverrides.annotations)
+            ? browserServices.annotations
+            : serviceOverrides.annotations,
+          reports: isUnwired(serviceOverrides.reports)
+            ? browserServices.reports
+            : serviceOverrides.reports,
+          telemetry: isUnwired(serviceOverrides.telemetry)
+            ? browserServices.telemetry
+            : serviceOverrides.telemetry,
+          i18n: isUnwired(serviceOverrides.i18n)
+            ? browserServices.i18n
+            : serviceOverrides.i18n,
+          tokens: serviceOverrides.tokens ?? browserServices.tokens,
+        }
+      : browserServices;
+    // Codex overlay: swap in Ghostscript-accurate renders once available.
+    // pageImages, colorSample, densitometer, annotations stay on pdfjs.
+    if (codexOverlay) {
       return {
-        pageImages: isUnwired(serviceOverrides.pageImages)
-          ? browserServices.pageImages
-          : serviceOverrides.pageImages,
-        layers: isUnwired(serviceOverrides.layers)
-          ? browserServices.layers
-          : serviceOverrides.layers,
-        separations: isUnwired(serviceOverrides.separations)
-          ? browserServices.separations
-          : serviceOverrides.separations,
-        tacHeatmap: isUnwired(serviceOverrides.tacHeatmap)
-          ? browserServices.tacHeatmap
-          : serviceOverrides.tacHeatmap,
-        colorSample: isUnwired(serviceOverrides.colorSample)
-          ? browserServices.colorSample
-          : serviceOverrides.colorSample,
-        densitometer: isUnwired(serviceOverrides.densitometer)
-          ? browserServices.densitometer
-          : serviceOverrides.densitometer,
-        annotations: isUnwired(serviceOverrides.annotations)
-          ? browserServices.annotations
-          : serviceOverrides.annotations,
-        reports: isUnwired(serviceOverrides.reports)
-          ? browserServices.reports
-          : serviceOverrides.reports,
-        telemetry: isUnwired(serviceOverrides.telemetry)
-          ? browserServices.telemetry
-          : serviceOverrides.telemetry,
-        i18n: isUnwired(serviceOverrides.i18n)
-          ? browserServices.i18n
-          : serviceOverrides.i18n,
-        tokens: serviceOverrides.tokens ?? browserServices.tokens,
+        ...base,
+        separations: codexOverlay.separations,
+        tacHeatmap: codexOverlay.tacHeatmap,
+        layers: codexOverlay.layers,
       };
     }
-    return serviceOverrides ?? browserServices ?? null;
-  }, [serviceOverrides, browserServices]);
+    return base;
+    // codexVersion + servicesVersion are intentionally in deps to force a
+    // re-render when lazy blob URLs land inside the overlay or pdfjs caches.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serviceOverrides, browserServices, codexOverlay, codexVersion, servicesVersion]);
 
   // -----------------------------------------------------------------------
   // Blob URL lifecycle (uploads only)

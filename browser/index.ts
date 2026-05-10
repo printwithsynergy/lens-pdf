@@ -36,6 +36,8 @@
 
 import { useEffect, useState } from "react";
 import * as pdfjs from "pdfjs-dist";
+export type { MinimalCodexClient, CodexOverlayServices } from "./codexOverlay";
+export { createCodexOverlayServices, extractInksFromColorWorld, extractLayersFromOcgs } from "./codexOverlay";
 import type { ColorSample, ColorSampleInk, DensitometerSample } from "../types";
 import {
   markUnwired,
