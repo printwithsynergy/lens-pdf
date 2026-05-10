@@ -655,6 +655,10 @@ export function LoupePDFDemo({
   const loadUrl = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
+      // If the bar is showing a local filename rather than a URL (no
+      // http/https scheme), the file is already loaded — do nothing.
+      // The user must clear the bar and paste a real URL to switch source.
+      if (!/^https?:\/\//i.test(draftUrl.trim())) return;
       const result = validatePdfUrl(draftUrl);
       if (!result.valid) {
         setError(result.error ?? "Invalid URL.");
@@ -680,7 +684,7 @@ export function LoupePDFDemo({
       revokePreviousBlob();
       const blobUrl = URL.createObjectURL(file);
       blobUrlRef.current = blobUrl;
-      setDraftUrl("");
+      setDraftUrl(file.name);
       setCurrentPage(1);
       setViewerMode("page");
       setPdfUrl(blobUrl);
