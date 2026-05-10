@@ -336,6 +336,9 @@ export function LoupePDFDemo({
   // components. Desktop keeps the persistent sidebar.
   const isMobile = useIsMobile();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  // Open when no PDF pre-loaded so the user sees how to load one; auto-closes
+  // after a PDF is loaded so the canvas gets the space back.
+  const [mobileUrlBarOpen, setMobileUrlBarOpen] = useState(!initialPdfUrl);
   /** Height of the marketing top bar (URL row). Drawer + dimmer start below it so they never cover the chrome or collide with the tools toggle. */
   const headerBarRef = useRef<HTMLElement | null>(null);
   const [headerChromePx, setHeaderChromePx] = useState(0);
@@ -878,6 +881,11 @@ export function LoupePDFDemo({
     if (isMobile && activeTool !== "none") setMobileSidebarOpen(false);
   }, [activeTool, isMobile]);
 
+  // Collapse the URL bar accordion when a PDF finishes loading on mobile.
+  useEffect(() => {
+    if (isMobile && pdfUrl) setMobileUrlBarOpen(false);
+  }, [pdfUrl, isMobile]);
+
   // Match the document background to the viewer's dark bg so overscroll
   // bounce (iOS rubber-band, macOS elastic scroll) shows the same colour
   // as the viewer chrome instead of the host page's white body background.
@@ -1035,69 +1043,105 @@ export function LoupePDFDemo({
                       demo
                     </span>
                   </div>
-                </div>
-                <form
-                  onSubmit={loadUrl}
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 10,
-                    width: "100%",
-                  }}
-                >
-                  <input
-                    type="text"
-                    inputMode="url"
-                    autoCapitalize="off"
-                    autoCorrect="off"
-                    spellCheck={false}
-                    enterKeyHint="go"
-                    placeholder="Paste PDF URL (https://…)"
-                    value={draftUrl}
-                    onChange={(e) => setDraftUrl(e.target.value)}
+                  {/* Accordion toggle */}
+                  <button
+                    type="button"
+                    aria-label={mobileUrlBarOpen ? "Hide open PDF controls" : "Open PDF"}
+                    aria-expanded={mobileUrlBarOpen}
+                    onClick={() => setMobileUrlBarOpen((v) => !v)}
                     style={{
-                      ...urlInputStyle(tokens),
-                      width: "100%",
-                      boxSizing: "border-box",
-                      minHeight: 44,
-                      fontSize: 16,
-                    }}
-                  />
-                  <div
-                    style={{
+                      flexShrink: 0,
+                      height: 36,
+                      paddingInline: 12,
+                      borderRadius: 8,
+                      border: `1px solid ${mobileUrlBarOpen ? tokens.border : tokens.accent}`,
+                      background: mobileUrlBarOpen ? "rgba(255,255,255,0.06)" : tokens.accent,
+                      color: "#fff",
+                      cursor: "pointer",
+                      fontSize: 13,
+                      fontWeight: 600,
                       display: "flex",
-                      gap: 10,
-                      width: "100%",
+                      alignItems: "center",
+                      gap: 5,
+                      whiteSpace: "nowrap",
                     }}
                   >
-                    <button
-                      type="submit"
-                      disabled={!/^https?:\/\//i.test(draftUrl.trim())}
+                    {mobileUrlBarOpen ? "▲" : "Open PDF"}
+                  </button>
+                </div>
+                {/* Collapsible URL / upload form */}
+                <div
+                  style={{
+                    overflow: "hidden",
+                    maxHeight: mobileUrlBarOpen ? 300 : 0,
+                    transition: "max-height 0.22s ease",
+                  }}
+                >
+                  <form
+                    onSubmit={loadUrl}
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 10,
+                      width: "100%",
+                      paddingTop: 2,
+                      paddingBottom: 2,
+                    }}
+                  >
+                    <input
+                      type="text"
+                      inputMode="url"
+                      autoCapitalize="off"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      enterKeyHint="go"
+                      placeholder="Paste PDF URL (https://…)"
+                      value={draftUrl}
+                      onChange={(e) => setDraftUrl(e.target.value)}
                       style={{
-                        ...btnStyle(tokens, !/^https?:\/\//i.test(draftUrl.trim())),
-                        flex: 1,
+                        ...urlInputStyle(tokens),
+                        width: "100%",
+                        boxSizing: "border-box",
                         minHeight: 44,
-                        padding: "12px 14px",
-                        fontSize: 15,
+                        fontSize: 16,
+                      }}
+                    />
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 10,
+                        width: "100%",
                       }}
                     >
-                      Load
-                    </button>
-                    <button
-                      type="button"
-                      style={{
-                        ...ghostBtnStyle(tokens),
-                        flex: 1,
-                        minHeight: 44,
-                        padding: "12px 14px",
-                        fontSize: 15,
-                      }}
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      Upload PDF
-                    </button>
-                  </div>
-                </form>
+                      <button
+                        type="submit"
+                        disabled={!/^https?:\/\//i.test(draftUrl.trim())}
+                        style={{
+                          ...btnStyle(tokens, !/^https?:\/\//i.test(draftUrl.trim())),
+                          flex: 1,
+                          minHeight: 44,
+                          padding: "12px 14px",
+                          fontSize: 15,
+                        }}
+                      >
+                        Load
+                      </button>
+                      <button
+                        type="button"
+                        style={{
+                          ...ghostBtnStyle(tokens),
+                          flex: 1,
+                          minHeight: 44,
+                          padding: "12px 14px",
+                          fontSize: 15,
+                        }}
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        Upload PDF
+                      </button>
+                    </div>
+                  </form>
+                </div>
               </>
             ) : (
               <>
