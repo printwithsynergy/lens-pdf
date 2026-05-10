@@ -655,10 +655,6 @@ export function LoupePDFDemo({
   const loadUrl = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
-      // If the bar is showing a local filename rather than a URL (no
-      // http/https scheme), the file is already loaded — do nothing.
-      // The user must clear the bar and paste a real URL to switch source.
-      if (!/^https?:\/\//i.test(draftUrl.trim())) return;
       const result = validatePdfUrl(draftUrl);
       if (!result.valid) {
         setError(result.error ?? "Invalid URL.");
@@ -1076,8 +1072,9 @@ export function LoupePDFDemo({
                   >
                     <button
                       type="submit"
+                      disabled={!/^https?:\/\//i.test(draftUrl.trim())}
                       style={{
-                        ...btnStyle(tokens),
+                        ...btnStyle(tokens, !/^https?:\/\//i.test(draftUrl.trim())),
                         flex: 1,
                         minHeight: 44,
                         padding: "12px 14px",
@@ -1127,7 +1124,11 @@ export function LoupePDFDemo({
                     onChange={(e) => setDraftUrl(e.target.value)}
                     style={urlInputStyle(tokens)}
                   />
-                  <button type="submit" style={btnStyle(tokens)}>
+                  <button
+                    type="submit"
+                    disabled={!/^https?:\/\//i.test(draftUrl.trim())}
+                    style={btnStyle(tokens, !/^https?:\/\//i.test(draftUrl.trim()))}
+                  >
                     Load
                   </button>
                 </form>

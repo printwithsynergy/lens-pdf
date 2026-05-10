@@ -76,17 +76,18 @@ export function urlInputStyle(tokens: ThemeTokens): CSSProperties {
   };
 }
 
-export function btnStyle(tokens: ThemeTokens): CSSProperties {
+export function btnStyle(tokens: ThemeTokens, disabled = false): CSSProperties {
   return {
     padding: "7px 16px",
     borderRadius: 6,
-    border: `1px solid ${tokens.accent}`,
-    background: tokens.accent,
-    color: "#fff",
-    cursor: "pointer",
+    border: `1px solid ${disabled ? tokens.border : tokens.accent}`,
+    background: disabled ? "rgba(255,255,255,0.06)" : tokens.accent,
+    color: disabled ? tokens.fg : "#fff",
+    cursor: disabled ? "not-allowed" : "pointer",
     fontSize: 13,
     fontWeight: 600,
     whiteSpace: "nowrap",
+    opacity: disabled ? 0.45 : 1,
   };
 }
 
