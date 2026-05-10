@@ -6,6 +6,15 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0-beta.63] — 2026-05-10
+
+### Added
+- **Show all / hide all on the Separations panel** — the inks panel
+  now has the same `All on` / `All off` header buttons that the layers
+  panel ships, plus the `Inks (n)` count next to the title. Toggle the
+  whole CMYK + spot stack in one click instead of clicking each ink
+  individually.
+
 ## [0.3.0-beta.62] — 2026-05-10
 
 ### Fixed

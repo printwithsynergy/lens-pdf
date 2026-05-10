@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { AnnotationNotesPanel } from "./AnnotationNotesPanel";
 import { AnnotationThread } from "./AnnotationThread";
 import { AnnotationToolbar } from "./AnnotationToolbar";
@@ -13,6 +13,28 @@ import {
   rowStyle,
 } from "./LoupePDFDemo.styles";
 import type { LoupePDFShellPlugin, LoupePDFShellPluginContext } from "./shellPlugins";
+
+const panelHeaderRowStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 8,
+};
+
+const panelHeaderActionsStyle: CSSProperties = {
+  display: "flex",
+  gap: 6,
+};
+
+const panelAllButtonStyle: CSSProperties = {
+  background: "transparent",
+  border: "1px solid rgba(255,255,255,0.12)",
+  borderRadius: 4,
+  color: "#cbd5e1",
+  fontSize: 11,
+  padding: "2px 6px",
+  cursor: "pointer",
+};
 
 const PROCESS_SWATCH: Record<string, string> = {
   Cyan: "#00b7eb",
@@ -212,40 +234,63 @@ function separationsPlugin(): LoupePDFShellPlugin {
     slot: "panel.left",
     order: 20,
     isAvailable: (ctx) => ctx.availability.separations && ctx.viewerMode === "separation",
-    render: (ctx: LoupePDFShellPluginContext) => (
-      <>
-        <h2 style={headingStyle}>Inks</h2>
-        {ctx.detectedInks.map((ink) => {
-          const enabled = ctx.enabledChannels.has(ink.name);
-          return (
-            <label key={ink.name} style={rowStyle}>
-              <input
-                type="checkbox"
-                checked={enabled}
-                onChange={() =>
-                  ctx.setEnabledChannels((prev) => {
-                    const next = new Set(prev);
-                    if (next.has(ink.name)) next.delete(ink.name);
-                    else next.add(ink.name);
-                    return next;
-                  })
-                }
-              />
-              <span
-                style={{
-                  ...channelSwatchStyle,
-                  backgroundColor:
-                    ink.type === "process"
-                      ? PROCESS_SWATCH[ink.name] ?? "#1f2937"
-                      : "#7c3aed",
-                }}
-              />
-              <span>{ink.name}</span>
-            </label>
-          );
-        })}
-      </>
-    ),
+    render: (ctx: LoupePDFShellPluginContext) => {
+      const allInkNames = ctx.detectedInks.map((ink) => ink.name);
+      return (
+        <>
+          <div style={panelHeaderRowStyle}>
+            <h2 style={headingStyle}>Inks ({ctx.detectedInks.length})</h2>
+            <div style={panelHeaderActionsStyle}>
+              <button
+                type="button"
+                onClick={() => ctx.setEnabledChannels(new Set(allInkNames))}
+                style={panelAllButtonStyle}
+                title="Show every ink"
+              >
+                All on
+              </button>
+              <button
+                type="button"
+                onClick={() => ctx.setEnabledChannels(new Set())}
+                style={panelAllButtonStyle}
+                title="Hide every ink"
+              >
+                All off
+              </button>
+            </div>
+          </div>
+          {ctx.detectedInks.map((ink) => {
+            const enabled = ctx.enabledChannels.has(ink.name);
+            return (
+              <label key={ink.name} style={rowStyle}>
+                <input
+                  type="checkbox"
+                  checked={enabled}
+                  onChange={() =>
+                    ctx.setEnabledChannels((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(ink.name)) next.delete(ink.name);
+                      else next.add(ink.name);
+                      return next;
+                    })
+                  }
+                />
+                <span
+                  style={{
+                    ...channelSwatchStyle,
+                    backgroundColor:
+                      ink.type === "process"
+                        ? PROCESS_SWATCH[ink.name] ?? "#1f2937"
+                        : "#7c3aed",
+                  }}
+                />
+                <span>{ink.name}</span>
+              </label>
+            );
+          })}
+        </>
+      );
+    },
   };
 }
 
