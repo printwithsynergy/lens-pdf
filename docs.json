@@ -48,6 +48,8 @@
         { "title": "Plugin model", "href": "/docs/plugins" },
         { "title": "Measurement units", "href": "/docs/measurement-units" },
         { "title": "Theme, i18n, telemetry, read-only mode", "href": "/docs/theming" },
+        { "title": "Shareable links", "href": "/docs/share-links" },
+        { "title": "PDF validation", "href": "/docs/validation" },
         { "title": "Reference server", "href": "/docs/server" }
       ]
     },
