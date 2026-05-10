@@ -58,6 +58,17 @@ import { defaultThemeTokens } from "../plugin/services";
 const ANALYSIS_DPI = 200;
 
 /**
+ * Mobile-safe upper bound on canvas pixel area for the analysis raster
+ * and its derivative channels. iOS Safari documents a 16,777,216-pixel
+ * canvas budget per process; with 4+ derivative canvases (CMYK plates
+ * + spots + TAC + page) sharing it, anything above ~12 MP per canvas
+ * starts returning `null` from `toBlob`. Large-format pages
+ * (poster / packaging dielines) get scaled down here so analysis still
+ * runs — host-driven page rasters in `buildPageUrl` are unaffected.
+ */
+const MAX_ANALYSIS_CANVAS_PIXELS = 12_000_000;
+
+/**
  * "Rich black" K factor. Press rich blacks land somewhere between
  * 60 % and 100 % K with the rest filled in by C/M/Y; 0.8 gives
  * realistic densitometer readings and a TAC heatmap that actually
@@ -411,13 +422,39 @@ async function rasterizeBlobUrl(
     out.data[i + 3] = a;
   }
   ctx.putImageData(out, 0, 0);
-  const blob = await new Promise<Blob>((resolve, reject) =>
-    canvas.toBlob(
-      (b) => (b ? resolve(b) : reject(new Error("[loupe-pdf] toBlob returned null"))),
-      "image/png",
-    ),
-  );
+  const blob = await canvasToPngBlob(canvas, "rasterizeBlobUrl");
   return URL.createObjectURL(blob);
+}
+
+/**
+ * Encode a canvas to a PNG blob. iOS Safari intermittently returns
+ * `null` from `canvas.toBlob` for large or memory-pressured canvases
+ * even when `toDataURL` succeeds, so we fall back to the synchronous
+ * data-URL path before giving up.
+ */
+async function canvasToPngBlob(
+  canvas: HTMLCanvasElement,
+  caller: string,
+): Promise<Blob> {
+  const direct = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, "image/png"),
+  );
+  if (direct) return direct;
+  let dataUrl: string;
+  try {
+    dataUrl = canvas.toDataURL("image/png");
+  } catch (err) {
+    throw new Error(
+      `[loupe-pdf] ${caller}: PNG encode failed (canvas ${canvas.width}x${canvas.height} exceeds browser limit): ${(err as Error).message}`,
+    );
+  }
+  if (!dataUrl || dataUrl === "data:,") {
+    throw new Error(
+      `[loupe-pdf] ${caller}: PNG encode returned empty (canvas ${canvas.width}x${canvas.height} exceeds browser limit)`,
+    );
+  }
+  const res = await fetch(dataUrl);
+  return res.blob();
 }
 
 /**
@@ -655,12 +692,7 @@ export function createBrowserViewerServices(
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     await page.render({ canvasContext: ctx, viewport }).promise;
-    const blob = await new Promise<Blob>((resolve, reject) =>
-      canvas.toBlob(
-        (b) => (b ? resolve(b) : reject(new Error("[loupe-pdf] page toBlob null"))),
-        "image/png",
-      ),
-    );
+    const blob = await canvasToPngBlob(canvas, "buildPageUrl");
     const url = URL.createObjectURL(blob);
     blobs.push(url);
     return url;
@@ -672,8 +704,14 @@ export function createBrowserViewerServices(
     const baseViewport = page.getViewport({ scale: 1 });
     const widthPts = baseViewport.width;
     const heightPts = baseViewport.height;
-    const ptsToPx = ANALYSIS_DPI / 72;
-    const viewport = page.getViewport({ scale: ptsToPx });
+    let ptsToPx = ANALYSIS_DPI / 72;
+    let probe = page.getViewport({ scale: ptsToPx });
+    const fullArea = Math.ceil(probe.width) * Math.ceil(probe.height);
+    if (fullArea > MAX_ANALYSIS_CANVAS_PIXELS) {
+      ptsToPx *= Math.sqrt(MAX_ANALYSIS_CANVAS_PIXELS / fullArea);
+      probe = page.getViewport({ scale: ptsToPx });
+    }
+    const viewport = probe;
     const widthPx = Math.ceil(viewport.width);
     const heightPx = Math.ceil(viewport.height);
     const canvas = document.createElement("canvas");
@@ -943,12 +981,7 @@ export function createBrowserViewerServices(
       background: "rgba(0,0,0,0)" as unknown as string,
     } as Parameters<typeof page.render>[0]).promise;
 
-    const blob = await new Promise<Blob>((resolve, reject) =>
-      canvas.toBlob(
-        (b) => (b ? resolve(b) : reject(new Error("[loupe-pdf] layer toBlob null"))),
-        "image/png",
-      ),
-    );
+    const blob = await canvasToPngBlob(canvas, "buildLayerUrl");
     const url = URL.createObjectURL(blob);
     blobs.push(url);
     return url;

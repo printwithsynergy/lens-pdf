@@ -6,6 +6,21 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0-beta.62] — 2026-05-10
+
+### Fixed
+- **Mobile separations / TAC: `[loupe-pdf] toBlob returned null`** — iOS
+  Safari intermittently returns `null` from `canvas.toBlob` for large or
+  memory-pressured canvases (the analysis raster + each CMYK plate +
+  spots + TAC heatmap all share one process-wide canvas budget).
+  `rasterizeBlobUrl`, `buildPageUrl`, and `buildLayerUrl` now route
+  through a single `canvasToPngBlob` helper that falls back to
+  `toDataURL → fetch → blob` when `toBlob` returns null, and the
+  analysis raster scales itself down to a 12 MP budget so large-format
+  pages (poster / packaging dielines) still render. Hosts using
+  `buildPageUrl` directly with a custom DPI are unaffected by the
+  clamp.
+
 ## [0.3.0-beta.61] — 2026-05-10
 
 ### Fixed
