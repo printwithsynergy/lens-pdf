@@ -17,7 +17,7 @@
 
 import type { SeparationService, LayerService, TACHeatmapService, ViewerServices } from "../plugin/services";
 import type { DetectedInk } from "./index";
-import { PROCESS_CHANNELS, PROCESS_CHANNELS as _CHANNELS } from "./index";
+import { PROCESS_CHANNELS } from "./constants";
 
 // ---------------------------------------------------------------------------
 // Minimal codex client interface (structural typing — no codex-client import)
@@ -318,5 +318,3 @@ export function createCodexOverlayServices(
   };
 }
 
-// Unused re-export to satisfy eslint no-unused-vars on the import.
-void (_CHANNELS as unknown);

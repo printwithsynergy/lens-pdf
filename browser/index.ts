@@ -65,8 +65,8 @@ const ANALYSIS_DPI = 200;
  */
 const K_FACTOR = 0.8;
 
-/** Process inks the demo synthesises from RGB. */
-export const PROCESS_CHANNELS = ["Cyan", "Magenta", "Yellow", "Black"] as const;
+export { PROCESS_CHANNELS } from "./constants";
+import { PROCESS_CHANNELS } from "./constants";
 
 /**
  * A single ink reported by the densitometer / color picker.

@@ -6,6 +6,17 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0-beta.61] — 2026-05-10
+
+### Fixed
+- **SSR crash on `/demo` (`Cannot access '_CHANNELS' before initialization`)** —
+  `browser/codexOverlay.ts` imported `PROCESS_CHANNELS` back from
+  `browser/index.ts`, which already re-exports `codexOverlay`. Under Astro /
+  Node ESM the cycle hit a temporal-dead-zone read at request time and broke
+  every render of routes that load the codex overlay. `PROCESS_CHANNELS` now
+  lives in `browser/constants.ts`, a leaf module both files import from, so
+  the cycle is gone. No public API change.
+
 ## [0.3.0-beta.52] — 2026-05-09
 
 ### Changed
