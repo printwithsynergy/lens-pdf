@@ -1514,25 +1514,40 @@ export function LoupePDFDemo({
             ) : (
               <div style={stageInnerStyle}>
                 {toolbarOverlayPlugins.length > 0 && (
-                  <div
-                    style={{
-                      position: "sticky",
-                      top: 0,
-                      zIndex: 30,
-                      alignSelf: "center",
-                      width: isMobile ? "100%" : undefined,
-                      maxWidth: isMobile ? "100%" : undefined,
-                      boxSizing: "border-box",
-                      overflowX: isMobile ? "auto" : undefined,
-                      WebkitOverflowScrolling: isMobile ? "touch" : undefined,
-                      paddingLeft: isMobile ? 0 : undefined,
-                      paddingRight: isMobile ? 0 : undefined,
-                    }}
-                  >
-                    {toolbarOverlayPlugins.map((plugin) => (
-                      <div key={plugin.id}>{plugin.render(shellPluginContext)}</div>
-                    ))}
-                  </div>
+                  isMobile ? (
+                    // On mobile: fixed just below the header so the toolbar
+                    // is always visible regardless of canvas scroll position.
+                    <div
+                      style={{
+                        position: "fixed",
+                        top: headerChromePx,
+                        left: 0,
+                        right: 0,
+                        zIndex: 130,
+                        overflowX: "auto",
+                        WebkitOverflowScrolling: "touch",
+                        boxSizing: "border-box",
+                      }}
+                    >
+                      {toolbarOverlayPlugins.map((plugin) => (
+                        <div key={plugin.id}>{plugin.render(shellPluginContext)}</div>
+                      ))}
+                    </div>
+                  ) : (
+                    // On desktop: sticky at the top of the stage scroll container.
+                    <div
+                      style={{
+                        position: "sticky",
+                        top: 0,
+                        zIndex: 30,
+                        alignSelf: "center",
+                      }}
+                    >
+                      {toolbarOverlayPlugins.map((plugin) => (
+                        <div key={plugin.id}>{plugin.render(shellPluginContext)}</div>
+                      ))}
+                    </div>
+                  )
                 )}
                 <div
                   style={{
