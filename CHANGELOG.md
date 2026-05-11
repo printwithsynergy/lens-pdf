@@ -6,6 +6,18 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0-beta.67] — 2026-05-11
+
+### Fixed
+- **Annotation toolbar no longer escapes into the host page's chrome
+  on mobile** — the mobile container used `position: fixed; top:
+  headerChromePx`, but in `embedded` mode `headerChromePx` is `0`, so
+  the toolbar landed at viewport-top and covered the parent page's
+  navigation when the viewer was mounted on a marketing site. Switched
+  to `position: sticky; top: 0`, which keeps the toolbar pinned to the
+  top of the stage scroll container without escaping upward. Desktop
+  was already sticky; the two code paths are now unified.
+
 ## [0.3.0-beta.66] — 2026-05-11
 
 ### Fixed

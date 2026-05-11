@@ -1633,41 +1633,29 @@ export function LoupePDFDemo({
             ) : (
               <div style={stageInnerStyle}>
                 {toolbarOverlayPlugins.length > 0 && (
-                  isMobile ? (
-                    // On mobile: fixed just below the header so the toolbar
-                    // is always visible regardless of canvas scroll position.
-                    // The toolbar itself wraps onto two rows so every control
-                    // stays reachable without a horizontal-scroll gesture.
-                    <div
-                      style={{
-                        position: "fixed",
-                        top: headerChromePx,
-                        left: 0,
-                        right: 0,
-                        zIndex: 130,
-                        boxSizing: "border-box",
-                        padding: "0 8px",
-                      }}
-                    >
-                      {toolbarOverlayPlugins.map((plugin) => (
-                        <div key={plugin.id}>{plugin.render(shellPluginContext)}</div>
-                      ))}
-                    </div>
-                  ) : (
-                    // On desktop: sticky at the top of the stage scroll container.
-                    <div
-                      style={{
-                        position: "sticky",
-                        top: 0,
-                        zIndex: 30,
-                        alignSelf: "center",
-                      }}
-                    >
-                      {toolbarOverlayPlugins.map((plugin) => (
-                        <div key={plugin.id}>{plugin.render(shellPluginContext)}</div>
-                      ))}
-                    </div>
-                  )
+                  // Sticky at the top of the stage scroll container on both
+                  // mobile and desktop — the toolbar stays visible while the
+                  // canvas scrolls, but never escapes upward into the host
+                  // page's chrome (the `fixed` variant covered marketing-site
+                  // nav when the viewer was mounted in `embedded` mode).
+                  <div
+                    style={{
+                      position: "sticky",
+                      top: 0,
+                      zIndex: 30,
+                      alignSelf: "center",
+                      ...(isMobile
+                        ? {
+                            paddingTop: 8,
+                            maxWidth: "100%",
+                          }
+                        : {}),
+                    }}
+                  >
+                    {toolbarOverlayPlugins.map((plugin) => (
+                      <div key={plugin.id}>{plugin.render(shellPluginContext)}</div>
+                    ))}
+                  </div>
                 )}
                 <div
                   style={{
