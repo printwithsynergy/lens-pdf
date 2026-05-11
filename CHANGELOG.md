@@ -6,6 +6,25 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0-beta.65] — 2026-05-11
+
+### Changed
+- **`@printwithsynergy/codex-client` declared as optional peer dep at
+  `^1.8.1`** — `browser/codexOverlay.ts` keeps its structural
+  `MinimalCodexClient` interface (no runtime import), and `HttpClient`
+  from 1.8.1 satisfies it. The peer dep is marked optional in
+  `peerDependenciesMeta`, so hosts that don't pass a `codex` client
+  to `<LoupePDFDemo>` / `<LoupePDF>` are unaffected.
+
+### Docs
+- **Shareable links** (`generateShareLink`, `parseShareParams`) and
+  **PDF validation** (`validatePdfFile`, `validatePdfUrl`) pages are
+  now wired into the Reference group of the rendered docs sidebar
+  (previously only reachable via inbound links from README /
+  components).
+- **README + components.md** call out the optional codex-client peer
+  dep alongside the existing `fabric` peer.
+
 ## [0.3.0-beta.64] — 2026-05-10
 
 ### Added

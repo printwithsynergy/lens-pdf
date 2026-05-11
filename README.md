@@ -36,11 +36,16 @@ Peer dependencies you provide in your host app:
 npm install react react-dom
 # Optional — only if you mount AnnotationCanvas / AnnotationThread:
 npm install fabric
+# Optional — only if you pass a `codex` client for Ghostscript-accurate
+# separations / TAC / layers:
+npm install @printwithsynergy/codex-client
 ```
 
 Requires `react@^19` and `react-dom@^19`. `fabric@^7` is an optional peer
-used by the annotation components. `pdfjs-dist@^4` is a regular
-dependency — it comes along automatically and powers the
+used by the annotation components. `@printwithsynergy/codex-client@^1.8.1`
+is an optional peer used by the codex accuracy overlay — hosts that
+never pass the `codex` prop don't need to install it. `pdfjs-dist@^4`
+is a regular dependency — it comes along automatically and powers the
 `createBrowserViewerServices` factory exposed at `/browser`. The package
 ships ESM only.
 

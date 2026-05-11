@@ -72,6 +72,12 @@ CMYK / TAC are RGB-derived approximations when no backend is wired.
 For ICC-correct readings, deploy the [optional reference server](./server.md)
 and pass its `services` overrides.
 
+The `codex` prop accepts any object matching the structural
+`MinimalCodexClient` interface — in practice that means an instance of
+`HttpClient` from `@printwithsynergy/codex-client@^1.8.1`, declared as
+an optional peer dep. Hosts that don't use the codex overlay don't need
+to install it.
+
 ## Drop-in demo
 
 ### `LoupePDFDemo`
