@@ -39,7 +39,11 @@ interface AnnotationToolbarProps {
   canUndo: boolean;
   canRedo: boolean;
   saving: boolean;
-  /** When true, items stay on one row and overflow scrolls horizontally. */
+  /**
+   * Mobile / touch layout: items wrap onto multiple rows and every
+   * control gets a finger-sized hit target. Defaults to false (desktop
+   * single-row layout with smaller buttons).
+   */
   compact?: boolean;
 }
 
@@ -129,8 +133,9 @@ function wrapperStyle(compact: boolean): CSSProperties {
   return {
     display: "flex",
     alignItems: "center",
-    gap: 6,
-    padding: "6px 10px",
+    gap: compact ? 8 : 6,
+    rowGap: compact ? 8 : undefined,
+    padding: compact ? "8px 12px" : "6px 10px",
     borderRadius: 8,
     border: "1px solid rgba(255, 255, 255, 0.1)",
     background: "rgba(15, 12, 25, 0.92)",
@@ -138,16 +143,16 @@ function wrapperStyle(compact: boolean): CSSProperties {
     color: "#f5f3f7",
     fontSize: 13,
     boxShadow: "0 6px 18px rgba(0, 0, 0, 0.45)",
-    flexWrap: compact ? "nowrap" : "wrap",
-    overflowX: compact ? "auto" : undefined,
+    flexWrap: "wrap",
     position: "relative",
   };
 }
 
-function toolButtonStyle(active: boolean): CSSProperties {
+function toolButtonStyle(active: boolean, touch: boolean): CSSProperties {
+  const size = touch ? 40 : 28;
   return {
-    width: 28,
-    height: 28,
+    width: size,
+    height: size,
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
@@ -156,25 +161,28 @@ function toolButtonStyle(active: boolean): CSSProperties {
     background: active ? ACCENT : "transparent",
     color: active ? "#fff" : "inherit",
     cursor: "pointer",
-    fontSize: 14,
+    fontSize: touch ? 18 : 14,
     fontWeight: 600,
     padding: 0,
     lineHeight: 1,
   };
 }
 
-const dividerStyle: CSSProperties = {
-  width: 1,
-  height: 18,
-  background: "rgba(255, 255, 255, 0.15)",
-  margin: "0 4px",
-  flexShrink: 0,
-};
-
-function swatchStyle(color: string, active: boolean): CSSProperties {
+function dividerStyle(touch: boolean): CSSProperties {
   return {
-    width: 18,
-    height: 18,
+    width: 1,
+    height: touch ? 24 : 18,
+    background: "rgba(255, 255, 255, 0.15)",
+    margin: "0 4px",
+    flexShrink: 0,
+  };
+}
+
+function swatchStyle(color: string, active: boolean, touch: boolean): CSSProperties {
+  const size = touch ? 26 : 18;
+  return {
+    width: size,
+    height: size,
     borderRadius: "50%",
     border: active
       ? `2px solid ${ACCENT}`
@@ -187,16 +195,16 @@ function swatchStyle(color: string, active: boolean): CSSProperties {
   };
 }
 
-function actionButtonStyle(disabled: boolean): CSSProperties {
+function actionButtonStyle(disabled: boolean, touch: boolean): CSSProperties {
   return {
-    padding: "4px 10px",
+    padding: touch ? "8px 14px" : "4px 10px",
     borderRadius: 6,
     border: "1px solid rgba(255, 255, 255, 0.15)",
     background: "transparent",
     color: "inherit",
     cursor: disabled ? "not-allowed" : "pointer",
     opacity: disabled ? 0.4 : 1,
-    fontSize: 12,
+    fontSize: touch ? 14 : 12,
     fontWeight: 500,
   };
 }
@@ -208,16 +216,19 @@ const savingLabelStyle: CSSProperties = {
   marginLeft: 4,
 };
 
-const customColorInputStyle: CSSProperties = {
-  width: 22,
-  height: 22,
-  cursor: "pointer",
-  border: "none",
-  padding: 0,
-  background: "transparent",
-  borderRadius: 4,
-  marginLeft: 2,
-};
+function customColorInputStyle(touch: boolean): CSSProperties {
+  const size = touch ? 32 : 22;
+  return {
+    width: size,
+    height: size,
+    cursor: "pointer",
+    border: "none",
+    padding: 0,
+    background: "transparent",
+    borderRadius: 4,
+    marginLeft: 2,
+  };
+}
 
 const floatingTipStyle: CSSProperties = {
   position: "fixed",
@@ -326,7 +337,7 @@ export function AnnotationToolbar({
           key={tool.id}
           type="button"
           onClick={() => onToolChange(tool.id)}
-          style={toolButtonStyle(activeTool === tool.id)}
+          style={toolButtonStyle(activeTool === tool.id, compact)}
           title={tool.tooltip}
           aria-label={tool.label}
           aria-pressed={activeTool === tool.id}
@@ -339,14 +350,14 @@ export function AnnotationToolbar({
         </button>
       ))}
 
-      <span style={dividerStyle} />
+      <span style={dividerStyle(compact)} />
 
       {PRESET_COLORS.map((color) => (
         <button
           key={color}
           type="button"
           onClick={() => onStrokeColorChange(color)}
-          style={swatchStyle(color, strokeColor.toLowerCase() === color)}
+          style={swatchStyle(color, strokeColor.toLowerCase() === color, compact)}
           title={`${color} — click to use as stroke / fill colour`}
           aria-label={`Use colour ${color}`}
           onMouseEnter={(e) =>
@@ -369,7 +380,7 @@ export function AnnotationToolbar({
         type="color"
         value={strokeColor}
         onChange={(e) => onStrokeColorChange(e.target.value)}
-        style={customColorInputStyle}
+        style={customColorInputStyle(compact)}
         title="Open the system colour picker for a custom colour"
         aria-label="Custom colour"
         onMouseEnter={(e) =>
@@ -388,13 +399,13 @@ export function AnnotationToolbar({
         onBlur={hideTip}
       />
 
-      <span style={dividerStyle} />
+      <span style={dividerStyle(compact)} />
 
       <button
         type="button"
         onClick={onUndo}
         disabled={!canUndo}
-        style={actionButtonStyle(!canUndo)}
+        style={actionButtonStyle(!canUndo, compact)}
         title="Undo the last change to annotations on this page"
         onMouseEnter={(e) => {
           if (!canUndo) return;
@@ -413,7 +424,7 @@ export function AnnotationToolbar({
         type="button"
         onClick={onRedo}
         disabled={!canRedo}
-        style={actionButtonStyle(!canRedo)}
+        style={actionButtonStyle(!canRedo, compact)}
         title="Redo the last change you undid"
         onMouseEnter={(e) => {
           if (!canRedo) return;

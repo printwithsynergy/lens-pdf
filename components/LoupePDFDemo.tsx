@@ -1636,6 +1636,8 @@ export function LoupePDFDemo({
                   isMobile ? (
                     // On mobile: fixed just below the header so the toolbar
                     // is always visible regardless of canvas scroll position.
+                    // The toolbar itself wraps onto two rows so every control
+                    // stays reachable without a horizontal-scroll gesture.
                     <div
                       style={{
                         position: "fixed",
@@ -1643,9 +1645,8 @@ export function LoupePDFDemo({
                         left: 0,
                         right: 0,
                         zIndex: 130,
-                        overflowX: "auto",
-                        WebkitOverflowScrolling: "touch",
                         boxSizing: "border-box",
+                        padding: "0 8px",
                       }}
                     >
                       {toolbarOverlayPlugins.map((plugin) => (

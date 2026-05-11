@@ -6,6 +6,20 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0-beta.66] — 2026-05-11
+
+### Fixed
+- **Annotation toolbar no longer blocks navigation on mobile** — the
+  fixed toolbar that sits just below the header was a single
+  horizontally-scrolling strip with 28-px buttons. It now wraps onto
+  two rows so every control is reachable without a scroll gesture,
+  and every hit target is sized for fingers (tool buttons 28 → 40 px,
+  swatches 18 → 26 px, undo/redo padding and font scaled up, custom
+  colour input 22 → 32 px). Desktop layout is unchanged — the wider
+  hits only kick in when `compact` is set, which `<LoupePDFDemo>`
+  passes from `ctx.isMobile`. The mobile container no longer needs
+  `overflowX: auto` (wrap replaces scroll).
+
 ## [0.3.0-beta.65] — 2026-05-11
 
 ### Changed
