@@ -44,6 +44,8 @@ export { pageInfoFromDimensions } from "./types";
 export { LoupePDFDemo } from "./components/LoupePDFDemo";
 export { FindingsSidebar } from "./components/FindingsSidebar";
 export type { FindingsSidebarProps } from "./components/FindingsSidebar";
+export { DielineInfoPanel } from "./components/DielineInfoPanel";
+export type { DielineInfoPanelProps } from "./components/DielineInfoPanel";
 export type {
   LoupePDFDemoProps,
   LoupePDFDemoTool,

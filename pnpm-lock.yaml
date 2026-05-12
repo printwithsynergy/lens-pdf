@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@printwithsynergy/codex-client':
-        specifier: ^1.11.0
-        version: 1.11.0
+        specifier: ^1.15.0
+        version: 1.15.0
       pdfjs-dist:
         specifier: ^4.0.0
         version: 4.10.38
@@ -406,8 +406,8 @@ packages:
     resolution: {integrity: sha512-xglYA6q3XO5P3BNJYxVZ1IV7DLVjp1Py6nwag88YntrS+3vKHyYcMqXVS4ZztJmwz2uGvz1FWhI/4LgbR5uQDA==}
     engines: {node: '>= 10'}
 
-  '@printwithsynergy/codex-client@1.11.0':
-    resolution: {integrity: sha512-sonPyHrOEm80TBuI7TOR4JBNE1z+5AZThZ7ka4lDZS/sAdYMieb3FYNTmR5CHQ9xUC7BZoitZKNv0LA844/Vdg==}
+  '@printwithsynergy/codex-client@1.15.0':
+    resolution: {integrity: sha512-gkp70GnZsTwzrYmaKUYZqcywpHmr7dO6xrHKBZwT9HlEZedWbhfMen/Uevioyg7P2BJkqgklOgylrawrlrsMsw==}
 
   '@rolldown/pluginutils@1.0.0-beta.27':
     resolution: {integrity: sha512-+d0F4MKMCbeVUJwG96uQ4SgAznZNSq93I3V+9NHA4OpvqG8mRCpGdKmK8l/dl02h2CCDHwW2FqilnTyDcAnqjA==}
@@ -1464,7 +1464,7 @@ snapshots:
       '@napi-rs/canvas-win32-x64-msvc': 0.1.100
     optional: true
 
-  '@printwithsynergy/codex-client@1.11.0': {}
+  '@printwithsynergy/codex-client@1.15.0': {}
 
   '@rolldown/pluginutils@1.0.0-beta.27': {}
 

@@ -94,7 +94,17 @@ export function BoxOverlay({ page, canvasWidth, canvasHeight, dieline }: BoxOver
     });
   }
 
-  if (boxes.length === 0) return null;
+  // Dieline regions become first-class boxes alongside trim/bleed/crop.
+  // The info chip at the centroid still drives the click-to-show-size
+  // popover below; the rectangle is purely informational so operators
+  // can see at a glance WHERE the dieline lives on the page without
+  // having to click anything. Render in red (matches the chip color)
+  // with a 4-2 dash pattern so it doesn't compete with trim's solid
+  // blue.
+  const dielineRegions = dieline?.regions ?? [];
+  const dielineColor = dieline?.multi_color ? "#ef4444" : "#dc2626";
+
+  if (boxes.length === 0 && dielineRegions.length === 0) return null;
 
   return (
     <div
@@ -105,6 +115,34 @@ export function BoxOverlay({ page, canvasWidth, canvasHeight, dieline }: BoxOver
         height={canvasHeight}
         style={{ pointerEvents: "none" }}
       >
+        {dielineRegions.map((region, idx) => {
+          const box = { x0: region.x0, y0: region.y0, x1: region.x1, y1: region.y1 };
+          const px = boxToPixels(box, page, canvasWidth, canvasHeight);
+          const label = dielineRegions.length > 1 ? `Dieline ${idx + 1}` : "Dieline";
+          return (
+            <g key={`die-rect-${idx}`}>
+              <rect
+                x={px.left}
+                y={px.top}
+                width={px.width}
+                height={px.height}
+                fill="none"
+                stroke={dielineColor}
+                strokeWidth={1.5}
+                strokeDasharray="6 3"
+                opacity={0.85}
+              />
+              <text
+                x={px.left + 4}
+                y={Math.max(12, px.top - 4)}
+                fill={dielineColor}
+                style={{ font: "10px ui-sans-serif, system-ui, -apple-system, sans-serif" }}
+              >
+                {label}
+              </text>
+            </g>
+          );
+        })}
         {boxes.map(({ label, color, dashArray, box }) => {
           const px = boxToPixels(box, page, canvasWidth, canvasHeight);
           return (
