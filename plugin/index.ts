@@ -56,3 +56,12 @@ export {
   register,
   unregister,
 } from "./registry";
+
+/**
+ * Findings-location helpers — shared logic for adapter authors
+ * (lint-pdf, callas, PitStop, Acrobat, custom rule engines) that
+ * map their findings into ``OverlayItem``s. Use these to split
+ * located findings (the viewer can highlight + click) from
+ * informational findings (page-level metadata).
+ */
+export { hasViewerLocation, splitFindingsByLocation } from "./findings-location";
