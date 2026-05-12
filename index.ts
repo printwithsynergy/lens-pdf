@@ -42,6 +42,8 @@ export type { LoupePDFProviderProps } from "./host/LoupePDFProvider";
 export { pageInfoFromDimensions } from "./types";
 
 export { LoupePDFDemo } from "./components/LoupePDFDemo";
+export { FindingsSidebar } from "./components/FindingsSidebar";
+export type { FindingsSidebarProps } from "./components/FindingsSidebar";
 export type {
   LoupePDFDemoProps,
   LoupePDFDemoTool,
