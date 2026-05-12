@@ -236,6 +236,53 @@ readings deploy the optional reference server below and pass its
 `services` overrides — the components automatically swap from the
 browser approximation to ICC-derived data with no markup change.
 
+## Findings + dieline (0.3.0-beta.71 +)
+
+Two built-in components for adapter authors (lint-pdf, callas
+pdfToolbox, PitStop, Acrobat, custom rule engines) mapping their
+preflight findings into Loupe overlays:
+
+- **`FindingsSidebar`** — vertical sidebar that splits items into
+  collapsible **Located in viewer** (clickable, draws boxes/numbers
+  on the canvas) and **Informational** (no bbox, surfaced as static
+  rows). Severity-filter pills along the top.
+- **`DielineInfoPanel`** — info card showing source / spot name /
+  confidence + per-region size (mm + inches) from a
+  `DielineResult`. Pairs with the canvas-side dieline bbox that
+  `BoxOverlay` now draws automatically when the same prop is
+  passed to `<LoupePDF dieline={...}>`.
+
+Plus two helpers exported from `@printwithsynergy/loupe-pdf/plugin`:
+
+- **`hasViewerLocation(item)`** — true when the item has a bbox /
+  point / regions. Same predicate the canvas uses internally.
+- **`splitFindingsByLocation(items)`** — returns
+  `{located, informational}` preserving order in each bucket.
+
+```tsx
+import {
+  LoupePDF,
+  FindingsSidebar,
+  DielineInfoPanel,
+} from "@printwithsynergy/loupe-pdf";
+
+<div className="flex h-full w-full">
+  <FindingsSidebar items={overlayItems} onSelect={setSelected} />
+  <LoupePDF
+    items={overlayItems}
+    selectedItem={selected}
+    onItemSelect={setSelected}
+    dieline={dielineResult}
+  />
+  <DielineInfoPanel dieline={dielineResult} />
+</div>
+```
+
+`FindingsSidebar` + `DielineInfoPanel` are no-ops when their data
+prop is empty/null so hosts mount them unconditionally — they only
+render once real data arrives. Theming honours Loupe's brand-* /
+slate-* tokens.
+
 ## Demo
 
 Want to see the hide-on-unwired contract in action without setting up your own
