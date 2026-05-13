@@ -6,6 +6,20 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0-beta.74] — 2026-05-13
+
+### Changed
+- **Annotation toolbar now lays out as three explicit rows on
+  mobile** — previously the toolbar used `flex-wrap: wrap` and
+  whatever organic wrap fell out of the available width, which on a
+  typical phone broke as `[tools + one swatch] / [rest of swatches +
+  undo / redo / saved]`. Wrapped the existing children in three
+  groups (Tools / Colours / Actions), each with `flex-basis: 100%`
+  when the `compact` prop is true so the three groups always take
+  one row each. Desktop layout is unchanged — without `compact` the
+  groups stay inline and the outer wrapper's `flex-wrap` still
+  handles narrow desktop viewports.
+
 ## [0.3.0-beta.67] — 2026-05-11
 
 ### Fixed

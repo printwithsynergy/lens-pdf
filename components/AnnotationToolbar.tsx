@@ -148,6 +148,25 @@ function wrapperStyle(compact: boolean): CSSProperties {
   };
 }
 
+/**
+ * Inner group wrapper. On compact / mobile hosts each group sets
+ * ``flex-basis: 100%`` so it always takes its own row — guarantees
+ * the toolbar reads as three clear lines (Tools / Colors / Actions)
+ * instead of an unpredictable organic wrap. Desktop keeps the groups
+ * inline; the outer wrapper's ``flex-wrap: wrap`` still handles
+ * narrow desktop viewports.
+ */
+function groupStyle(compact: boolean): CSSProperties {
+  return {
+    display: "flex",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: compact ? 8 : 6,
+    flexBasis: compact ? "100%" : "auto",
+    justifyContent: compact ? "center" : "flex-start",
+  };
+}
+
 function toolButtonStyle(active: boolean, touch: boolean): CSSProperties {
   const size = touch ? 40 : 28;
   return {
@@ -332,133 +351,144 @@ export function AnnotationToolbar({
   return (
     <div style={wrapperStyle(compact)}>
       {tipNode}
-      {TOOLS.map((tool) => (
-        <button
-          key={tool.id}
-          type="button"
-          onClick={() => onToolChange(tool.id)}
-          style={toolButtonStyle(activeTool === tool.id, compact)}
-          title={tool.tooltip}
-          aria-label={tool.label}
-          aria-pressed={activeTool === tool.id}
-          onMouseEnter={(e) => showTip(tool.tooltip, e.currentTarget)}
-          onMouseLeave={hideTipDelayed}
-          onFocus={(e) => showTip(tool.tooltip, e.currentTarget)}
-          onBlur={hideTip}
-        >
-          {tool.icon}
-        </button>
-      ))}
 
-      <span style={dividerStyle(compact)} />
+      {/* Group 1 — Tools. On compact hosts this row spans the full
+          toolbar width and the next groups break to their own rows. */}
+      <div style={groupStyle(compact)}>
+        {TOOLS.map((tool) => (
+          <button
+            key={tool.id}
+            type="button"
+            onClick={() => onToolChange(tool.id)}
+            style={toolButtonStyle(activeTool === tool.id, compact)}
+            title={tool.tooltip}
+            aria-label={tool.label}
+            aria-pressed={activeTool === tool.id}
+            onMouseEnter={(e) => showTip(tool.tooltip, e.currentTarget)}
+            onMouseLeave={hideTipDelayed}
+            onFocus={(e) => showTip(tool.tooltip, e.currentTarget)}
+            onBlur={hideTip}
+          >
+            {tool.icon}
+          </button>
+        ))}
+      </div>
 
-      {PRESET_COLORS.map((color) => (
-        <button
-          key={color}
-          type="button"
-          onClick={() => onStrokeColorChange(color)}
-          style={swatchStyle(color, strokeColor.toLowerCase() === color, compact)}
-          title={`${color} — click to use as stroke / fill colour`}
-          aria-label={`Use colour ${color}`}
+      {!compact && <span style={dividerStyle(compact)} />}
+
+      {/* Group 2 — Colours. */}
+      <div style={groupStyle(compact)}>
+        {PRESET_COLORS.map((color) => (
+          <button
+            key={color}
+            type="button"
+            onClick={() => onStrokeColorChange(color)}
+            style={swatchStyle(color, strokeColor.toLowerCase() === color, compact)}
+            title={`${color} — click to use as stroke / fill colour`}
+            aria-label={`Use colour ${color}`}
+            onMouseEnter={(e) =>
+              showTip(
+                `Stroke / fill: ${color} — click to make it the active colour for pen, shapes, and text.`,
+                e.currentTarget,
+              )
+            }
+            onMouseLeave={hideTipDelayed}
+            onFocus={(e) =>
+              showTip(
+                `Stroke / fill: ${color} — click to make it the active colour for pen, shapes, and text.`,
+                e.currentTarget,
+              )
+            }
+            onBlur={hideTip}
+          />
+        ))}
+        <input
+          type="color"
+          value={strokeColor}
+          onChange={(e) => onStrokeColorChange(e.target.value)}
+          style={customColorInputStyle(compact)}
+          title="Open the system colour picker for a custom colour"
+          aria-label="Custom colour"
           onMouseEnter={(e) =>
             showTip(
-              `Stroke / fill: ${color} — click to make it the active colour for pen, shapes, and text.`,
+              "Custom colour — opens the system colour wheel (browser / OS).",
               e.currentTarget,
             )
           }
           onMouseLeave={hideTipDelayed}
           onFocus={(e) =>
             showTip(
-              `Stroke / fill: ${color} — click to make it the active colour for pen, shapes, and text.`,
+              "Custom colour — opens the system colour wheel (browser / OS).",
               e.currentTarget,
             )
           }
           onBlur={hideTip}
         />
-      ))}
-      <input
-        type="color"
-        value={strokeColor}
-        onChange={(e) => onStrokeColorChange(e.target.value)}
-        style={customColorInputStyle(compact)}
-        title="Open the system colour picker for a custom colour"
-        aria-label="Custom colour"
-        onMouseEnter={(e) =>
-          showTip(
-            "Custom colour — opens the system colour wheel (browser / OS).",
-            e.currentTarget,
-          )
-        }
-        onMouseLeave={hideTipDelayed}
-        onFocus={(e) =>
-          showTip(
-            "Custom colour — opens the system colour wheel (browser / OS).",
-            e.currentTarget,
-          )
-        }
-        onBlur={hideTip}
-      />
+      </div>
 
-      <span style={dividerStyle(compact)} />
+      {!compact && <span style={dividerStyle(compact)} />}
 
-      <button
-        type="button"
-        onClick={onUndo}
-        disabled={!canUndo}
-        style={actionButtonStyle(!canUndo, compact)}
-        title="Undo the last change to annotations on this page"
-        onMouseEnter={(e) => {
-          if (!canUndo) return;
-          showTip("Undo — step back one change (draw, move, delete, etc.).", e.currentTarget);
-        }}
-        onMouseLeave={hideTipDelayed}
-        onFocus={(e) => {
-          if (!canUndo) return;
-          showTip("Undo — step back one change (draw, move, delete, etc.).", e.currentTarget);
-        }}
-        onBlur={hideTip}
-      >
-        Undo
-      </button>
-      <button
-        type="button"
-        onClick={onRedo}
-        disabled={!canRedo}
-        style={actionButtonStyle(!canRedo, compact)}
-        title="Redo the last change you undid"
-        onMouseEnter={(e) => {
-          if (!canRedo) return;
-          showTip("Redo — re-apply the last undone change.", e.currentTarget);
-        }}
-        onMouseLeave={hideTipDelayed}
-        onFocus={(e) => {
-          if (!canRedo) return;
-          showTip("Redo — re-apply the last undone change.", e.currentTarget);
-        }}
-        onBlur={hideTip}
-      >
-        Redo
-      </button>
+      {/* Group 3 — Actions (Undo / Redo / Saved). */}
+      <div style={groupStyle(compact)}>
+        <button
+          type="button"
+          onClick={onUndo}
+          disabled={!canUndo}
+          style={actionButtonStyle(!canUndo, compact)}
+          title="Undo the last change to annotations on this page"
+          onMouseEnter={(e) => {
+            if (!canUndo) return;
+            showTip("Undo — step back one change (draw, move, delete, etc.).", e.currentTarget);
+          }}
+          onMouseLeave={hideTipDelayed}
+          onFocus={(e) => {
+            if (!canUndo) return;
+            showTip("Undo — step back one change (draw, move, delete, etc.).", e.currentTarget);
+          }}
+          onBlur={hideTip}
+        >
+          Undo
+        </button>
+        <button
+          type="button"
+          onClick={onRedo}
+          disabled={!canRedo}
+          style={actionButtonStyle(!canRedo, compact)}
+          title="Redo the last change you undid"
+          onMouseEnter={(e) => {
+            if (!canRedo) return;
+            showTip("Redo — re-apply the last undone change.", e.currentTarget);
+          }}
+          onMouseLeave={hideTipDelayed}
+          onFocus={(e) => {
+            if (!canRedo) return;
+            showTip("Redo — re-apply the last undone change.", e.currentTarget);
+          }}
+          onBlur={hideTip}
+        >
+          Redo
+        </button>
 
-      <span
-        style={savingLabelStyle}
-        title={
-          saving
-            ? "Writing your annotations to the in-memory store…"
-            : "Last change is saved in this session (browser tab only)"
-        }
-        onMouseEnter={(e) =>
-          showTip(
+        <span
+          style={savingLabelStyle}
+          title={
             saving
-              ? "Saving — writing the canvas to the browser store…"
-              : "Saved — annotations for this page are kept in this tab until you close or reload.",
-            e.currentTarget,
-          )
-        }
-        onMouseLeave={hideTipDelayed}
-      >
-        {saving ? "Saving…" : "Saved"}
-      </span>
+              ? "Writing your annotations to the in-memory store…"
+              : "Last change is saved in this session (browser tab only)"
+          }
+          onMouseEnter={(e) =>
+            showTip(
+              saving
+                ? "Saving — writing the canvas to the browser store…"
+                : "Saved — annotations for this page are kept in this tab until you close or reload.",
+              e.currentTarget,
+            )
+          }
+          onMouseLeave={hideTipDelayed}
+        >
+          {saving ? "Saving…" : "Saved"}
+        </span>
+      </div>
     </div>
   );
 }
