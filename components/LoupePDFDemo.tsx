@@ -208,6 +208,17 @@ export interface LoupePDFDemoProps {
    * PageNavigator badges errors / warnings per page.
    */
   items?: readonly OverlayItem[];
+  /**
+   * Spot-color palette keyed by spot name (case insensitive). Wins
+   * over the Pantone Gold library + the PDF's ``altRgb`` fallback in
+   * the separations panel swatch render. Hosts that have richer
+   * sources of truth (codex's ``summary.spot_colors.colors[].swatch_hex``,
+   * a callas / PitStop / Acrobat preflight report, an internal
+   * swatch DB) pass values here.
+   *
+   * Example: ``{ "PANTONE 225 C": "#c6168d", "PANTONE 236 C": "#da1884" }``.
+   */
+  spotPalette?: Record<string, string>;
   /** Currently-selected finding (controlled). Drives the canvas
    *  highlight + tooltip. */
   selectedItem?: OverlayItem | null;
@@ -315,6 +326,7 @@ export function LoupePDFDemo({
   initialPage = 1,
   embedded = false,
   items,
+  spotPalette,
   selectedItem,
   onItemSelect,
   dieline,
@@ -897,7 +909,15 @@ export function LoupePDFDemo({
       setShowHeatmap,
       enabledChannels,
       setEnabledChannels,
-      detectedInks: detectedInks.map((ink) => ({ name: ink.name, type: ink.type })),
+      detectedInks: detectedInks.map((ink) => ({
+        name: ink.name,
+        type: ink.type,
+        altRgb: ink.altRgb,
+      })),
+      spotPalette,
+      items,
+      selectedItem,
+      onItemSelect,
       enabledLayers,
       setEnabledLayers,
       allLayerIndices,

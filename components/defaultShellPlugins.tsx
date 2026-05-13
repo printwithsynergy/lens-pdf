@@ -13,6 +13,7 @@ import {
   rowStyle,
 } from "./LoupePDFDemo.styles";
 import type { LoupePDFShellPlugin, LoupePDFShellPluginContext } from "./shellPlugins";
+import { resolveSpotSwatch } from "../browser/pantone-gold";
 
 const panelHeaderRowStyle: CSSProperties = {
   display: "flex",
@@ -281,7 +282,7 @@ function separationsPlugin(): LoupePDFShellPlugin {
                     backgroundColor:
                       ink.type === "process"
                         ? PROCESS_SWATCH[ink.name] ?? "#1f2937"
-                        : "#7c3aed",
+                        : resolveSpotSwatch(ink.name, ink.altRgb, ctx.spotPalette),
                   }}
                 />
                 <span>{ink.name}</span>
@@ -330,6 +331,135 @@ function layersPlugin(): LoupePDFShellPlugin {
         </div>
       </>
     ),
+  };
+}
+
+/**
+ * Inspection / Findings panel. Lives at order 5 (above the View
+ * mode-tools at 10) so when the host passes ``items`` to LoupePDF the
+ * findings list is the first thing in the side drawer. Renders
+ * nothing when ``items`` is empty / missing, so OSS hosts that don't
+ * carry preflight don't get an empty section.
+ */
+function findingsPlugin(): LoupePDFShellPlugin {
+  return {
+    id: "loupe.findings-panel",
+    slot: "panel.left",
+    order: 5,
+    isAvailable: (ctx) => Boolean(ctx.items && ctx.items.length > 0),
+    render: (ctx: LoupePDFShellPluginContext) => {
+      const items = ctx.items ?? [];
+      const counts: Record<string, number> = {};
+      for (const it of items) {
+        const t = (it.tier ?? "info") as string;
+        counts[t] = (counts[t] ?? 0) + 1;
+      }
+      const tone = (t: string): string => {
+        switch (t) {
+          case "error":
+            return "rgba(220, 38, 38, 0.85)";
+          case "warning":
+            return "rgba(245, 158, 11, 0.85)";
+          case "advisory":
+            return "rgba(14, 165, 233, 0.85)";
+          default:
+            return "rgba(148, 163, 184, 0.75)";
+        }
+      };
+      return (
+        <>
+          <div style={panelHeaderRowStyle}>
+            <h2 style={headingStyle}>Inspection ({items.length})</h2>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 6,
+              marginBottom: 8,
+            }}
+          >
+            {(["error", "warning", "advisory", "info"] as const).map((t) =>
+              (counts[t] ?? 0) > 0 ? (
+                <span
+                  key={t}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    padding: "2px 8px",
+                    borderRadius: 999,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    background: tone(t),
+                    color: "#fff",
+                  }}
+                >
+                  {counts[t]} {t}
+                </span>
+              ) : null,
+            )}
+          </div>
+          <div
+            style={{
+              maxHeight: 320,
+              overflowY: "auto",
+              border: `1px solid ${ctx.tokens.border}`,
+              borderRadius: 8,
+              padding: 4,
+            }}
+          >
+            {items.slice(0, 100).map((it, i) => {
+              const t = (it.tier ?? "info") as string;
+              const label = it.label ?? it.id ?? `Finding ${i + 1}`;
+              const isSelected = ctx.selectedItem?.id === it.id;
+              return (
+                <button
+                  key={it.id ?? `f-${i}`}
+                  type="button"
+                  onClick={() => ctx.onItemSelect?.(isSelected ? null : it)}
+                  style={{
+                    display: "flex",
+                    width: "100%",
+                    alignItems: "flex-start",
+                    gap: 8,
+                    padding: "6px 8px",
+                    border: "1px solid transparent",
+                    borderColor: isSelected ? "rgba(255,255,255,0.18)" : "transparent",
+                    borderRadius: 6,
+                    background: isSelected ? "rgba(255,255,255,0.05)" : "transparent",
+                    color: ctx.tokens.fg,
+                    cursor: "pointer",
+                    textAlign: "left",
+                    fontSize: 12,
+                  }}
+                >
+                  <span
+                    aria-hidden
+                    style={{
+                      marginTop: 4,
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      background: tone(t),
+                      flexShrink: 0,
+                    }}
+                  />
+                  <span style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontWeight: 500, lineHeight: 1.3 }}>{label}</div>
+                    {it.description ? (
+                      <div style={{ opacity: 0.7, fontSize: 11, marginTop: 2 }}>
+                        {it.description}
+                      </div>
+                    ) : null}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      );
+    },
   };
 }
 
@@ -390,6 +520,7 @@ function annotationToolbarPlugin(): LoupePDFShellPlugin {
 
 export function createDefaultShellPlugins(): LoupePDFShellPlugin[] {
   return [
+    findingsPlugin(),
     modeToolsPlugin(),
     separationsPlugin(),
     layersPlugin(),

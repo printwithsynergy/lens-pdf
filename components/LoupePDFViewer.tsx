@@ -281,27 +281,34 @@ export function LoupePDFViewer(props: LoupePDFViewerProps) {
     </div>
   );
 
-  // Mobile toolbar — collapse to a hamburger + zoom-only inline.
-  // ZoomControls is small enough at compact size to keep on the bar
-  // for one-tap zoom; everything else goes into the drawer.
+  // Mobile toolbar — ZoomControls live on the right; the hamburger
+  // moved to the header's left cluster (beside the brand) so it sits
+  // next to the host logo where users expect a primary menu trigger.
   const mobileToolbarRight = (
     <div className="flex items-center gap-1.5">
       {showZoom && <ZoomControls zoom={zoom} onZoomChange={setZoom} compact dark />}
-      <button
-        type="button"
-        onClick={() => setMenuOpen(true)}
-        className="flex h-8 w-8 items-center justify-center rounded-md border border-white/10 text-slate-300 hover:bg-slate-800 hover:text-white"
-        aria-label="Open tools menu"
-      >
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
-      </button>
     </div>
   );
 
+  // Reusable hamburger trigger. Rendered in the header's left cluster
+  // on mobile so the menu lives at top-left, beside the brand/logo —
+  // mirrors the iOS / Material pattern of "primary action top-left".
+  const mobileMenuTrigger = isMobile ? (
+    <button
+      type="button"
+      onClick={() => setMenuOpen(true)}
+      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-white/10 text-slate-300 hover:bg-slate-800 hover:text-white"
+      aria-label="Open tools menu"
+    >
+      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path d="M4 6h16M4 12h16M4 18h16" />
+      </svg>
+    </button>
+  ) : null;
+
   const headerLeft = (
     <div className="flex min-w-0 items-center gap-3">
+      {mobileMenuTrigger}
       {brand !== undefined && (
         <span className="truncate text-sm font-bold text-white">{brand}</span>
       )}

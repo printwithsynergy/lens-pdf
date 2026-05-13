@@ -75,7 +75,32 @@ export interface LoupePDFShellPluginContext {
   setShowHeatmap: Dispatch<SetStateAction<boolean>>;
   enabledChannels: Set<string>;
   setEnabledChannels: Dispatch<SetStateAction<Set<string>>>;
-  detectedInks: Array<{ name: string; type: "process" | "spot" }>;
+  detectedInks: Array<{
+    name: string;
+    type: "process" | "spot";
+    /** Synthetic alternate sRGB triplet for the ink. For spots it's
+     *  parsed from the PDF's tint transform when available, otherwise
+     *  hash-derived. The separations panel uses this as the third
+     *  link in the swatch resolution chain after ``spotPalette`` and
+     *  the Pantone Gold library. */
+    altRgb: [number, number, number];
+  }>;
+  /** Host-provided spot-color palette — keyed by spot name (case
+   *  insensitive). Takes priority over both the Pantone Gold library
+   *  and the PDF's ``altRgb``. Hosts that have a richer source of
+   *  truth (codex's ``summary.spot_colors.colors[].swatch_hex``, a
+   *  callas/PitStop preflight report, an internal swatch DB) pass
+   *  values here so the separations panel renders accurate swatches. */
+  spotPalette?: Record<string, string>;
+  /** Preflight findings to surface inside the viewer's Inspection
+   *  panel. Same superset hosts pass to ``<LoupePDF items={...}>``;
+   *  the built-in ``findingsPlugin`` filters/groups by tier and lets
+   *  the user click a row to focus the matching bbox on the canvas. */
+  items?: ReadonlyArray<import("../plugin").OverlayItem>;
+  /** Currently-selected finding, if any. */
+  selectedItem?: import("../plugin").OverlayItem | null;
+  /** Fires when the user clicks a finding row in the Inspection panel. */
+  onItemSelect?: (item: import("../plugin").OverlayItem | null) => void;
   enabledLayers: Set<number>;
   setEnabledLayers: Dispatch<SetStateAction<Set<number>>>;
   allLayerIndices: number[];

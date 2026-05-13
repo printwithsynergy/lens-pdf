@@ -6,6 +6,37 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0-beta.75] — 2026-05-13
+
+### Changed
+- **Mobile hamburger menu moved from header-right to header-left,
+  beside the brand/logo.** Primary menu triggers belong top-left on
+  mobile (iOS / Material convention). The zoom controls keep the
+  right cluster for one-tap zoom in/out. No desktop change — desktop
+  retains the full toolbar on the right.
+- **Separations panel now renders accurate spot-colour swatches.**
+  Resolution chain: host-provided ``spotPalette[name]`` (typically
+  codex's ``summary.spot_colors.colors[].swatch_hex`` or another
+  preflight's swatch) → built-in Pantone Gold library (new
+  ``browser/pantone-gold.ts``, ~85 of the most-common Coated codes)
+  → the PDF tint transform's ``altRgb`` (parsed at extraction) →
+  neutral grey fallback. Previously every spot rendered the same
+  generic purple ``#7c3aed`` regardless of the actual ink, which
+  made it impossible to distinguish (e.g.) ``PANTONE 225 C`` from
+  ``PANTONE 236 C`` in the panel.
+
+### Added
+- **New ``spotPalette`` prop on ``<LoupePDFDemo>`` / ``<LoupePDF>``.**
+  Hosts with codex / external-preflight data pass the spot → hex map
+  in here; the separations panel picks it up automatically.
+- **Inspection / Findings panel baked into the default shell
+  plugins.** When the host passes ``items`` to LoupePDF, a new
+  ``Inspection (N)`` section appears at the top of the side drawer
+  with tier filter chips (errors / warnings / advisories / info)
+  and a clickable list that drives ``onItemSelect`` for canvas
+  highlight + page jump. Renders nothing when ``items`` is empty so
+  OSS hosts without preflight don't see an empty section.
+
 ## [0.3.0-beta.74] — 2026-05-13
 
 ### Changed
