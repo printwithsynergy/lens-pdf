@@ -5,7 +5,7 @@ import type { ThemeTokens, ViewerServices } from "../plugin/services";
 import type { AnnotationTool } from "./AnnotationToolbar";
 import type { LoupePDFDemoTool } from "./LoupePDFDemo";
 
-export type ViewerMode = "page" | "separation" | "layer";
+export type ViewerMode = "page" | "separation" | "layer" | "findings";
 export type PointerTool =
   | "none"
   | "color-picker"

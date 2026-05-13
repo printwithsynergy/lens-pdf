@@ -697,7 +697,17 @@ export function createBrowserViewerServices(
     }
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    await page.render({ canvasContext: ctx, viewport }).promise;
+    // ``intent: "print"`` is what tells pdf.js to enable overprint
+    // preview + run the print-quality compositing path. The default
+    // ``display`` intent skips overprint, so a spot/CMYK object set
+    // to overprint renders as an opaque white block hiding the
+    // artwork behind it. Acrobat defaults to overprint-ON for the
+    // same content — this brings the viewer in line.
+    await page.render({
+      canvasContext: ctx,
+      viewport,
+      intent: "print",
+    } as Parameters<typeof page.render>[0]).promise;
     const blob = await canvasToPngBlob(canvas, "buildPageUrl");
     const url = URL.createObjectURL(blob);
     blobs.push(url);
@@ -729,7 +739,14 @@ export function createBrowserViewerServices(
     }
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, widthPx, heightPx);
-    await page.render({ canvasContext: ctx, viewport }).promise;
+    // ``intent: "print"`` — see buildPageUrl above for the rationale.
+    // The analysis raster feeds the densitometer + color picker, so
+    // it must match the visible page raster pixel-for-pixel.
+    await page.render({
+      canvasContext: ctx,
+      viewport,
+      intent: "print",
+    } as Parameters<typeof page.render>[0]).promise;
     const rgba = ctx.getImageData(0, 0, widthPx, heightPx);
     return { pageNum, widthPts, heightPts, widthPx, heightPx, rgba };
   }
@@ -982,6 +999,9 @@ export function createBrowserViewerServices(
     await page.render({
       canvasContext: ctx,
       viewport,
+      // ``intent: "print"`` matches the other render paths so the
+      // layer raster composites overprints the same way Acrobat does.
+      intent: "print",
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       optionalContentConfigPromise: Promise.resolve(config) as any,
       background: "rgba(0,0,0,0)" as unknown as string,

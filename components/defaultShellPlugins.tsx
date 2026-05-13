@@ -128,9 +128,17 @@ function modeToolsPlugin(): LoupePDFShellPlugin {
       } = ctx;
       const { separations, layers, colorPicker, densitometer, measure, annotate, tacHeatmap } =
         availability;
+      // Inspection appears as a fourth VIEW option when the host
+      // passes ``items`` (or sets ``forceInspectionPanel``), instead
+      // of as its own scroll-through card. The user toggles between
+      // Page / Separations / Layers / Inspection like any other view.
+      const hasFindings = Boolean((ctx.items && ctx.items.length > 0) || ctx.forceInspectionPanel);
+      const viewButtonCount =
+        1 + (separations ? 1 : 0) + (layers ? 1 : 0) + (hasFindings ? 1 : 0);
+      const showViewRow = viewButtonCount > 1;
       return (
         <>
-          {(separations || layers) && (
+          {showViewRow && (
             <>
               <h2 style={headingStyle}>View</h2>
               <div style={modeButtonGroupStyle()}>
@@ -153,10 +161,19 @@ function modeToolsPlugin(): LoupePDFShellPlugin {
                 {layers && (
                   <button
                     type="button"
-                    style={modeButtonStyle(tokens, viewerMode === "layer", "right")}
+                    style={modeButtonStyle(tokens, viewerMode === "layer", hasFindings ? "middle" : "right")}
                     onClick={() => setViewerMode("layer")}
                   >
                     Layers
+                  </button>
+                )}
+                {hasFindings && (
+                  <button
+                    type="button"
+                    style={modeButtonStyle(tokens, viewerMode === "findings", "right")}
+                    onClick={() => setViewerMode("findings")}
+                  >
+                    Inspection
                   </button>
                 )}
               </div>
@@ -335,25 +352,24 @@ function layersPlugin(): LoupePDFShellPlugin {
 }
 
 /**
- * Inspection / Findings panel. Lives at order 5 (above the View
- * mode-tools at 10) so when the host passes ``items`` to LoupePDF the
- * findings list is the first thing in the side drawer.
+ * Inspection / Findings panel. Activated by ``viewerMode ===
+ * "findings"`` — appears as a fourth tab in the VIEW selector
+ * (alongside Page / Separations / Layers) instead of as its own
+ * always-on side card. The mode-tools plugin renders the
+ * ``Inspection`` button automatically when ``items`` is non-empty
+ * or ``forceInspectionPanel`` is set.
  *
- * Visibility:
- *   - Items provided (``items.length > 0``): always visible
- *   - No items + ``forceInspectionPanel: true``: visible, empty state
- *   - No items + ``forceInspectionPanel`` falsy: hidden (default)
- *
- * The empty-state branch is for hosts that want a stable layout while
- * a preflight call is in flight, or for demos that always advertise
- * the Inspection slot to make the feature discoverable.
+ * Rendering: when active, the findings list takes over the entire
+ * left panel area below the View toggle. When inactive, this plugin
+ * returns nothing.
  */
 function findingsPlugin(): LoupePDFShellPlugin {
   return {
     id: "loupe.findings-panel",
     slot: "panel.left",
-    order: 5,
+    order: 25,
     isAvailable: (ctx) =>
+      ctx.viewerMode === "findings" &&
       Boolean((ctx.items && ctx.items.length > 0) || ctx.forceInspectionPanel),
     render: (ctx: LoupePDFShellPluginContext) => {
       const items = ctx.items ?? [];
