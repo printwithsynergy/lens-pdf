@@ -78,6 +78,12 @@ const K_FACTOR = 0.8;
 
 export { PROCESS_CHANNELS } from "./constants";
 import { PROCESS_CHANNELS } from "./constants";
+export {
+  pantoneGoldLookup,
+  processPlateLookup,
+  resolveSpotSwatch,
+  rgbToHex,
+} from "./pantone-gold";
 
 /**
  * A single ink reported by the densitometer / color picker.

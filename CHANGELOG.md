@@ -6,6 +6,31 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0-beta.77] — 2026-05-13
+
+### Added
+- **Process-plate lookup added to ``resolveSpotSwatch``.** Cyan,
+  Magenta, Yellow, Black, and their synonyms (process-cyan,
+  cmyk-letter shorthand, RGB plate names) now resolve to canonical
+  primaries instead of falling through to host-provided
+  hash-derived random colours. Lives in ``browser/pantone-gold.ts``
+  and is the new top of the resolution chain.
+- **Public exports for the swatch helpers.**
+  ``@printwithsynergy/loupe-pdf/browser`` now exports
+  ``resolveSpotSwatch``, ``processPlateLookup``,
+  ``pantoneGoldLookup``, and ``rgbToHex`` so marketing panels can
+  reuse the same chain in their Codex extract views (where every
+  spot rendered "Cyan" as orange because codex hash-derives swatches
+  for process plates).
+
+### Fixed
+- Lint + codex marketing demo Codex extract panels rendered Black /
+  Cyan / Magenta / Yellow with random hash colours (orange / blue /
+  green / wine etc.) because they trusted codex's
+  ``swatch_hex``. The new resolution chain forces canonical CMYK
+  primaries for known process plates and falls back to Pantone Gold
+  + altRgb for anything else.
+
 ## [0.3.0-beta.76] — 2026-05-13
 
 ### Added

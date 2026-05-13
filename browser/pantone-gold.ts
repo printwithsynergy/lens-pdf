@@ -14,6 +14,35 @@
  * Add entries as customers report missing spots.
  */
 
+/**
+ * Process-plate hex values (CMYK + common neutrals + RGB plates).
+ * Process plates are NOT spot colours but they often appear in the
+ * same input lists (codex emits them under ``spot_colors`` for
+ * convenience). Their swatches must use the canonical primary, not
+ * a hash-derived random colour, otherwise the side panel renders
+ * "Cyan" as orange and "Magenta" as blue.
+ */
+const PROCESS_PLATE: Record<string, string> = {
+  cyan: "#00aeef",
+  magenta: "#ec008c",
+  yellow: "#ffe600",
+  black: "#101820",
+  // Common synonyms / overprint variants
+  "process cyan": "#00aeef",
+  "process magenta": "#ec008c",
+  "process yellow": "#ffe600",
+  "process black": "#101820",
+  k: "#101820",
+  c: "#00aeef",
+  m: "#ec008c",
+  y: "#ffe600",
+  // Display-RGB plates (some PDFs declare these as "spots")
+  red: "#ed1c24",
+  green: "#00a651",
+  blue: "#0072bc",
+  white: "#ffffff",
+};
+
 const RAW: Array<[string, string]> = [
   // Reds / pinks / magentas
   ["PANTONE 185 C", "#e4002b"],
@@ -128,6 +157,18 @@ const LOOKUP: Map<string, string> = new Map(
 );
 
 /**
+ * Look up a process-plate name (Cyan / Magenta / Yellow / Black,
+ * synonyms, display-RGB plates). Returns ``undefined`` when the
+ * name isn't a known process plate so callers can fall through to
+ * the Pantone Gold lookup.
+ */
+export function processPlateLookup(name: string): string | undefined {
+  if (!name) return undefined;
+  const n = name.trim().toLowerCase();
+  return PROCESS_PLATE[n];
+}
+
+/**
  * Look up a spot-colour name in the built-in Pantone Gold table.
  * Returns ``undefined`` when there's no match; callers fall through
  * to ``rgbToHex(altRgb)`` or the default neutral grey.
@@ -169,20 +210,31 @@ export function rgbToHex(rgb: readonly [number, number, number]): string {
 
 /**
  * Full resolution chain for a single ink. Used by the separations
- * panel:
+ * panel + every marketing site's spot-colour swatch render:
  *
- *   1. Host-provided ``spotPalette[name]`` — usually codex's
+ *   1. Built-in process-plate lookup (Cyan / Magenta / Yellow / Black
+ *      + synonyms + RGB plates) — always wins because process plates
+ *      have canonical primaries that no host should override
+ *   2. Host-provided ``spotPalette[name]`` — usually codex's
  *      ``summary.spot_colors.colors[].swatch_hex`` or another
  *      preflight's swatch
- *   2. Built-in Pantone Gold library
- *   3. PDF tint transform ``altRgb`` (parsed at extraction time)
- *   4. Neutral grey fallback ``#1f2937``
+ *   3. Built-in Pantone Gold library (~85 most-common Coated codes)
+ *   4. PDF tint transform ``altRgb`` (parsed at extraction time)
+ *   5. Neutral grey fallback ``#1f2937``
+ *
+ * The process-plate check sits at the top of the chain because
+ * codex (and other engines) hash-derive random colours for process
+ * plates when their detector can't read the named alternate. That
+ * makes "Cyan" render orange, "Magenta" render blue, etc. The
+ * canonical CMYK primaries are non-negotiable.
  */
 export function resolveSpotSwatch(
   name: string,
   altRgb: readonly [number, number, number] | null | undefined,
   spotPalette: Record<string, string> | undefined,
 ): string {
+  const plate = processPlateLookup(name);
+  if (plate) return plate;
   if (spotPalette) {
     const override = spotPalette[name];
     if (override) return override;
