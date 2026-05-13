@@ -275,7 +275,7 @@ export function modeButtonGroupStyle(): CSSProperties {
 export function modeButtonStyle(
   tokens: ThemeTokens,
   active: boolean,
-  position: "left" | "middle" | "right",
+  position: "left" | "middle" | "right" | "solo",
 ): CSSProperties {
   return {
     flex: 1,
@@ -291,8 +291,10 @@ export function modeButtonStyle(
         ? "6px 0 0 6px"
         : position === "right"
           ? "0 6px 6px 0"
-          : "0",
-    marginLeft: position === "left" ? 0 : -1,
+          : position === "solo"
+            ? 6
+            : 0,
+    marginLeft: position === "left" || position === "solo" ? 0 : -1,
   };
 }
 

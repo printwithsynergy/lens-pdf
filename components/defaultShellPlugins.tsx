@@ -128,23 +128,31 @@ function modeToolsPlugin(): LoupePDFShellPlugin {
       } = ctx;
       const { separations, layers, colorPicker, densitometer, measure, annotate, tacHeatmap } =
         availability;
-      // Inspection appears as a fourth VIEW option when the host
-      // passes ``items`` (or sets ``forceInspectionPanel``), instead
-      // of as its own scroll-through card. The user toggles between
-      // Page / Separations / Layers / Inspection like any other view.
-      const hasFindings = Boolean((ctx.items && ctx.items.length > 0) || ctx.forceInspectionPanel);
-      const viewButtonCount =
-        1 + (separations ? 1 : 0) + (layers ? 1 : 0) + (hasFindings ? 1 : 0);
-      const showViewRow = viewButtonCount > 1;
+      // Page / Separations / Layers are canvas rendering modes —
+      // they share row 1 as a connected pill group. Inspection
+      // swaps the side-panel contents (not the canvas), so it sits
+      // on its own row below as a full-width button. Keeps the
+      // canvas-mode toggles visually distinct from the panel-mode
+      // toggle.
+      const hasFindings = Boolean(
+        (ctx.items && ctx.items.length > 0) || ctx.forceInspectionPanel,
+      );
+      const sepIsLast = separations && !layers;
+      const pageIsLast = !separations && !layers;
+      const showFirstRow = separations || layers || hasFindings;
       return (
         <>
-          {showViewRow && (
+          {showFirstRow && (
             <>
               <h2 style={headingStyle}>View</h2>
               <div style={modeButtonGroupStyle()}>
                 <button
                   type="button"
-                  style={modeButtonStyle(tokens, viewerMode === "page", "left")}
+                  style={modeButtonStyle(
+                    tokens,
+                    viewerMode === "page",
+                    pageIsLast ? "solo" : "left",
+                  )}
                   onClick={() => setViewerMode("page")}
                 >
                   Page
@@ -152,7 +160,11 @@ function modeToolsPlugin(): LoupePDFShellPlugin {
                 {separations && (
                   <button
                     type="button"
-                    style={modeButtonStyle(tokens, viewerMode === "separation", "middle")}
+                    style={modeButtonStyle(
+                      tokens,
+                      viewerMode === "separation",
+                      sepIsLast ? "right" : "middle",
+                    )}
                     onClick={() => setViewerMode("separation")}
                   >
                     Separations
@@ -161,22 +173,28 @@ function modeToolsPlugin(): LoupePDFShellPlugin {
                 {layers && (
                   <button
                     type="button"
-                    style={modeButtonStyle(tokens, viewerMode === "layer", hasFindings ? "middle" : "right")}
+                    style={modeButtonStyle(tokens, viewerMode === "layer", "right")}
                     onClick={() => setViewerMode("layer")}
                   >
                     Layers
                   </button>
                 )}
-                {hasFindings && (
+              </div>
+              {hasFindings && (
+                <div style={{ ...modeButtonGroupStyle(), marginTop: 6 }}>
                   <button
                     type="button"
-                    style={modeButtonStyle(tokens, viewerMode === "findings", "right")}
+                    style={modeButtonStyle(
+                      tokens,
+                      viewerMode === "findings",
+                      "solo",
+                    )}
                     onClick={() => setViewerMode("findings")}
                   >
                     Inspection
                   </button>
-                )}
-              </div>
+                </div>
+              )}
             </>
           )}
 
