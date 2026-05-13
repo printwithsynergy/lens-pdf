@@ -6,6 +6,18 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0-beta.78] — 2026-05-13
+
+### Added
+- **New ``./swatch`` subpath export** for the Pantone Gold + process
+  plate helpers (``resolveSpotSwatch``, ``processPlateLookup``,
+  ``pantoneGoldLookup``, ``rgbToHex``). Lets non-viewer hosts
+  (marketing Codex extract panels, server-side renderers, doc
+  generators) reuse the swatch chain WITHOUT pulling in the full
+  ``./browser`` bundle (which transitively imports pdfjs-dist and
+  bloats consumers that only need the lookup table). Same helpers
+  are still exported from ``./browser`` for viewer consumers.
+
 ## [0.3.0-beta.77] — 2026-05-13
 
 ### Added

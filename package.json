@@ -1,6 +1,6 @@
 {
   "name": "@printwithsynergy/loupe-pdf",
-  "version": "0.3.0-beta.77",
+  "version": "0.3.0-beta.78",
   "type": "module",
   "description": "LoupePDF \u2014 host-agnostic OSS PDF viewer core. Plugin-driven canvas viewer with overlay / panel / toolbar slots.",
   "license": "AGPL-3.0-or-later",
@@ -55,6 +55,10 @@
       "types": "./dist/browser/index.d.ts",
       "import": "./dist/browser/index.js"
     },
+    "./swatch": {
+      "types": "./dist/browser/pantone-gold.d.ts",
+      "import": "./dist/browser/pantone-gold.js"
+    },
     "./types": {
       "types": "./dist/types/index.d.ts",
       "import": "./dist/types/index.js"
@@ -80,6 +84,9 @@
       ],
       "browser": [
         "./dist/browser/index.d.ts"
+      ],
+      "swatch": [
+        "./dist/browser/pantone-gold.d.ts"
       ],
       "types": [
         "./dist/types/index.d.ts"
