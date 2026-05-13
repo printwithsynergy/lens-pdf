@@ -6,6 +6,23 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0-beta.76] — 2026-05-13
+
+### Added
+- **``forceInspectionPanel`` prop on ``<LoupePDFDemo>`` / ``<LoupePDF>``.**
+  When true, the Inspection / Findings side panel stays mounted even
+  with no ``items`` and renders a "no findings yet" empty state.
+  Useful for hosts that have an in-flight preflight call (stable
+  layout while it loads) or for demos that always advertise the panel
+  slot. Default ``false`` — OSS hosts without preflight data don't
+  see an empty section.
+
+### Docs
+- `docs/components.md` now documents the auto-on/force-on Inspection
+  panel behaviour, the new ``forceInspectionPanel`` prop, and the
+  spot-colour resolution chain (``spotPalette`` → Pantone Gold → PDF
+  ``altRgb``).
+
 ## [0.3.0-beta.75] — 2026-05-13
 
 ### Changed

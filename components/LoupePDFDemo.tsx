@@ -209,6 +209,20 @@ export interface LoupePDFDemoProps {
    */
   items?: readonly OverlayItem[];
   /**
+   * Force the Inspection / Findings side-panel slot visible even when
+   * ``items`` is empty. Renders an empty "no findings yet" state so
+   * the slot stays in the layout. Defaults to ``false`` — hosts
+   * without preflight data don't see a placeholder panel.
+   *
+   * Useful for:
+   * - Demos that want the panel discoverable from the first frame.
+   * - Hosts with an in-flight preflight call (stable layout while it
+   *   loads).
+   * - Adapters where the user explicitly toggles preflight on/off in
+   *   the UI and you want to keep the slot mounted across that toggle.
+   */
+  forceInspectionPanel?: boolean;
+  /**
    * Spot-color palette keyed by spot name (case insensitive). Wins
    * over the Pantone Gold library + the PDF's ``altRgb`` fallback in
    * the separations panel swatch render. Hosts that have richer
@@ -326,6 +340,7 @@ export function LoupePDFDemo({
   initialPage = 1,
   embedded = false,
   items,
+  forceInspectionPanel,
   spotPalette,
   selectedItem,
   onItemSelect,
@@ -916,6 +931,7 @@ export function LoupePDFDemo({
       })),
       spotPalette,
       items,
+      forceInspectionPanel,
       selectedItem,
       onItemSelect,
       enabledLayers,

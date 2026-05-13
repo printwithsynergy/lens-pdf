@@ -337,18 +337,51 @@ function layersPlugin(): LoupePDFShellPlugin {
 /**
  * Inspection / Findings panel. Lives at order 5 (above the View
  * mode-tools at 10) so when the host passes ``items`` to LoupePDF the
- * findings list is the first thing in the side drawer. Renders
- * nothing when ``items`` is empty / missing, so OSS hosts that don't
- * carry preflight don't get an empty section.
+ * findings list is the first thing in the side drawer.
+ *
+ * Visibility:
+ *   - Items provided (``items.length > 0``): always visible
+ *   - No items + ``forceInspectionPanel: true``: visible, empty state
+ *   - No items + ``forceInspectionPanel`` falsy: hidden (default)
+ *
+ * The empty-state branch is for hosts that want a stable layout while
+ * a preflight call is in flight, or for demos that always advertise
+ * the Inspection slot to make the feature discoverable.
  */
 function findingsPlugin(): LoupePDFShellPlugin {
   return {
     id: "loupe.findings-panel",
     slot: "panel.left",
     order: 5,
-    isAvailable: (ctx) => Boolean(ctx.items && ctx.items.length > 0),
+    isAvailable: (ctx) =>
+      Boolean((ctx.items && ctx.items.length > 0) || ctx.forceInspectionPanel),
     render: (ctx: LoupePDFShellPluginContext) => {
       const items = ctx.items ?? [];
+      if (items.length === 0) {
+        // forceInspectionPanel branch — render an empty state so the
+        // panel slot is visible but the user gets a clear "no
+        // findings yet" affordance rather than an unexplained blank.
+        return (
+          <>
+            <div style={panelHeaderRowStyle}>
+              <h2 style={headingStyle}>Inspection</h2>
+            </div>
+            <div
+              style={{
+                border: `1px dashed ${ctx.tokens.border}`,
+                borderRadius: 8,
+                padding: 12,
+                fontSize: 12,
+                opacity: 0.7,
+                color: ctx.tokens.fg,
+              }}
+            >
+              No findings yet. The host will populate this panel when a
+              preflight pass completes.
+            </div>
+          </>
+        );
+      }
       const counts: Record<string, number> = {};
       for (const it of items) {
         const t = (it.tier ?? "info") as string;

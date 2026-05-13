@@ -57,6 +57,8 @@ export function ProofPage() {
 | `items` | `OverlayItem[]` | `[]` | Preflight findings (error / warning / advisory bboxes). |
 | `selectedItem` | `OverlayItem \| null` | _(internal)_ | Controlled selection. |
 | `onItemSelect` | `(item) => void` | _(internal)_ | Selection callback. |
+| `forceInspectionPanel` | `boolean` | `false` | Force the Inspection / Findings side panel visible even when `items` is empty (renders a "no findings yet" empty state). Useful for demos that always advertise the panel slot, or for hosts with an in-flight preflight call. When false (default), the panel auto-shows when `items.length > 0` and hides otherwise. |
+| `spotPalette` | `Record<string, string>` | `undefined` | Host-provided spot-colour palette (keyed by spot name). Takes priority over the built-in Pantone Gold library and the PDF's `altRgb` fallback in the separations-panel swatch render. Typical source: codex's `summary.spot_colors.colors[].swatch_hex` or another preflight's swatch hex. |
 | `dieline` | `DielineResult \| null` | _(none)_ | Dieline geometry overlay. |
 | `showBoxOverlays` | `boolean` | `false` | Render trim / bleed / crop popovers. |
 | `cropToTrim` | `boolean` | `false` | Clip the canvas to the page's TrimBox (falls back to BleedBox, then CropBox). |
@@ -135,6 +137,23 @@ export function DemoPage() {
   on unmount.
 - **Plugin shell** — left panels + annotation toolbar are mounted from
   slot plugins (`panel.left`, `overlay.toolbar`) via built-in presets.
+- **Inspection / Findings panel** — when the host passes `items` (any
+  `OverlayItem[]`), the side drawer leads with an `Inspection (N)`
+  section: tier filter chips (errors / warnings / advisories / info)
+  + a clickable list that drives `onItemSelect` for canvas highlight
+  + page jump. Renders nothing when `items` is empty, so OSS hosts
+  without preflight don't see an empty section. Pass
+  `forceInspectionPanel` to keep the slot mounted even with no items
+  (useful for in-flight preflight calls or demos that advertise the
+  feature from the first frame).
+- **Spot-colour palette resolution** — the separations panel resolves
+  each spot swatch in this order: host-provided `spotPalette[name]`
+  → built-in Pantone Gold library (~85 most-common Coated codes,
+  tolerates case + `C` / `U` suffixes + `PMS` prefix) → the PDF
+  tint-transform `altRgb` parsed at extraction → neutral grey
+  fallback. Hosts with codex output typically pass
+  `summary.spot_colors.colors[].swatch_hex` through to `spotPalette`
+  for the truest swatch.
 
 #### Custom sidebar/menu composition
 

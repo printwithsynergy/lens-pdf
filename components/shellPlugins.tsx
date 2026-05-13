@@ -101,6 +101,12 @@ export interface LoupePDFShellPluginContext {
   selectedItem?: import("../plugin").OverlayItem | null;
   /** Fires when the user clicks a finding row in the Inspection panel. */
   onItemSelect?: (item: import("../plugin").OverlayItem | null) => void;
+  /** When true, render the Inspection panel even with no ``items``
+   *  (panel shows a "no findings yet" empty state). Useful for hosts
+   *  that want a stable layout while a preflight call is in-flight,
+   *  or for demos that always advertise the panel slot. Default false
+   *  — hosts without preflight don't see an empty section. */
+  forceInspectionPanel?: boolean;
   enabledLayers: Set<number>;
   setEnabledLayers: Dispatch<SetStateAction<Set<number>>>;
   allLayerIndices: number[];
