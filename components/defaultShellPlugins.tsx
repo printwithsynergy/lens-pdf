@@ -1,6 +1,7 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
+import { useState } from "react";
 import { AnnotationNotesPanel } from "./AnnotationNotesPanel";
 import { AnnotationThread } from "./AnnotationThread";
 import { AnnotationToolbar } from "./AnnotationToolbar";
@@ -381,6 +382,203 @@ function layersPlugin(): LensPDFShellPlugin {
  * left panel area below the View toggle. When inactive, this plugin
  * returns nothing.
  */
+const TIER_ORDER = ["error", "warning", "advisory", "info"] as const;
+type Tier = (typeof TIER_ORDER)[number];
+
+function tone(t: string): string {
+  switch (t) {
+    case "error":
+      return "rgba(220, 38, 38, 0.85)";
+    case "warning":
+      return "rgba(245, 158, 11, 0.85)";
+    case "advisory":
+      return "rgba(14, 165, 233, 0.85)";
+    default:
+      return "rgba(148, 163, 184, 0.75)";
+  }
+}
+
+function FindingsPanel({ ctx }: { ctx: LensPDFShellPluginContext }) {
+  const [activeTiers, setActiveTiers] = useState<Set<Tier>>(new Set());
+  const items = ctx.items ?? [];
+
+  if (items.length === 0) {
+    return (
+      <>
+        <div style={panelHeaderRowStyle}>
+          <h2 style={headingStyle}>Inspection</h2>
+        </div>
+        <div
+          style={{
+            border: `1px dashed ${ctx.tokens.border}`,
+            borderRadius: 8,
+            padding: 12,
+            fontSize: 12,
+            opacity: 0.7,
+            color: ctx.tokens.fg,
+          }}
+        >
+          No findings yet. The host will populate this panel when a
+          preflight pass completes.
+        </div>
+      </>
+    );
+  }
+
+  const counts: Partial<Record<Tier, number>> = {};
+  for (const it of items) {
+    const t = (it.tier ?? "info") as Tier;
+    counts[t] = (counts[t] ?? 0) + 1;
+  }
+
+  function toggleTier(t: Tier) {
+    setActiveTiers((prev) => {
+      const next = new Set(prev);
+      if (next.has(t)) next.delete(t);
+      else next.add(t);
+      return next;
+    });
+  }
+
+  const isFiltered = activeTiers.size > 0;
+  const visible = isFiltered
+    ? items.filter((it) => activeTiers.has((it.tier ?? "info") as Tier))
+    : items;
+
+  return (
+    <>
+      <div style={panelHeaderRowStyle}>
+        <h2 style={headingStyle}>
+          Inspection ({isFiltered ? `${visible.length}/` : ""}{items.length})
+        </h2>
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+        {TIER_ORDER.map((t) =>
+          (counts[t] ?? 0) > 0 ? (
+            <button
+              key={t}
+              type="button"
+              onClick={() => toggleTier(t)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                padding: "2px 8px",
+                borderRadius: 999,
+                fontSize: 11,
+                fontWeight: 600,
+                background: tone(t),
+                color: "#fff",
+                border: "2px solid transparent",
+                borderColor: activeTiers.has(t) ? "#fff" : "transparent",
+                opacity: isFiltered && !activeTiers.has(t) ? 0.4 : 1,
+                cursor: "pointer",
+                transition: "opacity 0.15s, border-color 0.15s",
+              }}
+            >
+              {counts[t]} {t}
+            </button>
+          ) : null,
+        )}
+      </div>
+      <div
+        style={{
+          maxHeight: 320,
+          overflowY: "auto",
+          border: `1px solid ${ctx.tokens.border}`,
+          borderRadius: 8,
+          padding: 4,
+        }}
+      >
+        {visible.slice(0, 100).map((it, i) => {
+          const t = (it.tier ?? "info") as string;
+          const label = it.label ?? it.id ?? `Finding ${i + 1}`;
+          const isSelected = ctx.selectedItem?.id === it.id;
+          const findingN = ctx.findingNumbers.get(it.id);
+          return (
+            <div
+              key={it.id ?? `f-${i}`}
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 4,
+                borderRadius: 6,
+                border: "1px solid transparent",
+                borderColor: isSelected ? "rgba(255,255,255,0.18)" : "transparent",
+                background: isSelected ? "rgba(255,255,255,0.05)" : "transparent",
+              }}
+            >
+              {findingN != null && (
+                <button
+                  type="button"
+                  title={`Open note for F${findingN}`}
+                  onClick={() => ctx.onFindingNoteRequest?.(it.id)}
+                  style={{
+                    flexShrink: 0,
+                    alignSelf: "center",
+                    margin: "0 0 0 4px",
+                    padding: "2px 5px",
+                    borderRadius: 4,
+                    border: "1px solid rgba(255,255,255,0.18)",
+                    background: tone(t),
+                    color: "#fff",
+                    fontSize: 10,
+                    fontWeight: 700,
+                    lineHeight: 1.4,
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  F{findingN}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => ctx.onItemSelect?.(isSelected ? null : it)}
+                style={{
+                  display: "flex",
+                  flex: 1,
+                  alignItems: "flex-start",
+                  gap: 8,
+                  padding: "6px 8px",
+                  border: "none",
+                  borderRadius: 0,
+                  background: "transparent",
+                  color: ctx.tokens.fg,
+                  cursor: "pointer",
+                  textAlign: "left",
+                  fontSize: 12,
+                  minWidth: 0,
+                }}
+              >
+                <span
+                  aria-hidden
+                  style={{
+                    marginTop: 4,
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    background: tone(t),
+                    flexShrink: 0,
+                  }}
+                />
+                <span style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontWeight: 500, lineHeight: 1.3 }}>{label}</div>
+                  {it.description ? (
+                    <div style={{ opacity: 0.7, fontSize: 11, marginTop: 2 }}>
+                      {it.description}
+                    </div>
+                  ) : null}
+                </span>
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
 function findingsPlugin(): LensPDFShellPlugin {
   return {
     id: "lens.findings-panel",
@@ -389,181 +587,7 @@ function findingsPlugin(): LensPDFShellPlugin {
     isAvailable: (ctx) =>
       ctx.viewerMode === "findings" &&
       Boolean((ctx.items && ctx.items.length > 0) || ctx.forceInspectionPanel),
-    render: (ctx: LensPDFShellPluginContext) => {
-      const items = ctx.items ?? [];
-      if (items.length === 0) {
-        // forceInspectionPanel branch — render an empty state so the
-        // panel slot is visible but the user gets a clear "no
-        // findings yet" affordance rather than an unexplained blank.
-        return (
-          <>
-            <div style={panelHeaderRowStyle}>
-              <h2 style={headingStyle}>Inspection</h2>
-            </div>
-            <div
-              style={{
-                border: `1px dashed ${ctx.tokens.border}`,
-                borderRadius: 8,
-                padding: 12,
-                fontSize: 12,
-                opacity: 0.7,
-                color: ctx.tokens.fg,
-              }}
-            >
-              No findings yet. The host will populate this panel when a
-              preflight pass completes.
-            </div>
-          </>
-        );
-      }
-      const counts: Record<string, number> = {};
-      for (const it of items) {
-        const t = (it.tier ?? "info") as string;
-        counts[t] = (counts[t] ?? 0) + 1;
-      }
-      const tone = (t: string): string => {
-        switch (t) {
-          case "error":
-            return "rgba(220, 38, 38, 0.85)";
-          case "warning":
-            return "rgba(245, 158, 11, 0.85)";
-          case "advisory":
-            return "rgba(14, 165, 233, 0.85)";
-          default:
-            return "rgba(148, 163, 184, 0.75)";
-        }
-      };
-      return (
-        <>
-          <div style={panelHeaderRowStyle}>
-            <h2 style={headingStyle}>Inspection ({items.length})</h2>
-          </div>
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: 6,
-              marginBottom: 8,
-            }}
-          >
-            {(["error", "warning", "advisory", "info"] as const).map((t) =>
-              (counts[t] ?? 0) > 0 ? (
-                <span
-                  key={t}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                    padding: "2px 8px",
-                    borderRadius: 999,
-                    fontSize: 11,
-                    fontWeight: 600,
-                    background: tone(t),
-                    color: "#fff",
-                  }}
-                >
-                  {counts[t]} {t}
-                </span>
-              ) : null,
-            )}
-          </div>
-          <div
-            style={{
-              maxHeight: 320,
-              overflowY: "auto",
-              border: `1px solid ${ctx.tokens.border}`,
-              borderRadius: 8,
-              padding: 4,
-            }}
-          >
-            {items.slice(0, 100).map((it, i) => {
-              const t = (it.tier ?? "info") as string;
-              const label = it.label ?? it.id ?? `Finding ${i + 1}`;
-              const isSelected = ctx.selectedItem?.id === it.id;
-              const findingN = ctx.findingNumbers.get(it.id);
-              return (
-                <div
-                  key={it.id ?? `f-${i}`}
-                  style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 4,
-                    borderRadius: 6,
-                    border: "1px solid transparent",
-                    borderColor: isSelected ? "rgba(255,255,255,0.18)" : "transparent",
-                    background: isSelected ? "rgba(255,255,255,0.05)" : "transparent",
-                  }}
-                >
-                  {findingN != null && (
-                    <button
-                      type="button"
-                      title={`Open note for F${findingN}`}
-                      onClick={() => ctx.onFindingNoteRequest?.(it.id)}
-                      style={{
-                        flexShrink: 0,
-                        alignSelf: "center",
-                        margin: "0 0 0 4px",
-                        padding: "2px 5px",
-                        borderRadius: 4,
-                        border: "1px solid rgba(255,255,255,0.18)",
-                        background: tone(t),
-                        color: "#fff",
-                        fontSize: 10,
-                        fontWeight: 700,
-                        lineHeight: 1.4,
-                        cursor: "pointer",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      F{findingN}
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => ctx.onItemSelect?.(isSelected ? null : it)}
-                    style={{
-                      display: "flex",
-                      flex: 1,
-                      alignItems: "flex-start",
-                      gap: 8,
-                      padding: "6px 8px",
-                      border: "none",
-                      borderRadius: 0,
-                      background: "transparent",
-                      color: ctx.tokens.fg,
-                      cursor: "pointer",
-                      textAlign: "left",
-                      fontSize: 12,
-                      minWidth: 0,
-                    }}
-                  >
-                    <span
-                      aria-hidden
-                      style={{
-                        marginTop: 4,
-                        width: 8,
-                        height: 8,
-                        borderRadius: "50%",
-                        background: tone(t),
-                        flexShrink: 0,
-                      }}
-                    />
-                    <span style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ fontWeight: 500, lineHeight: 1.3 }}>{label}</div>
-                      {it.description ? (
-                        <div style={{ opacity: 0.7, fontSize: 11, marginTop: 2 }}>
-                          {it.description}
-                        </div>
-                      ) : null}
-                    </span>
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </>
-      );
-    },
+    render: (ctx: LensPDFShellPluginContext) => <FindingsPanel ctx={ctx} />,
   };
 }
 
