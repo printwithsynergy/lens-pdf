@@ -129,6 +129,16 @@ export interface LensPDFShellPluginContext {
   selectedAnnotationId: string | null;
   setSelectedAnnotationId: Dispatch<SetStateAction<string | null>>;
   availability: LensPDFFeatureAvailability;
+  /** Stable F1…FN number for every finding, keyed by item.id.
+   *  Separate from hand-drawn annotation numbering (#1, #2, …). */
+  findingNumbers: ReadonlyMap<string, number>;
+  /** Called when the user clicks an F# badge to open a linked note. */
+  onFindingNoteRequest?: (id: string) => void;
+  /** When non-null, the Notes panel should select this target and
+   *  auto-create a blank linked note focused for typing. */
+  pendingNoteTarget?: string | null;
+  /** Called by the Notes panel once it has consumed pendingNoteTarget. */
+  onPendingNoteConsumed?: () => void;
 }
 
 export type LensPDFShellSlot = "panel.left" | "overlay.toolbar";

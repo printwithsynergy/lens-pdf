@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { hasViewerLocation, splitFindingsByLocation } from "./findings-location";
+import { buildFindingNumberMap, hasViewerLocation, splitFindingsByLocation } from "./findings-location";
 import type { OverlayItem } from "./types";
 
 function item(overrides: Partial<OverlayItem> & { id: string }): OverlayItem {
@@ -51,5 +51,43 @@ describe("splitFindingsByLocation", () => {
 
   it("returns empty arrays for empty input", () => {
     expect(splitFindingsByLocation([])).toEqual({ located: [], informational: [] });
+  });
+});
+
+describe("buildFindingNumberMap", () => {
+  it("assigns stable 1-based numbers in input order", () => {
+    const items: OverlayItem[] = [
+      item({ id: "a" }),
+      item({ id: "b", bbox: [0, 0, 1, 1] }),
+      item({ id: "c" }),
+    ];
+    const map = buildFindingNumberMap(items);
+    expect(map.get("a")).toBe(1);
+    expect(map.get("b")).toBe(2);
+    expect(map.get("c")).toBe(3);
+  });
+
+  it("returns an empty map for empty input", () => {
+    expect(buildFindingNumberMap([]).size).toBe(0);
+  });
+
+  it("numbers are stable regardless of bbox presence", () => {
+    const items: OverlayItem[] = [
+      item({ id: "x" }),
+      item({ id: "y", bbox: [0, 0, 5, 5] }),
+      item({ id: "z" }),
+    ];
+    const map = buildFindingNumberMap(items);
+    expect(map.get("x")).toBe(1);
+    expect(map.get("y")).toBe(2);
+    expect(map.get("z")).toBe(3);
+    expect(map.size).toBe(3);
+  });
+
+  it("uses item.id as the map key", () => {
+    const items: OverlayItem[] = [item({ id: "finding-42" })];
+    const map = buildFindingNumberMap(items);
+    expect(map.has("finding-42")).toBe(true);
+    expect(map.get("finding-42")).toBe(1);
   });
 });

@@ -77,6 +77,7 @@ import {
 import type { ThemeTokens, ViewerServices } from "../plugin/services";
 import { darkThemeTokens } from "../plugin/services";
 import type { OverlayItem } from "../plugin/types";
+import { buildFindingNumberMap } from "../plugin/findings-location";
 import type { DielineResult, PageInfo } from "../types";
 import { DEFAULT_DPI, pageInfoFromDimensions } from "../types";
 import { isUnwired, ViewerHostContext, ViewerServicesContext } from "../host";
@@ -358,6 +359,10 @@ export function LensPDFDemo({
     () => items ?? [],
     [items],
   );
+  const findingNumbers = useMemo(
+    () => buildFindingNumberMap(overlayItems),
+    [overlayItems],
+  );
   // Selection: controlled when onItemSelect is supplied, uncontrolled otherwise.
   const [internalSelected, setInternalSelected] =
     useState<OverlayItem | null>(null);
@@ -370,6 +375,9 @@ export function LensPDFDemo({
     },
     [onItemSelect],
   );
+  // Pending note target: set by handleFindingNoteRequest, cleared by the Notes panel.
+  // The setter callbacks are defined after selectedAnnotationId state (see below).
+  const [pendingNoteTarget, setPendingNoteTarget] = useState<string | null>(null);
   // -----------------------------------------------------------------------
   // Tokens
   // -----------------------------------------------------------------------
@@ -506,6 +514,19 @@ export function LensPDFDemo({
     }>
   >([]);
   const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | null>(null);
+
+  // Selects a finding, opens the Notes panel at it, and queues a blank note.
+  const handleFindingNoteRequest = useCallback(
+    (id: string) => {
+      const found = overlayItems.find((it) => it.id === id);
+      if (found) handleItemClick(found);
+      const noteId = `finding-${id}`;
+      setSelectedAnnotationId(noteId);
+      setPendingNoteTarget(noteId);
+    },
+    [overlayItems, handleItemClick],
+  );
+  const handlePendingNoteConsumed = useCallback(() => setPendingNoteTarget(null), []);
 
   // -----------------------------------------------------------------------
   // Services
@@ -950,6 +971,10 @@ export function LensPDFDemo({
       selectedAnnotationId,
       setSelectedAnnotationId,
       availability,
+      findingNumbers,
+      onFindingNoteRequest: handleFindingNoteRequest,
+      pendingNoteTarget,
+      onPendingNoteConsumed: handlePendingNoteConsumed,
     }),
     [
       tokens,
@@ -974,6 +999,10 @@ export function LensPDFDemo({
       indexedAnnotations,
       selectedAnnotationId,
       availability,
+      findingNumbers,
+      pendingNoteTarget,
+      handleFindingNoteRequest,
+      handlePendingNoteConsumed,
     ],
   );
 
@@ -1742,6 +1771,7 @@ export function LensPDFDemo({
                       selectedItem={effectiveSelected}
                       onItemClick={handleItemClick}
                       cropToTrim={cropToTrim}
+                      findingNumbers={findingNumbers}
                     />
                   )}
 

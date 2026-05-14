@@ -1,9 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { isUnwired, logUnwiredHide, useViewerHost, useViewerServices } from "../host";
 import type { AnnotationEntry } from "../plugin/services";
+
+interface FindingTarget {
+  id: string;
+  label: string;
+  pageNum: number;
+}
 
 interface AnnotationNotesPanelProps {
   refreshKey?: number;
@@ -16,6 +22,13 @@ interface AnnotationNotesPanelProps {
   }>;
   selectedAnnotationId?: string | null;
   onSelectedAnnotationIdChange?: (id: string) => void;
+  /** Finding targets to merge into the linked-note selector (shown first). */
+  findingTargets?: FindingTarget[];
+  /** When non-null, the panel should select this target and auto-create a
+   *  blank linked note focused for typing. */
+  pendingNoteTarget?: string | null;
+  /** Called once the pending note has been created and focused. */
+  onPendingNoteConsumed?: () => void;
 }
 
 interface AnnotationLinkedNote {
@@ -70,6 +83,9 @@ export function AnnotationNotesPanel({
   indexedAnnotations = [],
   selectedAnnotationId: selectedAnnotationIdProp,
   onSelectedAnnotationIdChange,
+  findingTargets,
+  pendingNoteTarget,
+  onPendingNoteConsumed,
 }: AnnotationNotesPanelProps) {
   const { debug } = useViewerHost();
   const { annotations: annotationService } = useViewerServices();
@@ -80,6 +96,11 @@ export function AnnotationNotesPanel({
   const [notesByAnnotationId, setNotesByAnnotationId] = useState<
     Record<string, AnnotationLinkedNote[]>
   >({});
+  // Textarea ref map for focusing newly-created notes.
+  const noteTextareaRefs = useRef<Map<string, HTMLTextAreaElement>>(new Map());
+  const [focusNoteId, setFocusNoteId] = useState<string | null>(null);
+  // Guards against creating duplicate notes when the effect re-runs.
+  const pendingNoteCreatedRef = useRef<string | null>(null);
 
   const storageKey = useMemo(
     () =>
@@ -163,24 +184,36 @@ export function AnnotationNotesPanel({
     window.localStorage.setItem(storageKey, payload);
   }, [storageKey, generalNotes, notesByAnnotationId]);
 
+  // Memoized target list: finding targets first (stable F-numbers), then
+  // hand-drawn annotation targets. Order matters — findings appear at the
+  // top of the dropdown so they're discoverable without scrolling.
+  const targets = useMemo(() => {
+    const findingPart: Array<{ id: string; pageNum: number; label: string }> =
+      (findingTargets ?? []).map((ft) => ({
+        id: ft.id,
+        pageNum: ft.pageNum,
+        label: ft.label,
+      }));
+    const annotationPart: Array<{ id: string; pageNum: number; label: string }> =
+      indexedAnnotations.length > 0
+        ? indexedAnnotations.map((row) => ({
+            id: `obj-${row.number}`,
+            pageNum: row.pageNum,
+            label: `#${row.number} · ${row.objectType}`,
+          }))
+        : entries.map((entry, idx) => ({
+            id: `entry-${entry.id}`,
+            pageNum: entry.pageNum,
+            label: `#${idx + 1} · Page ${entry.pageNum}`,
+          }));
+    return [...findingPart, ...annotationPart];
+  }, [findingTargets, indexedAnnotations, entries]);
+
   if (hidden) return null;
 
   const selectedNotes = selectedAnnotationId
     ? notesByAnnotationId[selectedAnnotationId] ?? []
     : [];
-
-  const targets =
-    indexedAnnotations.length > 0
-      ? indexedAnnotations.map((row) => ({
-          id: `obj-${row.number}`,
-          pageNum: row.pageNum,
-          label: `#${row.number} · ${row.objectType}`,
-        }))
-      : entries.map((entry, idx) => ({
-          id: `entry-${entry.id}`,
-          pageNum: entry.pageNum,
-          label: `#${idx + 1} · Page ${entry.pageNum}`,
-        }));
 
   const selectedTarget =
     targets.find((target) => target.id === selectedAnnotationId) ?? null;
@@ -207,6 +240,43 @@ export function AnnotationNotesPanel({
     if (!selectedAnnotationId) return;
     onSelectedAnnotationIdChange?.(selectedAnnotationId);
   }, [selectedAnnotationId, onSelectedAnnotationIdChange]);
+
+  // When pendingNoteTarget arrives: select the target, append a blank note,
+  // queue it for focus, consume the request. A ref guards against duplicates
+  // when the effect re-runs (e.g., targets list populates asynchronously).
+  useEffect(() => {
+    if (!pendingNoteTarget) {
+      pendingNoteCreatedRef.current = null;
+      return;
+    }
+    if (pendingNoteCreatedRef.current === pendingNoteTarget) return;
+    if (!targets.some((t) => t.id === pendingNoteTarget)) return;
+
+    pendingNoteCreatedRef.current = pendingNoteTarget;
+    setSelectedAnnotationId(pendingNoteTarget);
+
+    const now = new Date().toISOString();
+    const newId = `${pendingNoteTarget}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
+    setNotesByAnnotationId((prev) => ({
+      ...prev,
+      [pendingNoteTarget]: [
+        ...(prev[pendingNoteTarget] ?? []),
+        { id: newId, text: "", createdAt: now },
+      ],
+    }));
+    setFocusNoteId(newId);
+    onPendingNoteConsumed?.();
+  }, [pendingNoteTarget, targets, onPendingNoteConsumed]);
+
+  // After a new note is appended, focus and scroll its textarea into view.
+  useEffect(() => {
+    if (!focusNoteId) return;
+    const el = noteTextareaRefs.current.get(focusNoteId);
+    if (!el) return;
+    el.focus();
+    el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    setFocusNoteId(null);
+  }, [focusNoteId, notesByAnnotationId]);
 
   return (
     <div style={cardStyle}>
@@ -330,6 +400,7 @@ export function AnnotationNotesPanel({
                     onClick={() => {
                       const key = selectedAnnotationId;
                       if (!key) return;
+                      noteTextareaRefs.current.delete(note.id);
                       setNotesByAnnotationId((prev) => ({
                         ...prev,
                         [key]: (prev[key] ?? []).filter((n) => n.id !== note.id),
@@ -340,6 +411,10 @@ export function AnnotationNotesPanel({
                   </button>
                 </div>
                 <textarea
+                  ref={(el) => {
+                    if (el) noteTextareaRefs.current.set(note.id, el);
+                    else noteTextareaRefs.current.delete(note.id);
+                  }}
                   value={note.text}
                   onChange={(e) => {
                     const val = e.target.value;

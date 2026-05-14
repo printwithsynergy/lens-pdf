@@ -72,3 +72,24 @@ export function splitFindingsByLocation<T extends OverlayItem>(
   }
   return { located, informational };
 }
+
+/**
+ * Assign stable 1-based F-numbers to every finding in input order.
+ *
+ * Returns a ``Map<id, number>`` so the viewer can render ``F1``…``FN``
+ * badges that stay consistent across filter changes (the number
+ * reflects global position in the finding list, not a filtered index).
+ *
+ * Findings use a separate numbering sequence from hand-drawn
+ * annotations, which use their own ``#1``, ``#2``, … counter.
+ */
+export function buildFindingNumberMap(
+  items: readonly OverlayItem[],
+): Map<string, number> {
+  const map = new Map<string, number>();
+  let n = 1;
+  for (const item of items) {
+    map.set(item.id, n++);
+  }
+  return map;
+}
