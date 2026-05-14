@@ -1,18 +1,18 @@
 /**
- * `<LoupePDFProvider>` — thin context wrapper that mounts both
+ * `<LensPDFProvider>` — thin context wrapper that mounts both
  * `ViewerHostContext` and `ViewerServicesContext` from a
- * {@link UseLoupePDFReturn} value.
+ * {@link UseLensPDFReturn} value.
  *
- * Pair with {@link useLoupePDF} for the "full custom" tier:
+ * Pair with {@link useLensPDF} for the "full custom" tier:
  *
  * ```tsx
- * const viewer = useLoupePDF(url, { tokens });
+ * const viewer = useLensPDF(url, { tokens });
  * return (
- *   <LoupePDFProvider value={viewer}>
+ *   <LensPDFProvider value={viewer}>
  *     <MyCustomShell>
  *       <PageCanvas ... />
  *     </MyCustomShell>
- *   </LoupePDFProvider>
+ *   </LensPDFProvider>
  * );
  * ```
  *
@@ -21,22 +21,22 @@
 
 import type { ReactNode } from "react";
 import { ViewerHostContext, ViewerServicesContext } from "./index";
-import type { UseLoupePDFReturn } from "./useLoupePDF";
+import type { UseLensPDFReturn } from "./useLensPDF";
 
-/** Props for {@link LoupePDFProvider}. */
-export interface LoupePDFProviderProps {
-  /** The return value from {@link useLoupePDF}. */
-  value: UseLoupePDFReturn;
+/** Props for {@link LensPDFProvider}. */
+export interface LensPDFProviderProps {
+  /** The return value from {@link useLensPDF}. */
+  value: UseLensPDFReturn;
   children: ReactNode;
 }
 
 /**
  * Mounts both `ViewerHostContext` and `ViewerServicesContext` from a
- * `useLoupePDF()` return value.
+ * `useLensPDF()` return value.
  *
  * @public
  */
-export function LoupePDFProvider({ value, children }: LoupePDFProviderProps) {
+export function LensPDFProvider({ value, children }: LensPDFProviderProps) {
   return (
     <ViewerHostContext.Provider value={value.hostValue}>
       <ViewerServicesContext.Provider value={value.servicesValue}>

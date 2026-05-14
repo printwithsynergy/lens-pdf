@@ -7,11 +7,11 @@ order: 10
 
 # PDF validation
 
-LoupePDF ships client-side validation utilities that run entirely in the
+LensPDF ships client-side validation utilities that run entirely in the
 browser. Use them before handing user-supplied files or URLs to the
 viewer.
 
-Both are exported from `@printwithsynergy/loupe-pdf/host`.
+Both are exported from `@printwithsynergy/lens-pdf/host`.
 
 ## `validatePdfFile(file, maxBytes?)`
 
@@ -23,7 +23,7 @@ Async. Checks a `File` object:
 3. **Size** — must be ≤ `maxBytes` (default: 50 MB).
 
 ```ts
-import { validatePdfFile } from "@printwithsynergy/loupe-pdf/host";
+import { validatePdfFile } from "@printwithsynergy/lens-pdf/host";
 
 const result = await validatePdfFile(file);
 if (!result.valid) {
@@ -48,7 +48,7 @@ Checks:
 3. Protocol is `http:`, `https:`, or `blob:`.
 
 ```ts
-import { validatePdfUrl } from "@printwithsynergy/loupe-pdf/host";
+import { validatePdfUrl } from "@printwithsynergy/lens-pdf/host";
 
 const result = validatePdfUrl(draftUrl);
 if (!result.valid) {
@@ -70,9 +70,9 @@ interface PdfValidationResult {
 
 ## Built-in usage
 
-`<LoupePDFDemo>` calls both validators automatically — file uploads go
+`<LensPDFDemo>` calls both validators automatically — file uploads go
 through `validatePdfFile` and URL submissions go through
-`validatePdfUrl`. The `maxFileSize` prop on `LoupePDFDemo` is forwarded
+`validatePdfUrl`. The `maxFileSize` prop on `LensPDFDemo` is forwarded
 to `validatePdfFile`.
 
 ## Security note

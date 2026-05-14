@@ -1,6 +1,6 @@
-# LoupePDF demo
+# LensPDF demo
 
-A small Vite app that mounts a handful of LoupePDF components against three host
+A small Vite app that mounts a handful of LensPDF components against three host
 contexts so you can verify the hide-on-unwired behaviour from PR #3 / #4 by hand.
 
 ## Run

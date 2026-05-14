@@ -7,7 +7,7 @@ order: 5
 
 # Component reference
 
-Every component is imported from `@printwithsynergy/loupe-pdf/components`
+Every component is imported from `@printwithsynergy/lens-pdf/components`
 and reads its data through the contexts described in
 [architecture.md](./architecture.md). Required `ViewerServices` fields are
 called out per component.
@@ -23,7 +23,7 @@ called out per component.
 
 ## Drop-in viewer
 
-### `LoupePDF`
+### `LensPDF`
 
 The recommended single-component entry point for production hosts.
 One mount, every viewer-only feature wired to pdf.js out of the box —
@@ -33,11 +33,11 @@ and the annotation toolbar / canvas / thread. No upload chrome — the
 host supplies the URL.
 
 ```tsx
-import { LoupePDF } from "@printwithsynergy/loupe-pdf";
+import { LensPDF } from "@printwithsynergy/lens-pdf";
 import pdfWorkerSrc from "pdfjs-dist/build/pdf.worker.mjs?url";
 
 export function ProofPage() {
-  return <LoupePDF pdfUrl="/proofs/abc.pdf" workerSrc={pdfWorkerSrc} />;
+  return <LensPDF pdfUrl="/proofs/abc.pdf" workerSrc={pdfWorkerSrc} />;
 }
 ```
 
@@ -48,7 +48,7 @@ export function ProofPage() {
 | `pdfUrl` | `string` | _(required)_ | PDF the viewer will load. Changing it swaps the document and resets to `initialPage`. |
 | `workerSrc` | `string` | `defaultBrowserWorkerSrc` | Override the pdf.js worker URL. |
 | `services` | `ViewerServices` | _browser services_ | Pass wired services to swap any feature from the in-browser approximation to a backend. |
-| `tools` | `ReadonlyArray<LoupePDFDemoTool>` | all | Subset of tools to show in the sidebar. |
+| `tools` | `ReadonlyArray<LensPDFDemoTool>` | all | Subset of tools to show in the sidebar. |
 | `initialZoom` | `number` | `80` | Starting zoom percentage. |
 | `initialPage` | `number` | `1` | Starting page (1-indexed). |
 | `tacLimit` | `number` | `300` | TAC limit (in percent) for the heatmap + densitometer. |
@@ -66,7 +66,7 @@ export function ProofPage() {
 | `footer` | `ReactNode` | _(none)_ | Extra content in the footer bar. |
 | `className` | `string` | _(none)_ | Class on the outermost div. |
 | `preset` | `"demo" \| "minimal"` | `"minimal"` | First-party plugin preset baseline. |
-| `plugins` | `ReadonlyArray<LoupePDFShellPlugin>` | `[]` | Extra shell plugins; use `replaces` to override built-ins. |
+| `plugins` | `ReadonlyArray<LensPDFShellPlugin>` | `[]` | Extra shell plugins; use `replaces` to override built-ins. |
 | `codex` | `MinimalCodexClient` | _(none)_ | Optional codex client; when set, the viewer silently upgrades separations / TAC / layers to Ghostscript-rendered plates as `extractStream` events arrive. |
 | `onPageChange` / `onZoomChange` / `onError` | callbacks | _(none)_ | Lifecycle hooks. |
 
@@ -82,19 +82,19 @@ to install it.
 
 ## Drop-in demo
 
-### `LoupePDFDemo`
+### `LensPDFDemo`
 
-Marketing / showcase variant of `<LoupePDF>` — adds an upload bar,
+Marketing / showcase variant of `<LensPDF>` — adds an upload bar,
 URL paste, drag-and-drop, client-side PDF validation, and an
-empty-state UI. Useful for `loupepdf.com`-style demo pages and
+empty-state UI. Useful for `lenspdf.com`-style demo pages and
 internal sandboxes where users bring their own files. **Most
-consumers should reach for [`<LoupePDF>`](#loupepdf) instead.**
+consumers should reach for [`<LensPDF>`](#lenspdf) instead.**
 
 ```tsx
-import { LoupePDFDemo } from "@printwithsynergy/loupe-pdf";
+import { LensPDFDemo } from "@printwithsynergy/lens-pdf";
 
 export function DemoPage() {
-  return <LoupePDFDemo brand="MyApp" brandLogoUrl="/logo.svg" />;
+  return <LensPDFDemo brand="MyApp" brandLogoUrl="/logo.svg" />;
 }
 ```
 
@@ -102,7 +102,7 @@ export function DemoPage() {
 
 | Prop | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `brand` | `string` | `tokens.logoText` ?? `"LoupePDF"` | Label in the top bar. |
+| `brand` | `string` | `tokens.logoText` ?? `"LensPDF"` | Label in the top bar. |
 | `brandLogoUrl` | `string` | `tokens.logoUrl` | Logo image URL. |
 | `tokens` | `Partial<ThemeTokens>` | `darkThemeTokens` | Merged onto the dark palette. Add `logoUrl` / `logoText` / `logoMaxHeight` / `logoAlt` to bundle brand identity into the tokens object. |
 | `maxFileSize` | `number` | `50 * 1024 * 1024` (50 MB) | Max upload size in bytes. |
@@ -115,12 +115,12 @@ export function DemoPage() {
 | `initialPage` | `number` | `1` | Starting page (1-indexed). |
 | `footer` | `ReactNode` | _(none)_ | Extra content in the footer bar. |
 | `className` | `string` | _(none)_ | Class on the outermost div. |
-| `tools` | `ReadonlyArray<LoupePDFDemoTool>` | all | Feature ids to keep enabled (`color-picker`, `densitometer`, `measure`, `annotate`, `tac-heatmap`, `separations`, `layers`). |
-| `items` / `selectedItem` / `onItemSelect` | preflight props | _(none)_ | Same as on `<LoupePDF>` — preflight findings + controlled selection. |
-| `dieline` / `showBoxOverlays` / `cropToTrim` | print-production props | _(off / none)_ | Same as on `<LoupePDF>`. |
+| `tools` | `ReadonlyArray<LensPDFDemoTool>` | all | Feature ids to keep enabled (`color-picker`, `densitometer`, `measure`, `annotate`, `tac-heatmap`, `separations`, `layers`). |
+| `items` / `selectedItem` / `onItemSelect` | preflight props | _(none)_ | Same as on `<LensPDF>` — preflight findings + controlled selection. |
+| `dieline` / `showBoxOverlays` / `cropToTrim` | print-production props | _(off / none)_ | Same as on `<LensPDF>`. |
 | `onPageChange` / `onZoomChange` / `onError` | callbacks | _(none)_ | Lifecycle hooks. |
-| `preset` | `"demo" \| "minimal"` | `"demo"` | First-party plugin preset baseline. `LoupePDF` uses `"minimal"`. |
-| `plugins` | `ReadonlyArray<LoupePDFShellPlugin>` | `[]` | Extra shell plugins; use `replaces` to override built-ins. |
+| `preset` | `"demo" \| "minimal"` | `"demo"` | First-party plugin preset baseline. `LensPDF` uses `"minimal"`. |
+| `plugins` | `ReadonlyArray<LensPDFShellPlugin>` | `[]` | Extra shell plugins; use `replaces` to override built-ins. |
 | `codex` | `MinimalCodexClient` | _(none)_ | Optional codex client; when set, the viewer silently upgrades separations / TAC / layers to Ghostscript-rendered plates as `extractStream` events arrive. |
 
 #### Built-in features
@@ -157,20 +157,20 @@ export function DemoPage() {
 
 #### Custom sidebar/menu composition
 
-`LoupePDFDemo` and `LoupePDF` now expose a plugin-first shell for the
+`LensPDFDemo` and `LensPDF` now expose a plugin-first shell for the
 viewer chrome. You can replace built-ins without forking:
 
 ```tsx
 import {
-  LoupePDF,
-  type LoupePDFShellPlugin,
-} from "@printwithsynergy/loupe-pdf/components";
+  LensPDF,
+  type LensPDFShellPlugin,
+} from "@printwithsynergy/lens-pdf/components";
 
-const customNotesPanel: LoupePDFShellPlugin = {
+const customNotesPanel: LensPDFShellPlugin = {
   id: "acme.panel.notes",
   slot: "panel.left",
   order: 40,
-  replaces: "loupe.annotations-panel",
+  replaces: "lens.annotations-panel",
   render(ctx) {
     return (
       <section>
@@ -183,7 +183,7 @@ const customNotesPanel: LoupePDFShellPlugin = {
 
 export function ProofPage() {
   return (
-    <LoupePDF
+    <LensPDF
       pdfUrl="/proofs/abc.pdf"
       plugins={[customNotesPanel]}
     />
@@ -500,13 +500,13 @@ when `services.annotations` is unwired (see [fallback.md](./fallback.md)).
 ### `useIsMobile`
 
 Hook that returns `true` when `window.matchMedia("(max-width: 767px)")`
-matches. Used internally by `<LoupePDF>` / `<LoupePDFDemo>` to switch
+matches. Used internally by `<LensPDF>` / `<LensPDFDemo>` to switch
 the tools sidebar into a slide-in drawer (anchored to the left edge,
 ~85vw wide, max 320 px) and to switch the color-picker / densitometer
 readouts from floating tooltips to full-width bottom sheets.
 
 ```tsx
-import { useIsMobile } from "@printwithsynergy/loupe-pdf/components";
+import { useIsMobile } from "@printwithsynergy/lens-pdf/components";
 
 const isMobile = useIsMobile();        // default 767 px breakpoint
 const isTablet = useIsMobile(1024);    // custom breakpoint

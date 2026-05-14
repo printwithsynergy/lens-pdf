@@ -1,6 +1,6 @@
-# loupe-pdf-server
+# lens-pdf-server
 
-A small Express + Ghostscript service that supplies the LoupePDF viewer
+A small Express + Ghostscript service that supplies the LensPDF viewer
 with everything the in-browser pdf.js fallback can't: real ink
 separations (CMYK + spot inks), per-pixel TAC heatmaps, point
 densitometer readings, and color samples derived from the actual
@@ -15,16 +15,16 @@ read the source as a contract guide and write your own.
 cd server
 npm install
 npm run build
-LOUPE_JOBS_DIR=/tmp/loupe-jobs LOUPE_CACHE_DIR=/tmp/loupe-cache npm start
+LENS_JOBS_DIR=/tmp/lens-jobs LENS_CACHE_DIR=/tmp/lens-cache npm start
 ```
 
 Or via Docker:
 
 ```sh
-docker build -t loupe-pdf-server ./server
+docker build -t lens-pdf-server ./server
 docker run -p 3000:3000 \
-  -v loupe-jobs:/var/lib/loupe-pdf/jobs \
-  loupe-pdf-server
+  -v lens-jobs:/var/lib/lens-pdf/jobs \
+  lens-pdf-server
 ```
 
 The image already includes Ghostscript. The only host requirement is
@@ -37,16 +37,16 @@ Environment variables, all optional except where noted:
 | Var | Default | Purpose |
 | --- | --- | --- |
 | `PORT` | `3000` | HTTP port. |
-| `LOUPE_JOBS_DIR` | `/var/lib/loupe-pdf/jobs` | Where uploaded PDFs land on disk. |
-| `LOUPE_CACHE_DIR` | `/var/cache/loupe-pdf` | Render cache (currently in-memory; reserved for future on-disk caching). |
-| `LOUPE_MAX_UPLOAD_MIB` | `100` | Refuse uploads larger than this. |
-| `LOUPE_BEARER_TOKEN` | unset | When set, every request must carry `Authorization: Bearer <token>`. Coarse single-secret auth meant for private-network deploys; put a real gateway in front for anything else. |
+| `LENS_JOBS_DIR` | `/var/lib/lens-pdf/jobs` | Where uploaded PDFs land on disk. |
+| `LENS_CACHE_DIR` | `/var/cache/lens-pdf` | Render cache (currently in-memory; reserved for future on-disk caching). |
+| `LENS_MAX_UPLOAD_MIB` | `100` | Refuse uploads larger than this. |
+| `LENS_BEARER_TOKEN` | unset | When set, every request must carry `Authorization: Bearer <token>`. Coarse single-secret auth meant for private-network deploys; put a real gateway in front for anything else. |
 | `GS_BIN` | `gs` | Path / name of the Ghostscript binary. |
 
 ## Wire into the viewer
 
 ```ts
-import type { ViewerServices } from "@printwithsynergy/loupe-pdf/plugin";
+import type { ViewerServices } from "@printwithsynergy/lens-pdf/plugin";
 
 const apiBase = "https://separations.example.com";
 const jobId = "job-abc";
@@ -128,7 +128,7 @@ All endpoints are scoped to a `jobId` (1–128 chars of `[a-zA-Z0-9_-]`).
 
 Read this before exposing the server to anything you don't fully control.
 
-- **No auth by default**. The optional `LOUPE_BEARER_TOKEN` gives a
+- **No auth by default**. The optional `LENS_BEARER_TOKEN` gives a
   single shared secret check; that's it. Multi-tenant isolation,
   per-user authz, audit logging — all out of scope. Put a real gateway
   in front of this service.
@@ -197,7 +197,7 @@ non-cacheable per HTTP spec.
 1. **Put the server behind Cloudflare** with proxy mode on (orange
    cloud). The default Cache Rules will respect the `Cache-Control`
    header above and edge-cache for 1 year.
-2. **Don't set `LOUPE_BEARER_TOKEN`** if you want CDN caching. An
+2. **Don't set `LENS_BEARER_TOKEN`** if you want CDN caching. An
    `Authorization` header makes Cloudflare bypass the edge cache by
    default. Move auth to the gateway tier (Cloudflare Access, signed
    URLs, mTLS at the origin) so the cacheable URL space is unauth'd.
@@ -229,4 +229,4 @@ heuristic ("don't cache responses with cookies") doesn't bite.
 
 ## License
 
-AGPL-3.0-or-later, same as LoupePDF itself. See [`../LICENSE`](../LICENSE).
+AGPL-3.0-or-later, same as LensPDF itself. See [`../LICENSE`](../LICENSE).

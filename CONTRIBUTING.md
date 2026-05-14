@@ -1,4 +1,4 @@
-# Contributing to LoupePDF
+# Contributing to LensPDF
 
 Thanks for considering a contribution!
 
@@ -11,5 +11,5 @@ Security issues should follow the disclosure process in
 [SECURITY.md](./SECURITY.md), not GitHub issues. By participating you
 agree to abide by the [Code of Conduct](./CODE_OF_CONDUCT.md).
 
-LoupePDF is licensed under [AGPL-3.0-or-later](./LICENSE); contributions
+LensPDF is licensed under [AGPL-3.0-or-later](./LICENSE); contributions
 are licensed under the same terms.

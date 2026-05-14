@@ -7,7 +7,7 @@ order: 9
 
 # Contributing
 
-Notes for contributors to LoupePDF itself. End-user / host docs live
+Notes for contributors to LensPDF itself. End-user / host docs live
 elsewhere in [`docs/`](.).
 
 ## Boundary rule
@@ -73,6 +73,6 @@ double as the contract for downstream consumers.
 
 ## License
 
-LoupePDF is AGPL-3.0-or-later. By contributing you agree to license your
+LensPDF is AGPL-3.0-or-later. By contributing you agree to license your
 contribution under the same terms. See [`LICENSE`](../LICENSE) for the
 full text.

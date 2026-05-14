@@ -1,5 +1,5 @@
 /**
- * LoupePDF reference HTTP backend.
+ * LensPDF reference HTTP backend.
  *
  * Exposes the endpoints a `ViewerServices` impl points at to get real
  * preflight-grade ink separations, densitometer readings, TAC heatmap,
@@ -340,7 +340,7 @@ function assertNum(v: unknown, name: string): asserts v is number {
  *                       the host's control plane.
  *
  * Auth-bearing requests bypass shared caches by default — if you set
- * `LOUPE_BEARER_TOKEN`, expect to lose the CDN tier. Move auth to the
+ * `LENS_BEARER_TOKEN`, expect to lose the CDN tier. Move auth to the
  * gateway (Cloudflare Access, signed URLs, etc.) to keep both.
  */
 const IMMUTABLE_TTL_S = 31_536_000; // 1 year
@@ -378,6 +378,6 @@ app.use(errorHandler);
 ensureJobsDir().then(() => {
   app.listen(config.port, () => {
     // eslint-disable-next-line no-console
-    console.log(`loupe-pdf-server listening on :${config.port}`);
+    console.log(`lens-pdf-server listening on :${config.port}`);
   });
 });

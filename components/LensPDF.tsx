@@ -1,22 +1,22 @@
 "use client";
 
 /**
- * `<LoupePDF>` — drop-in production viewer.
+ * `<LensPDF>` — drop-in production viewer.
  *
  * One mount, every viewer-only feature wired by default:
  *
  * ```tsx
- * import { LoupePDF } from "@printwithsynergy/loupe-pdf";
+ * import { LensPDF } from "@printwithsynergy/lens-pdf";
  * import pdfWorkerSrc from "pdfjs-dist/build/pdf.worker.mjs?url";
  *
- * <LoupePDF pdfUrl="/proofs/abc.pdf" workerSrc={pdfWorkerSrc} />
+ * <LensPDF pdfUrl="/proofs/abc.pdf" workerSrc={pdfWorkerSrc} />
  * ```
  *
  * Production hosts can plug in their own preflight engine without
  * forking the viewer:
  *
  * ```tsx
- * <LoupePDF
+ * <LensPDF
  *   pdfUrl="/proofs/abc.pdf"
  *   workerSrc={pdfWorkerSrc}
  *   items={findings}            // OverlayItem[] from your engine
@@ -30,24 +30,24 @@
  * />
  * ```
  *
- * Identical to {@link LoupePDFDemo} except the upload chrome (URL bar,
+ * Identical to {@link LensPDFDemo} except the upload chrome (URL bar,
  * file picker, drag-and-drop, empty state) is hidden — `pdfUrl` is the
  * single required prop, and changing it swaps the loaded document.
  *
  * @public
  */
 
-import { LoupePDFDemo, type LoupePDFDemoProps } from "./LoupePDFDemo";
+import { LensPDFDemo, type LensPDFDemoProps } from "./LensPDFDemo";
 
 /**
- * Props for {@link LoupePDF}. Identical to {@link LoupePDFDemoProps}
+ * Props for {@link LensPDF}. Identical to {@link LensPDFDemoProps}
  * except `pdfUrl` is required (replaces `initialPdfUrl`) and the
  * upload-chrome props (`maxFileSize`) are hidden.
  *
  * @public
  */
-export interface LoupePDFProps
-  extends Omit<LoupePDFDemoProps, "embedded" | "initialPdfUrl" | "maxFileSize"> {
+export interface LensPDFProps
+  extends Omit<LensPDFDemoProps, "embedded" | "initialPdfUrl" | "maxFileSize"> {
   /**
    * URL of the PDF to load. Any URL the browser can fetch — your
    * own CDN, a signed link, a `blob:` URL from a `File` your app
@@ -58,11 +58,11 @@ export interface LoupePDFProps
 }
 
 /**
- * Drop-in production viewer. See {@link LoupePDFProps} for the full
+ * Drop-in production viewer. See {@link LensPDFProps} for the full
  * prop surface.
  *
  * @public
  */
-export function LoupePDF({ pdfUrl, ...rest }: LoupePDFProps) {
-  return <LoupePDFDemo {...rest} embedded preset="minimal" initialPdfUrl={pdfUrl} />;
+export function LensPDF({ pdfUrl, ...rest }: LensPDFProps) {
+  return <LensPDFDemo {...rest} embedded preset="minimal" initialPdfUrl={pdfUrl} />;
 }

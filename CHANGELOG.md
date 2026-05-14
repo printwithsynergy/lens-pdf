@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to LoupePDF are documented here. The format follows
+All notable changes to LensPDF are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
@@ -28,7 +28,7 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   hash-derived random colours. Lives in ``browser/pantone-gold.ts``
   and is the new top of the resolution chain.
 - **Public exports for the swatch helpers.**
-  ``@printwithsynergy/loupe-pdf/browser`` now exports
+  ``@printwithsynergy/lens-pdf/browser`` now exports
   ``resolveSpotSwatch``, ``processPlateLookup``,
   ``pantoneGoldLookup``, and ``rgbToHex`` so marketing panels can
   reuse the same chain in their Codex extract views (where every
@@ -46,7 +46,7 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [0.3.0-beta.76] — 2026-05-13
 
 ### Added
-- **``forceInspectionPanel`` prop on ``<LoupePDFDemo>`` / ``<LoupePDF>``.**
+- **``forceInspectionPanel`` prop on ``<LensPDFDemo>`` / ``<LensPDF>``.**
   When true, the Inspection / Findings side panel stays mounted even
   with no ``items`` and renders a "no findings yet" empty state.
   Useful for hosts that have an in-flight preflight call (stable
@@ -80,11 +80,11 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   ``PANTONE 236 C`` in the panel.
 
 ### Added
-- **New ``spotPalette`` prop on ``<LoupePDFDemo>`` / ``<LoupePDF>``.**
+- **New ``spotPalette`` prop on ``<LensPDFDemo>`` / ``<LensPDF>``.**
   Hosts with codex / external-preflight data pass the spot → hex map
   in here; the separations panel picks it up automatically.
 - **Inspection / Findings panel baked into the default shell
-  plugins.** When the host passes ``items`` to LoupePDF, a new
+  plugins.** When the host passes ``items`` to LensPDF, a new
   ``Inspection (N)`` section appears at the top of the side drawer
   with tier filter chips (errors / warnings / advisories / info)
   and a clickable list that drives ``onItemSelect`` for canvas
@@ -127,7 +127,7 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and every hit target is sized for fingers (tool buttons 28 → 40 px,
   swatches 18 → 26 px, undo/redo padding and font scaled up, custom
   colour input 22 → 32 px). Desktop layout is unchanged — the wider
-  hits only kick in when `compact` is set, which `<LoupePDFDemo>`
+  hits only kick in when `compact` is set, which `<LensPDFDemo>`
   passes from `ctx.isMobile`. The mobile container no longer needs
   `overflowX: auto` (wrap replaces scroll).
 
@@ -139,7 +139,7 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `MinimalCodexClient` interface (no runtime import), and `HttpClient`
   from 1.8.1 satisfies it. The peer dep is marked optional in
   `peerDependenciesMeta`, so hosts that don't pass a `codex` client
-  to `<LoupePDFDemo>` / `<LoupePDF>` are unaffected.
+  to `<LensPDFDemo>` / `<LensPDF>` are unaffected.
 
 ### Docs
 - **Shareable links** (`generateShareLink`, `parseShareParams`) and
@@ -158,7 +158,7 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `ThemeTokens`, letting a host bundle its full visual identity
   (colours + logo + label) into one tokens object instead of passing
   separate `brandLogoUrl` / `brand` props. Resolution order in
-  `<LoupePDFDemo>` / `<LoupePDF>`: explicit prop > tokens > built-in
+  `<LensPDFDemo>` / `<LensPDF>`: explicit prop > tokens > built-in
   default. Top-bar and welcome-screen logo `<img>` tags now use
   `height` + `width: auto` so non-square logos keep their aspect ratio.
 
@@ -189,7 +189,7 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [0.3.0-beta.62] — 2026-05-10
 
 ### Fixed
-- **Mobile separations / TAC: `[loupe-pdf] toBlob returned null`** — iOS
+- **Mobile separations / TAC: `[lens-pdf] toBlob returned null`** — iOS
   Safari intermittently returns `null` from `canvas.toBlob` for large or
   memory-pressured canvases (the analysis raster + each CMYK plate +
   spots + TAC heatmap all share one process-wide canvas budget).
@@ -257,7 +257,7 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [0.3.0-beta.27] — 2026-05-05
 
 ### Changed
-- **Optional backend wiring in demo shell** — `LoupePDFDemo` now treats
+- **Optional backend wiring in demo shell** — `LensPDFDemo` now treats
   host-provided `services` as a hybrid override: wired backend services
   are used where available, and any unwired capability automatically
   falls back to in-browser pdf.js RGB simulation.
@@ -289,15 +289,15 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 - **Plugin-first viewer shell primitives** — new reusable shell plugin
-  API (`LoupePDFShellPlugin`, `resolveShellPlugins`, `pluginsForSlot`,
+  API (`LensPDFShellPlugin`, `resolveShellPlugins`, `pluginsForSlot`,
   `computeFeatureAvailability`) and first-party defaults
   (`createDefaultShellPlugins`) for panel + toolbar composition.
-- **Preset-based composition** — `LoupePDFDemo` now accepts a
+- **Preset-based composition** — `LensPDFDemo` now accepts a
   `preset` (`demo` / `minimal`) and `plugins` overrides so hosts can
   replace built-in sidebar/menu blocks without forking component code.
 
 ### Changed
-- **LoupePDF / LoupePDFDemo composition** — sidebar + annotation toolbar
+- **LensPDF / LensPDFDemo composition** — sidebar + annotation toolbar
   rendering now goes through slot plugins instead of hardcoded branches,
   making built-ins modular and reusable for custom viewers.
 - **Capability gating defaults** — feature visibility now centralises in
@@ -336,7 +336,7 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 - **Layers mode fallback rendering** — for synthetic-only layer sets
-  (flat PDFs), `LoupePDFDemo` renders `PageCanvas` in Layers mode so
+  (flat PDFs), `LensPDFDemo` renders `PageCanvas` in Layers mode so
   users still see artwork while toggling the fallback row.
 - **LayerInfo typing** — added optional provenance metadata:
   `synthetic?: boolean` and `kind?: "ocg" | "flattened-artwork"`.
@@ -384,7 +384,7 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   works immediately; Select ("pointer") is second with a mouse-pointer
   SVG icon and explicit copy that it only grabs annotations you've
   already placed (empty canvas = nothing to select — not broken).
-- **Default annotation mode** — `<LoupePDFDemo>` starts with the pen
+- **Default annotation mode** — `<LensPDFDemo>` starts with the pen
   tool active instead of select, matching the new order.
 
 ## [0.3.0-beta.19] — 2026-05-04
@@ -398,7 +398,7 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [0.3.0-beta.18] — 2026-05-04
 
 ### Changed
-- **Demo disclaimer relocated** — the long "LoupePDF supports full
+- **Demo disclaimer relocated** — the long "LensPDF supports full
   CMYK + spot inks…" footer in the sidebar was eating vertical
   space on every active session, even though the message is only
   useful before a PDF is loaded. Moved the entire paragraph onto
@@ -415,7 +415,7 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   was firing `notify()`, the sidebar list stayed stuck on
   "No annotations yet." Added a `refreshKey?: number` prop on
   `<AnnotationThread>` (covered as a `useEffect` dependency) and
-  wired it up in `<LoupePDFDemo>` to the version tick from
+  wired it up in `<LensPDFDemo>` to the version tick from
   `useBrowserViewerServicesVersion`. Hosts using a wired backend
   can pass any monotonic counter — when annotations land, bump it
   and the thread re-fetches.
@@ -506,7 +506,7 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 - **Documentation refresh** — README, component reference, and
-  CHANGELOG brought current with the 0.3.0 series. `<LoupePDF>` is
+  CHANGELOG brought current with the 0.3.0 series. `<LensPDF>` is
   now the headline integration tier; the demo wrapper is positioned
   as a marketing-page convenience.
 
@@ -537,7 +537,7 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 - **Demo disclaimer copy** — both sidebar disclaimers now lead with
-  "LoupePDF supports full CMYK + spot inks with no approximation
+  "LensPDF supports full CMYK + spot inks with no approximation
   when a backend (Ghostscript / MuPDF + ICC profiles) is wired
   through the `services` prop". The RGB-derived path is presented
   as the fallback the demo runs in, not the only mode the package
@@ -546,13 +546,13 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [0.3.0-beta.9] — 2026-05-04
 
 ### Changed
-- **`LoupePDFDemo` source split** — every CSS-in-JS helper
+- **`LensPDFDemo` source split** — every CSS-in-JS helper
   (`shellStyle`, `topbarStyle`, `sidebarStyle`, `stageStyle`, …)
-  moved out into a sibling `LoupePDFDemo.styles.ts` (270 lines).
+  moved out into a sibling `LensPDFDemo.styles.ts` (270 lines).
   The main component file dropped from 1620 → 1373 lines so the
   React tree is visible without scrolling past inline style objects.
 - **Top-of-file JSDoc** rewritten to lead with "Most consumers
-  should not import this directly. Use `<LoupePDF>` instead — it's
+  should not import this directly. Use `<LensPDF>` instead — it's
   a one-liner production drop-in." Documents the file's internal
   organisation (styles file + per-feature canvas / overlay / panel
   components).
@@ -572,7 +572,7 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [0.3.0-beta.7] — 2026-05-04
 
 ### Fixed
-- **Demo overlays misaligned with the page** — `LoupePDFDemo` was
+- **Demo overlays misaligned with the page** — `LensPDFDemo` was
   computing its outer canvas-area div from `PTS_TO_PX = 96/72` while
   `PageCanvas` rendered using `DEFAULT_DPI/72 = 150/72`. The parent
   div was ~36% smaller than the rendered page so every absolute-
@@ -631,8 +631,8 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [0.3.0-beta.3] — 2026-05-04
 
 ### Added
-- **`<LoupePDF>` component** — drop-in production viewer. Thin
-  wrapper around `<LoupePDFDemo>` with `embedded=true` and a clean
+- **`<LensPDF>` component** — drop-in production viewer. Thin
+  wrapper around `<LensPDFDemo>` with `embedded=true` and a clean
   prop surface: `pdfUrl` is the single required prop, no upload
   chrome, plus full preflight integration (`items`, `selectedItem`,
   `onItemSelect`, `dieline`, `showBoxOverlays`, `cropToTrim`,
@@ -714,19 +714,19 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [0.2.0] — 2026-05-04
 
 ### Added
-- **`<LoupePDFDemo>` component** — drop-in interactive demo with file
+- **`<LensPDFDemo>` component** — drop-in interactive demo with file
   upload, URL paste, drag-and-drop, client-side validation, sidebar
   controls, theming, and fullscreen mode. Zero boilerplate — config and
   data only. See [docs/components.md](./docs/components.md#drop-in-demo).
-- **`useLoupePDF()` hook** — manages all viewer state (pages, zoom,
+- **`useLensPDF()` hook** — manages all viewer state (pages, zoom,
   layers, tools, fallback adapter, context values). Pair with
-  `<LoupePDFProvider>` for the "hook + provider" integration tier.
-- **`<LoupePDFProvider>` component** — thin wrapper that mounts both
-  `ViewerHostContext` and `ViewerServicesContext` from a `useLoupePDF()`
+  `<LensPDFProvider>` for the "hook + provider" integration tier.
+- **`<LensPDFProvider>` component** — thin wrapper that mounts both
+  `ViewerHostContext` and `ViewerServicesContext` from a `useLensPDF()`
   return value.
-- **Slot props on `<LoupePDFViewer>`** — `header`, `sidebar`, and
+- **Slot props on `<LensPDFViewer>`** — `header`, `sidebar`, and
   `footer` render props let hosts replace default regions without losing
-  the rest of the viewer chrome. `LoupePDFViewerState` type exposes the
+  the rest of the viewer chrome. `LensPDFViewerState` type exposes the
   viewer state to slot callbacks.
 - **`defaultUnwiredServices`** — exported from `/host` so consumers
   don't need to recreate the 30-line `markUnwired` stub object.
@@ -754,7 +754,7 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [0.1.0-beta.3] — 2026-05-04
 
 ### Fixed
-- **`<LoupePDFViewer>` mobile chrome**: at viewports under 768 px the
+- **`<LensPDFViewer>` mobile chrome**: at viewports under 768 px the
   toolbar overflowed and the tools clipped off-screen, leaving no way
   to reach color picker / measure / layers. Replaced with a hamburger
   that opens a left-sliding drawer (matching the existing
@@ -767,7 +767,7 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `hover:bg-slate-800` instead of the inline-styled neutral chrome
   that `0.1.0-beta.2` shipped. Active tool buttons honour
   `tokens.accent` for brand colour.
-- **`LoupePDFViewer` `brand` prop** added — optional label rendered
+- **`LensPDFViewer` `brand` prop** added — optional label rendered
   in the top-left of the toolbar and as the mobile drawer header.
 - **Layers control hides** when the PDF has no OCGs (was rendering
   the toggle button anyway, then showing an empty layer list).
@@ -778,15 +778,15 @@ The first published version. Public API may still change before
 `0.1.0` proper based on early-adopter feedback.
 
 ### Added
-- **`<LoupePDFViewer>` composition** — one-line drop-in viewer:
-  `<LoupePDFViewer pdfUrl="…" />` auto-discovers page count, page
+- **`<LensPDFViewer>` composition** — one-line drop-in viewer:
+  `<LensPDFViewer pdfUrl="…" />` auto-discovers page count, page
   dimensions, and OCG layers from the PDF; renders all pages in a
   scrollable list (or one at a time with `mode="single"`); ships a
   responsive default toolbar with zoom, layers, color picker, and
   measure tool; reflows to a bottom-drawer layout under 768 px. Keeps
   every existing lower-level component export public and unchanged
   for hosts with bespoke layouts.
-- **`@printwithsynergy/loupe-pdf/fallback-pdfjs` subpath** — new entry
+- **`@printwithsynergy/lens-pdf/fallback-pdfjs` subpath** — new entry
   point with a **static** `import "pdfjs-dist"` so bundlers (Vite,
   webpack, esbuild) trace the dep correctly without consumers having
   to side-effect-import it. Exports `createPdfJsFallback` and
@@ -797,7 +797,7 @@ The first published version. Public API may still change before
   the bundle cost is paid only by code paths that actually touch the
   fallback.
 - **`defaultPdfWorkerSrc`** — exported pdf.js worker URL, pinned to
-  the bundled `pdfjs-dist` version via unpkg. `<LoupePDFViewer>` uses
+  the bundled `pdfjs-dist` version via unpkg. `<LensPDFViewer>` uses
   it by default; hosts override via the `workerSrc` prop.
 - **Reference server** — optional Node + Ghostscript backend under
   `server/`. Exposes the HTTP contract that `services.separations`,
@@ -830,7 +830,7 @@ The first published version. Public API may still change before
   `docs/fallback.md`, `docs/server.md`, `docs/components.md`,
   `docs/plugins.md`, `docs/measurement-units.md`, `docs/theming.md`,
   `docs/contributing.md`. `docs.json` sidebar config + YAML
-  frontmatter on every page driving `loupepdf.com`.
+  frontmatter on every page driving `lenspdf.com`.
 - **GitHub Packages publish workflow** — pushing a `v*` tag triggers
   the workflow, which builds, tests, and publishes to
   `npm.pkg.github.com`. Pre-release tags publish under the `beta`
@@ -838,7 +838,7 @@ The first published version. Public API may still change before
 
 ### Changed
 - The `createPdfJsFallback` re-export from
-  `@printwithsynergy/loupe-pdf/host` is now `@deprecated` — it still
+  `@printwithsynergy/lens-pdf/host` is now `@deprecated` — it still
   works (dynamic import) for back-compat, but new code should use
   the `/fallback-pdfjs` subpath.
 - **Breaking — type rename**: `PreflightSourceMode` →
@@ -860,7 +860,7 @@ The first published version. Public API may still change before
   had to add a side-effect `import "pdfjs-dist"` to make it
   resolvable. The new `/fallback-pdfjs` subpath fixes this for all
   bundlers without consumer changes. Surface that hit it:
-  `demo.loupepdf.com`.
+  `demo.lenspdf.com`.
 
 ### Removed
 - All product-specific terminology from the public surface — `grep
@@ -869,6 +869,6 @@ The first published version. Public API may still change before
 
 ## [0.1.0] — internal extraction
 
-First internal version of LoupePDF, extracted from an upstream SaaS
+First internal version of LensPDF, extracted from an upstream SaaS
 monorepo as the host-agnostic OSS viewer core. Never published.
 Superseded by `0.1.0-beta.2`.

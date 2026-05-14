@@ -11,8 +11,8 @@ import {
   modeButtonGroupStyle,
   modeButtonStyle,
   rowStyle,
-} from "./LoupePDFDemo.styles";
-import type { LoupePDFShellPlugin, LoupePDFShellPluginContext } from "./shellPlugins";
+} from "./LensPDFDemo.styles";
+import type { LensPDFShellPlugin, LensPDFShellPluginContext } from "./shellPlugins";
 import { resolveSpotSwatch } from "../browser/pantone-gold";
 
 const panelHeaderRowStyle: CSSProperties = {
@@ -112,12 +112,12 @@ const DENSITOMETER_SWATCH = (
   </span>
 );
 
-function modeToolsPlugin(): LoupePDFShellPlugin {
+function modeToolsPlugin(): LensPDFShellPlugin {
   return {
-    id: "loupe.mode-and-tools",
+    id: "lens.mode-and-tools",
     slot: "panel.left",
     order: 10,
-    render: (ctx: LoupePDFShellPluginContext) => {
+    render: (ctx: LensPDFShellPluginContext) => {
       const {
         tokens,
         viewerMode,
@@ -264,13 +264,13 @@ function modeToolsPlugin(): LoupePDFShellPlugin {
   };
 }
 
-function separationsPlugin(): LoupePDFShellPlugin {
+function separationsPlugin(): LensPDFShellPlugin {
   return {
-    id: "loupe.separations-panel",
+    id: "lens.separations-panel",
     slot: "panel.left",
     order: 20,
     isAvailable: (ctx) => ctx.availability.separations && ctx.viewerMode === "separation",
-    render: (ctx: LoupePDFShellPluginContext) => {
+    render: (ctx: LensPDFShellPluginContext) => {
       const allInkNames = ctx.detectedInks.map((ink) => ink.name);
       return (
         <>
@@ -330,13 +330,13 @@ function separationsPlugin(): LoupePDFShellPlugin {
   };
 }
 
-function layersPlugin(): LoupePDFShellPlugin {
+function layersPlugin(): LensPDFShellPlugin {
   return {
-    id: "loupe.layers-panel",
+    id: "lens.layers-panel",
     slot: "panel.left",
     order: 30,
     isAvailable: (ctx) => ctx.availability.layers && ctx.viewerMode === "layer",
-    render: (ctx: LoupePDFShellPluginContext) => (
+    render: (ctx: LensPDFShellPluginContext) => (
       <>
         <h2 style={headingStyle}>Layers</h2>
         <div
@@ -349,7 +349,7 @@ function layersPlugin(): LoupePDFShellPlugin {
           }}
         >
           <LayerPanel
-            jobId="loupe-pdf-demo"
+            jobId="lens-pdf-demo"
             enabledLayers={ctx.enabledLayers}
             onToggleLayer={(ocgIndex) => {
               ctx.setEnabledLayers((prev) => {
@@ -381,15 +381,15 @@ function layersPlugin(): LoupePDFShellPlugin {
  * left panel area below the View toggle. When inactive, this plugin
  * returns nothing.
  */
-function findingsPlugin(): LoupePDFShellPlugin {
+function findingsPlugin(): LensPDFShellPlugin {
   return {
-    id: "loupe.findings-panel",
+    id: "lens.findings-panel",
     slot: "panel.left",
     order: 25,
     isAvailable: (ctx) =>
       ctx.viewerMode === "findings" &&
       Boolean((ctx.items && ctx.items.length > 0) || ctx.forceInspectionPanel),
-    render: (ctx: LoupePDFShellPluginContext) => {
+    render: (ctx: LensPDFShellPluginContext) => {
       const items = ctx.items ?? [];
       if (items.length === 0) {
         // forceInspectionPanel branch — render an empty state so the
@@ -530,17 +530,17 @@ function findingsPlugin(): LoupePDFShellPlugin {
   };
 }
 
-function annotationsPlugin(): LoupePDFShellPlugin {
+function annotationsPlugin(): LensPDFShellPlugin {
   return {
-    id: "loupe.annotations-panel",
+    id: "lens.annotations-panel",
     slot: "panel.left",
     order: 40,
     isAvailable: (ctx) => ctx.availability.annotate,
-    render: (ctx: LoupePDFShellPluginContext) => (
+    render: (ctx: LensPDFShellPluginContext) => (
       <>
         <h2 style={headingStyle}>Annotations</h2>
         <AnnotationThread
-          jobId="loupe-pdf-demo"
+          jobId="lens-pdf-demo"
           currentUserEmail="you@browser.local"
           onJumpToPage={(p) => ctx.setCurrentPage(p)}
           refreshKey={ctx.servicesVersion}
@@ -550,7 +550,7 @@ function annotationsPlugin(): LoupePDFShellPlugin {
         <h2 style={headingStyle}>Notes</h2>
         <AnnotationNotesPanel
           refreshKey={ctx.servicesVersion}
-          storageScopeKey={ctx.pdfUrl || "loupe-pdf-demo"}
+          storageScopeKey={ctx.pdfUrl || "lens-pdf-demo"}
           onJumpToPage={(p) => ctx.setCurrentPage(p)}
           indexedAnnotations={ctx.indexedAnnotations}
           selectedAnnotationId={ctx.selectedAnnotationId}
@@ -561,14 +561,14 @@ function annotationsPlugin(): LoupePDFShellPlugin {
   };
 }
 
-function annotationToolbarPlugin(): LoupePDFShellPlugin {
+function annotationToolbarPlugin(): LensPDFShellPlugin {
   return {
-    id: "loupe.annotation-toolbar",
+    id: "lens.annotation-toolbar",
     slot: "overlay.toolbar",
     order: 10,
     isAvailable: (ctx) =>
       ctx.availability.annotate && ctx.activeTool === "annotate",
-    render: (ctx: LoupePDFShellPluginContext) => (
+    render: (ctx: LensPDFShellPluginContext) => (
       <AnnotationToolbar
         activeTool={ctx.annotationTool}
         onToolChange={ctx.setAnnotationTool}
@@ -585,7 +585,7 @@ function annotationToolbarPlugin(): LoupePDFShellPlugin {
   };
 }
 
-export function createDefaultShellPlugins(): LoupePDFShellPlugin[] {
+export function createDefaultShellPlugins(): LensPDFShellPlugin[] {
   return [
     findingsPlugin(),
     modeToolsPlugin(),

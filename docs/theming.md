@@ -22,12 +22,12 @@ interface ThemeTokens {
   readonly bg: string;        // surface background
   readonly fg: string;        // foreground / body text
   readonly border: string;    // hairline border
-  // Optional brand-identity fields read by <LoupePDFDemo> as a
+  // Optional brand-identity fields read by <LensPDFDemo> as a
   // fallback when the equivalent props (`brand`, `brandLogoUrl`)
   // aren't set. Lets a host bundle palette + logo + label into a
   // single tokens object.
   readonly logoUrl?: string;        // brand logo image URL
-  readonly logoText?: string;       // brand label (default: "LoupePDF")
+  readonly logoText?: string;       // brand label (default: "LensPDF")
   readonly logoMaxHeight?: number;  // pixel cap on logo height (default: 24)
   readonly logoAlt?: string;        // alt text for the logo <img>
 }
@@ -36,7 +36,7 @@ interface ThemeTokens {
 `defaultThemeTokens` is a neutral light palette:
 
 ```ts
-import { defaultThemeTokens } from "@printwithsynergy/loupe-pdf/plugin";
+import { defaultThemeTokens } from "@printwithsynergy/lens-pdf/plugin";
 
 // {
 //   primary: "#0f172a",
@@ -50,7 +50,7 @@ import { defaultThemeTokens } from "@printwithsynergy/loupe-pdf/plugin";
 `darkThemeTokens` is a dark palette preset for demo and dark-mode UIs:
 
 ```ts
-import { darkThemeTokens } from "@printwithsynergy/loupe-pdf/plugin";
+import { darkThemeTokens } from "@printwithsynergy/lens-pdf/plugin";
 
 // {
 //   primary: "#0f172a",
@@ -61,7 +61,7 @@ import { darkThemeTokens } from "@printwithsynergy/loupe-pdf/plugin";
 // }
 ```
 
-`<LoupePDFDemo>` uses `darkThemeTokens` by default; `<LoupePDFViewer>`
+`<LensPDFDemo>` uses `darkThemeTokens` by default; `<LensPDFViewer>`
 uses `defaultThemeTokens`.
 
 Pass your own through `services.tokens`:
@@ -94,7 +94,7 @@ The `noopI18n` default returns the key unchanged with `{param}`
 placeholders substituted. Drop in a real translator as needed:
 
 ```ts
-import type { I18nService } from "@printwithsynergy/loupe-pdf/plugin";
+import type { I18nService } from "@printwithsynergy/lens-pdf/plugin";
 
 export const i18n: I18nService = {
   t: (key, params) => translateWithICU(key, params),
@@ -122,7 +122,7 @@ interface TelemetryService {
 overriding:
 
 ```ts
-import type { TelemetryService } from "@printwithsynergy/loupe-pdf/plugin";
+import type { TelemetryService } from "@printwithsynergy/lens-pdf/plugin";
 
 export const telemetry: TelemetryService = {
   track: (event, props) => window.analytics?.track(event, props),

@@ -16,7 +16,7 @@ CMYK or spot inks from the result. For preflight-grade output you need
 a server-side renderer.
 
 The repo ships a small reference implementation under
-[`server/`](https://github.com/Printwithsynergy/loupe-pdf/tree/main/server)
+[`server/`](https://github.com/Printwithsynergy/lens-pdf/tree/main/server)
 that you can deploy as-is or read as a contract guide and replace with
 your own. It's a Node + Express service that shells out to Ghostscript
 (`tiffsep` device) for separation rendering. Auth, rate limiting, and
@@ -26,10 +26,10 @@ your gateway.
 ## Quick start
 
 ```sh
-git clone https://github.com/Printwithsynergy/loupe-pdf
-cd loupe-pdf/server
-docker build -t loupe-pdf-server .
-docker run -p 3000:3000 -v loupe-jobs:/var/lib/loupe-pdf/jobs loupe-pdf-server
+git clone https://github.com/Printwithsynergy/lens-pdf
+cd lens-pdf/server
+docker build -t lens-pdf-server .
+docker run -p 3000:3000 -v lens-jobs:/var/lib/lens-pdf/jobs lens-pdf-server
 ```
 
 `server/README.md` has the full local-development workflow and the
@@ -71,7 +71,7 @@ await fetch(`${apiBase}/jobs/${jobId}/source`, {
 Then point the viewer's services at the same base URL:
 
 ```ts
-import type { ViewerServices } from "@printwithsynergy/loupe-pdf/plugin";
+import type { ViewerServices } from "@printwithsynergy/lens-pdf/plugin";
 
 const services: ViewerServices = {
   pageImages: {
@@ -143,7 +143,7 @@ endpoints differently as long as the responses match. The contract:
 | `DELETE` | `/jobs/{jobId}` | Drop server-side state for the job. |
 
 `ColorSample` and `DensitometerSample` shapes are defined in
-`@printwithsynergy/loupe-pdf/types` — match those exactly.
+`@printwithsynergy/lens-pdf/types` — match those exactly.
 
 ## Security caveats
 
@@ -151,7 +151,7 @@ The viewer is a pure renderer; the reference server is a thin
 Ghostscript wrapper. Authz, rate limiting, multi-tenant isolation, and
 SSRF prevention are **your responsibility**. Specifically:
 
-- The optional `LOUPE_BEARER_TOKEN` is a coarse single-secret check
+- The optional `LENS_BEARER_TOKEN` is a coarse single-secret check
   meant for private-network deploys. For anything user-facing, run the
   service behind your real gateway.
 - The `{ url: "..." }` upload mode fetches whatever URL you give it.
@@ -164,7 +164,7 @@ SSRF prevention are **your responsibility**. Specifically:
 - The 60 s render timeout protects against the most obvious DoS
   attempts; pair with per-tenant concurrency caps.
 
-See [`server/README.md`](https://github.com/Printwithsynergy/loupe-pdf/tree/main/server#security)
+See [`server/README.md`](https://github.com/Printwithsynergy/lens-pdf/tree/main/server#security)
 for the full list.
 
 ## Cloudflare / CDN deployment
@@ -183,7 +183,7 @@ the headers and store responses at the edge for a year.
 
 Two things to watch:
 
-1. **Don't set `LOUPE_BEARER_TOKEN`** if you want CDN caching. An
+1. **Don't set `LENS_BEARER_TOKEN`** if you want CDN caching. An
    `Authorization` header makes Cloudflare bypass the edge cache.
    Move auth to the gateway tier (Cloudflare Access, signed URLs,
    mTLS at the origin) instead.

@@ -1,13 +1,13 @@
 /**
  * Shareable viewer link utilities.
  *
- * {@link generateShareLink} builds a URL that opens a LoupePDF viewer
+ * {@link generateShareLink} builds a URL that opens a LensPDF viewer
  * with a specific PDF pre-loaded and settings applied.
  * {@link parseShareParams} parses those query params back into props.
  *
  * URL format:
  * ```
- * https://loupepdf.com/demo?url=<encoded>&fullscreen=true&zoom=150&page=1&mode=single&theme=dark
+ * https://lenspdf.com/demo?url=<encoded>&fullscreen=true&zoom=150&page=1&mode=single&theme=dark
  * ```
  *
  * @public
@@ -21,7 +21,7 @@ import type { ThemeTokens } from "../plugin/services";
 
 /** Options for {@link generateShareLink}. */
 export interface ShareLinkOptions {
-  /** Base URL of the host's demo/viewer page (e.g. `https://loupepdf.com/demo`). */
+  /** Base URL of the host's demo/viewer page (e.g. `https://lenspdf.com/demo`). */
   baseUrl: string;
   /** PDF URL to pre-load. */
   pdfUrl: string;
@@ -44,12 +44,12 @@ export interface ShareLinkOptions {
  *
  * ```ts
  * const link = generateShareLink({
- *   baseUrl: "https://loupepdf.com/demo",
+ *   baseUrl: "https://lenspdf.com/demo",
  *   pdfUrl: "https://cdn.example.com/proof.pdf",
  *   fullscreen: true,
  *   zoom: 150,
  * });
- * // → "https://loupepdf.com/demo?url=https%3A%2F%2Fcdn.example.com%2Fproof.pdf&fullscreen=true&zoom=150"
+ * // → "https://lenspdf.com/demo?url=https%3A%2F%2Fcdn.example.com%2Fproof.pdf&fullscreen=true&zoom=150"
  * ```
  *
  * @public
@@ -114,7 +114,7 @@ export interface ParsedShareParams {
  *
  * ```ts
  * const params = parseShareParams(new URLSearchParams(window.location.search));
- * <LoupePDFDemo initialPdfUrl={params.pdfUrl} fullscreen={params.fullscreen} />
+ * <LensPDFDemo initialPdfUrl={params.pdfUrl} fullscreen={params.fullscreen} />
  * ```
  *
  * @public

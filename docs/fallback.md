@@ -7,7 +7,7 @@ order: 4
 
 # Fallback behaviour & capability detection
 
-LoupePDF's components no longer all render the same regardless of what the
+LensPDF's components no longer all render the same regardless of what the
 host wired. Instead each component picks one of three modes per render:
 
 | Mode       | When                                                                                  | Render                                  |
@@ -23,7 +23,7 @@ service at all gets nothing — no panel, no menu item, no inert button.
 
 ## Capability detection
 
-The default services exported from `@printwithsynergy/loupe-pdf/host` are
+The default services exported from `@printwithsynergy/lens-pdf/host` are
 tagged with a non-enumerable symbol marker. `isUnwired(service)` returns
 `true` for any of those defaults and `false` for anything a host substitutes
 in. Components use this to choose their render mode.
@@ -31,14 +31,14 @@ in. Components use this to choose their render mode.
 The full set of unwired defaults is available as a single object:
 
 ```ts
-import { defaultUnwiredServices } from "@printwithsynergy/loupe-pdf/host";
+import { defaultUnwiredServices } from "@printwithsynergy/lens-pdf/host";
 ```
 
 Spread it and override only the services your host provides — no need
 to manually `markUnwired` each field:
 
 ```ts
-import { isUnwired, useViewerServices } from "@printwithsynergy/loupe-pdf/host";
+import { isUnwired, useViewerServices } from "@printwithsynergy/lens-pdf/host";
 
 const { layers } = useViewerServices();
 if (isUnwired(layers)) {
@@ -55,7 +55,7 @@ Hosts that want graceful degradation for the base tools can ship a raw PDF
 URL plus the bundled pdf.js adapter:
 
 ```ts
-import { createPdfJsFallback, ViewerHostContext } from "@printwithsynergy/loupe-pdf/host";
+import { createPdfJsFallback, ViewerHostContext } from "@printwithsynergy/lens-pdf/host";
 
 const fallback = createPdfJsFallback({
   pdfUrl: "/proofs/abc-signed.pdf",
@@ -79,7 +79,7 @@ const fallback = createPdfJsFallback({
 ```
 
 Add `pdfjs-dist` to your app's dependencies (it's an *optional* peer dep of
-`@printwithsynergy/loupe-pdf` and loaded lazily via `import("pdfjs-dist")`,
+`@printwithsynergy/lens-pdf` and loaded lazily via `import("pdfjs-dist")`,
 so consumers that don't use the fallback pay no bundle cost).
 
 ### What the fallback can do
@@ -109,7 +109,7 @@ from the resulting raster. Those components stay hidden when their
 dedicated services are unwired, fallback or no fallback.
 
 For the preflight-grade tools, deploy the optional reference server
-under [`server/`](https://github.com/Printwithsynergy/loupe-pdf/tree/main/server)
+under [`server/`](https://github.com/Printwithsynergy/lens-pdf/tree/main/server)
 or wire `services.separations` / `services.densitometer` /
 `services.tacHeatmap` to your own backend. See
 [server.md](./server.md) for the contract and a wiring example.
@@ -121,7 +121,7 @@ Set `debug: true` on the host context (typically `import.meta.env.DEV` or
 one-shot `console.info`:
 
 ```
-[loupe-pdf] DensitometerTool hidden — host did not wire `services.densitometer`.
+[lens-pdf] DensitometerTool hidden — host did not wire `services.densitometer`.
 Provide an implementation, or set `pdfFallback` on the host context to use the
 in-browser PDF fallback.
 ```
@@ -131,7 +131,7 @@ With `debug` off (the default) hidden components are silent.
 
 ## Security
 
-LoupePDF is a pure renderer. It does not authenticate, sign, or rate-limit
+LensPDF is a pure renderer. It does not authenticate, sign, or rate-limit
 any of the URLs it consumes. Specifically:
 
 - The `pdfUrl` you put on the host context is fetched verbatim by the
@@ -152,7 +152,7 @@ any of the URLs it consumes. Specifically:
 
 ## The service contract (for non-JS hosts)
 
-If you're wiring LoupePDF from a PHP, Laravel, Perl, Rails, or any other
+If you're wiring LensPDF from a PHP, Laravel, Perl, Rails, or any other
 backend, your job is just to expose HTTP endpoints that match the shape
 each `ViewerService` URL builder calls. There is no SDK to install — the
 viewer is decoupled by design. The minimal contract is:

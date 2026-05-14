@@ -1,8 +1,8 @@
 {
-  "name": "loupe-pdf-server",
+  "name": "lens-pdf-server",
   "version": "0.0.0",
   "private": true,
-  "description": "Reference HTTP backend for LoupePDF — provides ink separations, densitometer, TAC heatmap, color sampling via Ghostscript.",
+  "description": "Reference HTTP backend for LensPDF — provides ink separations, densitometer, TAC heatmap, color sampling via Ghostscript.",
   "type": "module",
   "scripts": {
     "dev": "tsx --watch src/index.ts",

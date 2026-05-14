@@ -22,7 +22,7 @@ import {
   agateUnit,
   defaultMeasurementUnits,   // [mm, in, pt]
   allMeasurementUnits,       // [mm, in, pt, pica, agate]
-} from "@printwithsynergy/loupe-pdf/units";
+} from "@printwithsynergy/lens-pdf/units";
 ```
 
 | Unit | id | label | Conversion (from PDF points) |
@@ -37,8 +37,8 @@ import {
 `allMeasurementUnits` to add pica + agate, or supply a custom subset.
 
 ```tsx
-import { MeasureTool } from "@printwithsynergy/loupe-pdf/components";
-import { allMeasurementUnits } from "@printwithsynergy/loupe-pdf/units";
+import { MeasureTool } from "@printwithsynergy/lens-pdf/components";
+import { allMeasurementUnits } from "@printwithsynergy/lens-pdf/units";
 
 <MeasureTool
   pageWidthPts={612}
@@ -55,7 +55,7 @@ The Protocol is small — anchor your conversions to PDF points (1 pt =
 1/72 inch) and you're done.
 
 ```ts
-import type { MeasurementUnit } from "@printwithsynergy/loupe-pdf/plugin";
+import type { MeasurementUnit } from "@printwithsynergy/lens-pdf/plugin";
 
 export const cmUnit: MeasurementUnit = {
   id: "cm",

@@ -9,7 +9,7 @@ order: 3
 
 Every field on `ViewerServices` is independent. Implement the ones your host
 supports; the rest fall through to *unwired* no-op defaults exported from
-`@printwithsynergy/loupe-pdf/plugin`. Consuming components detect the unwired
+`@printwithsynergy/lens-pdf/plugin`. Consuming components detect the unwired
 state and self-hide rather than rendering empty placeholders — see
 [docs/fallback.md](./fallback.md) for the full capability-detection model,
 the in-browser pdf.js fallback, and debug logging.
@@ -20,7 +20,7 @@ The easiest way to build a partial `ViewerServices` is to spread the
 pre-built defaults and override only the services your host provides:
 
 ```ts
-import { defaultUnwiredServices } from "@printwithsynergy/loupe-pdf/host";
+import { defaultUnwiredServices } from "@printwithsynergy/lens-pdf/host";
 
 export const services = {
   ...defaultUnwiredServices,
@@ -40,12 +40,12 @@ components self-hide.
 The full manual approach gives you finer-grained control:
 
 ```ts
-import type { ViewerServices } from "@printwithsynergy/loupe-pdf/plugin";
+import type { ViewerServices } from "@printwithsynergy/lens-pdf/plugin";
 import {
   defaultThemeTokens,
   noopI18n,
   noopTelemetry,
-} from "@printwithsynergy/loupe-pdf/plugin";
+} from "@printwithsynergy/lens-pdf/plugin";
 
 export const services: ViewerServices = {
   pageImages: {

@@ -1,19 +1,19 @@
 ---
 title: "Security policy"
-description: "How to report a vulnerability in LoupePDF, what's in scope vs. out of scope, supported versions, and how disclosure is coordinated."
+description: "How to report a vulnerability in LensPDF, what's in scope vs. out of scope, supported versions, and how disclosure is coordinated."
 group: "Project"
 order: 10
 ---
 
 # Security policy
 
-LoupePDF is the renderer, not the access layer. This page covers what
-counts as a LoupePDF vulnerability, how to report one, and what we
+LensPDF is the renderer, not the access layer. This page covers what
+counts as a LensPDF vulnerability, how to report one, and what we
 promise back.
 
 ## Reporting a vulnerability
 
-If you believe you've found a security issue in LoupePDF, please **do
+If you believe you've found a security issue in LensPDF, please **do
 not** open a public GitHub issue. Instead, email
 **security@printwithsynergy.com** with:
 
@@ -31,9 +31,9 @@ timing with you.
 
 ## Scope
 
-LoupePDF is a pure renderer. It does not authenticate, sign, or
+LensPDF is a pure renderer. It does not authenticate, sign, or
 rate-limit any URL it consumes — those concerns are the host's. The
-following are **not** in scope as LoupePDF vulnerabilities and should
+following are **not** in scope as LensPDF vulnerabilities and should
 be reported to the relevant host instead:
 
 - A signed URL that didn't expire when the host expected it to.

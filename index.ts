@@ -1,5 +1,5 @@
 /**
- * `@printwithsynergy/loupe-pdf` — root barrel.
+ * `@printwithsynergy/lens-pdf` — root barrel.
  *
  * Re-exports every public protocol, component, and unit. Host
  * applications usually import directly from a sub-path (`/host`,
@@ -35,27 +35,27 @@ export { validatePdfFile, validatePdfUrl } from "./host/pdfValidation";
 export type { PdfValidationResult } from "./host/pdfValidation";
 export { generateShareLink, parseShareParams } from "./host/shareLink";
 export type { ShareLinkOptions, ParsedShareParams } from "./host/shareLink";
-export { useLoupePDF } from "./host/useLoupePDF";
-export type { UseLoupePDFOptions, UseLoupePDFReturn } from "./host/useLoupePDF";
-export { LoupePDFProvider } from "./host/LoupePDFProvider";
-export type { LoupePDFProviderProps } from "./host/LoupePDFProvider";
+export { useLensPDF } from "./host/useLensPDF";
+export type { UseLensPDFOptions, UseLensPDFReturn } from "./host/useLensPDF";
+export { LensPDFProvider } from "./host/LensPDFProvider";
+export type { LensPDFProviderProps } from "./host/LensPDFProvider";
 export { pageInfoFromDimensions } from "./types";
 
-export { LoupePDFDemo } from "./components/LoupePDFDemo";
+export { LensPDFDemo } from "./components/LensPDFDemo";
 export { FindingsSidebar } from "./components/FindingsSidebar";
 export type { FindingsSidebarProps } from "./components/FindingsSidebar";
 export { DielineInfoPanel } from "./components/DielineInfoPanel";
 export type { DielineInfoPanelProps } from "./components/DielineInfoPanel";
 export type {
-  LoupePDFDemoProps,
-  LoupePDFDemoTool,
-} from "./components/LoupePDFDemo";
+  LensPDFDemoProps,
+  LensPDFDemoTool,
+} from "./components/LensPDFDemo";
 
-// Drop-in production viewer — same feature surface as <LoupePDFDemo>
+// Drop-in production viewer — same feature surface as <LensPDFDemo>
 // without the upload chrome. The recommended single-component entry
-// point for hosts integrating LoupePDF.
-export { LoupePDF } from "./components/LoupePDF";
-export type { LoupePDFProps } from "./components/LoupePDF";
+// point for hosts integrating LensPDF.
+export { LensPDF } from "./components/LensPDF";
+export type { LensPDFProps } from "./components/LensPDF";
 
 // Browser-only ViewerServices factory — gives consumers a one-liner
 // path to a fully wired viewer without a server backend.
@@ -83,12 +83,12 @@ export { DensitometerTool } from "./components/DensitometerTool";
 export { DielineOverlay } from "./components/DielineOverlay";
 export { LayerCanvas } from "./components/LayerCanvas";
 export { LayerPanel } from "./components/LayerPanel";
-export { LoupePDFViewer } from "./components/LoupePDFViewer";
+export { LensPDFViewer } from "./components/LensPDFViewer";
 export type {
-  LoupePDFViewerProps,
-  LoupePDFViewerState,
-  LoupePDFViewerTool,
-} from "./components/LoupePDFViewer";
+  LensPDFViewerProps,
+  LensPDFViewerState,
+  LensPDFViewerTool,
+} from "./components/LensPDFViewer";
 export { MeasureTool } from "./components/MeasureTool";
 export { createDefaultShellPlugins } from "./components/defaultShellPlugins";
 export { MobileBottomSheet } from "./components/MobileBottomSheet";
@@ -99,17 +99,17 @@ export { SeparationCanvas } from "./components/SeparationCanvas";
 export { TACHeatmapOverlay } from "./components/TACHeatmapOverlay";
 export { ZoomControls } from "./components/ZoomControls";
 export { pluginsForPreset } from "./components/presets";
-export type { LoupePDFPresetKind } from "./components/presets";
+export type { LensPDFPresetKind } from "./components/presets";
 export {
   computeFeatureAvailability,
   pluginsForSlot,
   resolveShellPlugins,
 } from "./components/shellPlugins";
 export type {
-  LoupePDFFeatureAvailability,
-  LoupePDFShellPlugin,
-  LoupePDFShellPluginContext,
-  LoupePDFShellSlot,
+  LensPDFFeatureAvailability,
+  LensPDFShellPlugin,
+  LensPDFShellPluginContext,
+  LensPDFShellSlot,
 } from "./components/shellPlugins";
 
 // Built-in MeasurementUnit definitions consumed by MeasureTool.

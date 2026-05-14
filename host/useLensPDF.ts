@@ -1,10 +1,10 @@
 /**
- * `useLoupePDF` — React hook that manages all viewer state.
+ * `useLensPDF` — React hook that manages all viewer state.
  *
  * Returns everything a consumer needs to render a viewer: context
  * values, fallback adapter, page/zoom/layer/tool state, and
  * computed canvas dimensions. Pass the return value to
- * {@link LoupePDFProvider} (or spread into `<LoupePDFViewer>`) and
+ * {@link LensPDFProvider} (or spread into `<LensPDFViewer>`) and
  * you're done — no manual context wiring required.
  *
  * @public
@@ -22,8 +22,8 @@ import type { ViewerHostContextValue } from "./index";
 // Options
 // ---------------------------------------------------------------------------
 
-/** Options for {@link useLoupePDF}. */
-export interface UseLoupePDFOptions {
+/** Options for {@link useLensPDF}. */
+export interface UseLensPDFOptions {
   /** Theme tokens. Merged onto defaults. */
   tokens?: Partial<ThemeTokens>;
   /** Partial wired services — unwired fields auto-filled with no-op defaults. */
@@ -42,9 +42,9 @@ export interface UseLoupePDFOptions {
 // Return
 // ---------------------------------------------------------------------------
 
-/** Full viewer state returned by {@link useLoupePDF}. */
-export interface UseLoupePDFReturn {
-  // Context values — feed to <LoupePDFProvider>
+/** Full viewer state returned by {@link useLensPDF}. */
+export interface UseLensPDFReturn {
+  // Context values — feed to <LensPDFProvider>
   hostValue: ViewerHostContextValue;
   servicesValue: ViewerServices;
 
@@ -93,24 +93,24 @@ const PTS_TO_PX = 96 / 72;
 // ---------------------------------------------------------------------------
 
 /**
- * Manages all LoupePDF viewer state. Pair with `<LoupePDFProvider>`
- * or `<LoupePDFViewer>` for rendering.
+ * Manages all LensPDF viewer state. Pair with `<LensPDFProvider>`
+ * or `<LensPDFViewer>` for rendering.
  *
  * ```tsx
- * const viewer = useLoupePDF("https://cdn.example.com/proof.pdf");
+ * const viewer = useLensPDF("https://cdn.example.com/proof.pdf");
  * return (
- *   <LoupePDFProvider value={viewer}>
+ *   <LensPDFProvider value={viewer}>
  *     <PageCanvas page={viewer.currentPageInfo} zoom={viewer.zoom} ... />
- *   </LoupePDFProvider>
+ *   </LensPDFProvider>
  * );
  * ```
  *
  * @public
  */
-export function useLoupePDF(
+export function useLensPDF(
   pdfUrl: string | undefined,
-  opts: UseLoupePDFOptions = {},
-): UseLoupePDFReturn {
+  opts: UseLensPDFOptions = {},
+): UseLensPDFReturn {
   const {
     tokens: tokenOverrides,
     services: serviceOverrides,

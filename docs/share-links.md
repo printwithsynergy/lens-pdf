@@ -7,17 +7,17 @@ order: 9
 
 # Shareable links
 
-`generateShareLink()` builds a URL that opens any LoupePDF host page
+`generateShareLink()` builds a URL that opens any LensPDF host page
 with a specific PDF pre-loaded and settings applied.
 `parseShareParams()` reads those query params back into props your
 component can consume.
 
-Both are exported from `@printwithsynergy/loupe-pdf/host`.
+Both are exported from `@printwithsynergy/lens-pdf/host`.
 
 ## URL format
 
 ```
-https://loupepdf.com/demo?url=<encoded>&fullscreen=true&zoom=150&page=1&mode=single&theme=dark
+https://lenspdf.com/demo?url=<encoded>&fullscreen=true&zoom=150&page=1&mode=single&theme=dark
 ```
 
 | Param | Type | Notes |
@@ -33,16 +33,16 @@ https://loupepdf.com/demo?url=<encoded>&fullscreen=true&zoom=150&page=1&mode=sin
 ## Generating a link
 
 ```ts
-import { generateShareLink } from "@printwithsynergy/loupe-pdf/host";
+import { generateShareLink } from "@printwithsynergy/lens-pdf/host";
 
 const link = generateShareLink({
-  baseUrl: "https://loupepdf.com/demo",
+  baseUrl: "https://lenspdf.com/demo",
   pdfUrl: "https://cdn.example.com/proof.pdf",
   fullscreen: true,
   zoom: 150,
   page: 2,
 });
-// → "https://loupepdf.com/demo?url=https%3A%2F%2Fcdn.example.com%2Fproof.pdf&fullscreen=true&zoom=150&page=2"
+// → "https://lenspdf.com/demo?url=https%3A%2F%2Fcdn.example.com%2Fproof.pdf&fullscreen=true&zoom=150&page=2"
 ```
 
 ### `ShareLinkOptions`
@@ -61,7 +61,7 @@ const link = generateShareLink({
 ## Parsing on the consumer side
 
 ```ts
-import { parseShareParams } from "@printwithsynergy/loupe-pdf/host";
+import { parseShareParams } from "@printwithsynergy/lens-pdf/host";
 
 const params = parseShareParams(new URLSearchParams(window.location.search));
 
@@ -83,19 +83,19 @@ const params = parseShareParams(new URLSearchParams(window.location.search));
 | `tools` | `string[] \| undefined` | |
 | `theme` | `"light" \| "dark" \| Partial<ThemeTokens> \| undefined` | |
 
-## End-to-end with `<LoupePDFDemo>`
+## End-to-end with `<LensPDFDemo>`
 
-Wire `parseShareParams` into `<LoupePDFDemo>` props:
+Wire `parseShareParams` into `<LensPDFDemo>` props:
 
 ```tsx
-import { LoupePDFDemo } from "@printwithsynergy/loupe-pdf/components";
-import { parseShareParams } from "@printwithsynergy/loupe-pdf/host";
+import { LensPDFDemo } from "@printwithsynergy/lens-pdf/components";
+import { parseShareParams } from "@printwithsynergy/lens-pdf/host";
 
 export function DemoPage() {
   const params = parseShareParams(new URLSearchParams(window.location.search));
 
   return (
-    <LoupePDFDemo
+    <LensPDFDemo
       brand="MyApp"
       initialPdfUrl={params.pdfUrl}
       fullscreen={params.fullscreen}

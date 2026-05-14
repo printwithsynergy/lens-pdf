@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a defect in LoupePDF
+description: Report a defect in LensPDF
 title: "bug: <short summary>"
 labels: ["bug", "triage"]
 body:
@@ -13,8 +13,8 @@ body:
   - type: input
     id: version
     attributes:
-      label: LoupePDF version
-      description: Output of `npm ls @printwithsynergy/loupe-pdf` or the git ref.
+      label: LensPDF version
+      description: Output of `npm ls @printwithsynergy/lens-pdf` or the git ref.
       placeholder: "0.1.0"
     validations:
       required: true

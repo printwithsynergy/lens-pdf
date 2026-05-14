@@ -23,15 +23,15 @@ import { ZoomControls } from "./ZoomControls";
 /**
  * Default tool ids supported by the bundled toolbar. Hosts that want
  * a different set pass `tools={...}`; hosts that want a totally
- * different toolbar shouldn't use `<LoupePDFViewer>` and should
+ * different toolbar shouldn't use `<LensPDFViewer>` and should
  * compose the lower-level components themselves.
  *
  * @public
  */
-export type LoupePDFViewerTool = "zoom" | "color-picker" | "measure" | "layers";
+export type LensPDFViewerTool = "zoom" | "color-picker" | "measure" | "layers";
 
 /**
- * Props for the default {@link LoupePDFViewer} composition.
+ * Props for the default {@link LensPDFViewer} composition.
  *
  * @public
  */
@@ -40,7 +40,7 @@ export type LoupePDFViewerTool = "zoom" | "color-picker" | "measure" | "layers";
  *
  * @public
  */
-export interface LoupePDFViewerState {
+export interface LensPDFViewerState {
   zoom: number;
   setZoom: (z: number) => void;
   currentPage: number;
@@ -56,7 +56,7 @@ export interface LoupePDFViewerState {
   setLayersOpen: (v: boolean) => void;
 }
 
-export interface LoupePDFViewerProps {
+export interface LensPDFViewerProps {
   /** PDF URL the viewer fetches. Sign / scope upstream. */
   pdfUrl: string;
   /** Optional override for the pdf.js worker URL. */
@@ -70,7 +70,7 @@ export interface LoupePDFViewerProps {
   /** Page rendering mode. */
   mode?: "scroll" | "single";
   /** Tools shown in the toolbar / mobile drawer. */
-  tools?: ReadonlyArray<LoupePDFViewerTool>;
+  tools?: ReadonlyArray<LensPDFViewerTool>;
   /** Initial zoom percentage. Default `100`. */
   initialZoom?: number;
   /** Optional brand label rendered in the top-left of the toolbar. */
@@ -79,17 +79,17 @@ export interface LoupePDFViewerProps {
    * Render prop for a custom header. When provided, replaces the
    * default toolbar. Receives viewer state for building controls.
    */
-  header?: (state: LoupePDFViewerState) => ReactNode;
+  header?: (state: LensPDFViewerState) => ReactNode;
   /**
    * Render prop for a custom sidebar. When provided, replaces the
    * default layer panel sidebar.
    */
-  sidebar?: (state: LoupePDFViewerState) => ReactNode;
+  sidebar?: (state: LensPDFViewerState) => ReactNode;
   /** Static footer content rendered below the viewer stage. */
   footer?: ReactNode;
 }
 
-const DEFAULT_TOOLS: ReadonlyArray<LoupePDFViewerTool> = [
+const DEFAULT_TOOLS: ReadonlyArray<LensPDFViewerTool> = [
   "zoom",
   "layers",
   "color-picker",
@@ -102,12 +102,12 @@ const MOBILE_BREAKPOINT_PX = 768;
  * One-line responsive PDF viewer.
  *
  * ```tsx
- * <LoupePDFViewer pdfUrl="https://example.com/file.pdf" />
+ * <LensPDFViewer pdfUrl="https://example.com/file.pdf" />
  * ```
  *
  * @public
  */
-export function LoupePDFViewer(props: LoupePDFViewerProps) {
+export function LensPDFViewer(props: LensPDFViewerProps) {
   const {
     pdfUrl,
     workerSrc,
@@ -228,7 +228,7 @@ export function LoupePDFViewer(props: LoupePDFViewerProps) {
 
   const layersBody = showLayersControl ? (
     <LayerPanel
-      jobId="loupe-pdf-viewer"
+      jobId="lens-pdf-viewer"
       enabledLayers={enabledLayers}
       onToggleLayer={onToggleLayer}
       onSetAllLayers={onSetAllLayers}
@@ -610,7 +610,7 @@ function PageSlot({
       {visible && resolvedDims ? (
         <Fragment>
           <PageCanvas
-            jobId="loupe-pdf-viewer"
+            jobId="lens-pdf-viewer"
             page={page}
             zoom={scale}
             items={[]}
@@ -620,7 +620,7 @@ function PageSlot({
           />
           {activeTool === "color-picker" && (
             <ColorPickerTool
-              jobId="loupe-pdf-viewer"
+              jobId="lens-pdf-viewer"
               pageNum={pageNum}
               pageWidthPts={widthPts}
               pageHeightPts={heightPts}

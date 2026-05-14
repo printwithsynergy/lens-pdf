@@ -4,17 +4,17 @@ import {
   LayerPanel,
   MeasureTool,
   PageCanvas,
-} from "@printwithsynergy/loupe-pdf/components";
+} from "@printwithsynergy/lens-pdf/components";
 import {
   ViewerHostContext,
   ViewerServicesContext,
   createPdfJsFallback,
-} from "@printwithsynergy/loupe-pdf/host";
+} from "@printwithsynergy/lens-pdf/host";
 import type {
   PdfFallbackAdapter,
   ViewerServices,
-} from "@printwithsynergy/loupe-pdf/plugin";
-import type { PageInfo } from "@printwithsynergy/loupe-pdf/types";
+} from "@printwithsynergy/lens-pdf/plugin";
+import type { PageInfo } from "@printwithsynergy/lens-pdf/types";
 import { mockServices } from "./mockServices";
 
 type Mode = "empty" | "fallback" | "mock";
@@ -70,7 +70,7 @@ export function App() {
   return (
     <>
       <header>
-        <h1>LoupePDF · smoke demo</h1>
+        <h1>LensPDF · smoke demo</h1>
         <p>
           Toggle modes to verify the hide-on-unwired contract from PR #3 / #4. Open the
           devtools console — with debug on, every component that hides logs once.

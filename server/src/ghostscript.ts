@@ -213,7 +213,7 @@ function decodeChannelName(rawFromFilename: string): string {
 }
 
 async function mkdtemp(prefix: string): Promise<string> {
-  const dir = path.join(os.tmpdir(), `loupe-${prefix}${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+  const dir = path.join(os.tmpdir(), `lens-${prefix}${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
   await mkdir(dir, { recursive: true });
   return dir;
 }
