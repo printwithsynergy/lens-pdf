@@ -6,8 +6,8 @@
  *
  * Adapter authors moving findings from other preflight engines
  * (callas pdfToolbox, PitStop, Acrobat, lint-pdf, custom rule
- * engines) into Loupe's contract should rely on these helpers to
- * categorise each finding the same way Loupe's canvas does — there
+ * engines) into Lens's contract should rely on these helpers to
+ * categorise each finding the same way Lens's canvas does — there
  * is one source of truth for "can the viewer locate this?".
  *
  * @module
@@ -50,10 +50,10 @@ export function hasViewerLocation(item: OverlayItem): boolean {
  *
  * @example
  * ```ts
- * import { splitFindingsByLocation } from "@printwithsynergy/loupe-pdf";
+ * import { splitFindingsByLocation } from "@printwithsynergy/lens-pdf";
  *
  * const { located, informational } = splitFindingsByLocation(items);
- * // Pass `located` to <LoupePDF items={...}> so only locatable
+ * // Pass `located` to <LensPDF items={...}> so only locatable
  * // findings draw on the canvas; render `informational` in a
  * // separate non-clickable section of your sidebar.
  * ```

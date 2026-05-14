@@ -11,7 +11,7 @@
  * The component is opinionated about layout (a vertical card with a
  * header + a table) and uses brand-* / slate-* tokens; consumers
  * that need different chrome can reach the raw data via the
- * ``dieline`` prop they already pass to LoupePDF.
+ * ``dieline`` prop they already pass to LensPDF.
  *
  * @public
  */
@@ -21,7 +21,7 @@ import * as React from "react";
 import type { DielineResult } from "../types";
 
 export interface DielineInfoPanelProps {
-  /** The DielineResult passed to ``<LoupePDF dieline={...}>``. */
+  /** The DielineResult passed to ``<LensPDF dieline={...}>``. */
   dieline: DielineResult | null | undefined;
   /** Optional CSS class for the wrapping ``<aside>``. */
   className?: string;

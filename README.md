@@ -6,9 +6,9 @@ order: 1
 slug: "overview"
 ---
 
-# LoupePDF
+# LensPDF
 
-[![ci](https://github.com/Printwithsynergy/loupe-pdf/actions/workflows/ci.yml/badge.svg)](https://github.com/Printwithsynergy/loupe-pdf/actions/workflows/ci.yml)
+[![ci](https://github.com/Printwithsynergy/lens-pdf/actions/workflows/ci.yml/badge.svg)](https://github.com/Printwithsynergy/lens-pdf/actions/workflows/ci.yml)
 [![license](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue.svg)](./LICENSE)
 [![react](https://img.shields.io/badge/react-19-61dafb.svg?logo=react&logoColor=white)](https://react.dev/)
 
@@ -19,15 +19,15 @@ whose backing service the host hasn't wired. AGPL-3.0-or-later.
 
 ## Install
 
-LoupePDF is published to the public **npm registry** under the
+LensPDF is published to the public **npm registry** under the
 `@printwithsynergy` scope.
 
 ```sh
 # stable
-npm install @printwithsynergy/loupe-pdf
+npm install @printwithsynergy/lens-pdf
 
 # pre-release (current)
-npm install @printwithsynergy/loupe-pdf@beta
+npm install @printwithsynergy/lens-pdf@beta
 ```
 
 Peer dependencies you provide in your host app:
@@ -51,12 +51,12 @@ ships ESM only.
 
 ## Quick start — pick your tier
 
-LoupePDF ships five integration levels. Start with Tier 1 and drop
+LensPDF ships five integration levels. Start with Tier 1 and drop
 down only when you need more control.
 
 ### Tier 1 — Drop-in production viewer (~3 lines)
 
-`<LoupePDF>` is the recommended single-component entry point. One
+`<LensPDF>` is the recommended single-component entry point. One
 mount, every viewer-only feature wired to pdf.js out of the box:
 
 - **Page raster** with a multi-DPI tile cache so zoom never
@@ -75,11 +75,11 @@ mount, every viewer-only feature wired to pdf.js out of the box:
   drawer; readouts swap to bottom sheets so they stay legible.
 
 ```tsx
-import { LoupePDF } from "@printwithsynergy/loupe-pdf";
+import { LensPDF } from "@printwithsynergy/lens-pdf";
 import pdfWorkerSrc from "pdfjs-dist/build/pdf.worker.mjs?url";
 
 export function ProofPage() {
-  return <LoupePDF pdfUrl="/proofs/abc.pdf" workerSrc={pdfWorkerSrc} />;
+  return <LensPDF pdfUrl="/proofs/abc.pdf" workerSrc={pdfWorkerSrc} />;
 }
 ```
 
@@ -87,7 +87,7 @@ Hosts with a preflight engine plug findings + dieline + box overlays
 in directly:
 
 ```tsx
-<LoupePDF
+<LensPDF
   pdfUrl="/proofs/abc.pdf"
   workerSrc={pdfWorkerSrc}
   items={findings}            // OverlayItem[] — error / warning / advisory bboxes
@@ -117,23 +117,23 @@ for marketing pages and internal sandboxes where users bring their
 own files.
 
 ```tsx
-import { LoupePDFDemo } from "@printwithsynergy/loupe-pdf";
+import { LensPDFDemo } from "@printwithsynergy/lens-pdf";
 
 export function DemoPage() {
-  return <LoupePDFDemo brand="MyApp" brandLogoUrl="/logo.svg" />;
+  return <LensPDFDemo brand="MyApp" brandLogoUrl="/logo.svg" />;
 }
 ```
 
 ### Tier 2 — One-liner viewer (~5 lines)
 
-`<LoupePDFViewer>` auto-discovers pages, layers, dimensions. Ships
+`<LensPDFViewer>` auto-discovers pages, layers, dimensions. Ships
 a responsive toolbar with zoom, layers, color picker, and measure.
 
 ```tsx
-import { LoupePDFViewer } from "@printwithsynergy/loupe-pdf/components";
+import { LensPDFViewer } from "@printwithsynergy/lens-pdf/components";
 
 export function MyViewer() {
-  return <LoupePDFViewer pdfUrl="https://cdn.example.com/proof.pdf" />;
+  return <LensPDFViewer pdfUrl="https://cdn.example.com/proof.pdf" />;
 }
 ```
 
@@ -141,7 +141,7 @@ Slot props (`header`, `sidebar`, `footer`) let you replace regions
 without losing the rest of the viewer:
 
 ```tsx
-<LoupePDFViewer
+<LensPDFViewer
   pdfUrl={url}
   header={(state) => <MyToolbar zoom={state.zoom} setZoom={state.setZoom} />}
   footer={<p>Custom footer</p>}
@@ -150,20 +150,20 @@ without losing the rest of the viewer:
 
 ### Tier 3 — Hook + Provider (~20 lines)
 
-`useLoupePDF()` manages all state; `<LoupePDFProvider>` mounts both
+`useLensPDF()` manages all state; `<LensPDFProvider>` mounts both
 contexts. Build any layout you want on top.
 
 ```tsx
-import { useLoupePDF, LoupePDFProvider } from "@printwithsynergy/loupe-pdf/host";
-import { PageCanvas } from "@printwithsynergy/loupe-pdf/components";
+import { useLensPDF, LensPDFProvider } from "@printwithsynergy/lens-pdf/host";
+import { PageCanvas } from "@printwithsynergy/lens-pdf/components";
 
 export function CustomViewer({ url }: { url: string }) {
-  const viewer = useLoupePDF(url, { tokens: { accent: "#e50c6a" } });
+  const viewer = useLensPDF(url, { tokens: { accent: "#e50c6a" } });
 
   return (
-    <LoupePDFProvider value={viewer}>
+    <LensPDFProvider value={viewer}>
       <PageCanvas jobId="demo" page={viewer.currentPageInfo} zoom={viewer.zoom} items={[]} selectedItem={null} onItemClick={() => {}} />
-    </LoupePDFProvider>
+    </LensPDFProvider>
   );
 }
 ```
@@ -179,10 +179,10 @@ exported and unchanged.
 Generate URLs that open the viewer with a specific PDF and settings:
 
 ```ts
-import { generateShareLink, parseShareParams } from "@printwithsynergy/loupe-pdf/host";
+import { generateShareLink, parseShareParams } from "@printwithsynergy/lens-pdf/host";
 
 const link = generateShareLink({
-  baseUrl: "https://loupepdf.com/demo",
+  baseUrl: "https://lenspdf.com/demo",
   pdfUrl: "https://cdn.example.com/proof.pdf",
   fullscreen: true,
   zoom: 150,
@@ -198,7 +198,7 @@ const params = parseShareParams(new URLSearchParams(window.location.search));
 Client-side checks (magic bytes, MIME, size) are built in:
 
 ```ts
-import { validatePdfFile, validatePdfUrl } from "@printwithsynergy/loupe-pdf/host";
+import { validatePdfFile, validatePdfUrl } from "@printwithsynergy/lens-pdf/host";
 
 const result = await validatePdfFile(file); // { valid: true } or { valid: false, error: "..." }
 ```
@@ -210,8 +210,8 @@ backed by pdf.js — every viewer-only feature works on any PDF the
 browser can fetch:
 
 ```tsx
-import { createBrowserViewerServices } from "@printwithsynergy/loupe-pdf/browser";
-import { ViewerServicesContext, ViewerHostContext } from "@printwithsynergy/loupe-pdf/host";
+import { createBrowserViewerServices } from "@printwithsynergy/lens-pdf/browser";
+import { ViewerServicesContext, ViewerHostContext } from "@printwithsynergy/lens-pdf/host";
 
 const services = createBrowserViewerServices({ pdfUrl: "/proof.pdf" });
 
@@ -240,7 +240,7 @@ browser approximation to ICC-derived data with no markup change.
 
 Two built-in components for adapter authors (lint-pdf, callas
 pdfToolbox, PitStop, Acrobat, custom rule engines) mapping their
-preflight findings into Loupe overlays:
+preflight findings into Lens overlays:
 
 - **`FindingsSidebar`** — vertical sidebar that splits items into
   collapsible **Located in viewer** (clickable, draws boxes/numbers
@@ -250,9 +250,9 @@ preflight findings into Loupe overlays:
   confidence + per-region size (mm + inches) from a
   `DielineResult`. Pairs with the canvas-side dieline bbox that
   `BoxOverlay` now draws automatically when the same prop is
-  passed to `<LoupePDF dieline={...}>`.
+  passed to `<LensPDF dieline={...}>`.
 
-Plus two helpers exported from `@printwithsynergy/loupe-pdf/plugin`:
+Plus two helpers exported from `@printwithsynergy/lens-pdf/plugin`:
 
 - **`hasViewerLocation(item)`** — true when the item has a bbox /
   point / regions. Same predicate the canvas uses internally.
@@ -261,14 +261,14 @@ Plus two helpers exported from `@printwithsynergy/loupe-pdf/plugin`:
 
 ```tsx
 import {
-  LoupePDF,
+  LensPDF,
   FindingsSidebar,
   DielineInfoPanel,
-} from "@printwithsynergy/loupe-pdf";
+} from "@printwithsynergy/lens-pdf";
 
 <div className="flex h-full w-full">
   <FindingsSidebar items={overlayItems} onSelect={setSelected} />
-  <LoupePDF
+  <LensPDF
     items={overlayItems}
     selectedItem={selected}
     onItemSelect={setSelected}
@@ -280,7 +280,7 @@ import {
 
 `FindingsSidebar` + `DielineInfoPanel` are no-ops when their data
 prop is empty/null so hosts mount them unconditionally — they only
-render once real data arrives. Theming honours Loupe's brand-* /
+render once real data arrives. Theming honours Lens's brand-* /
 slate-* tokens.
 
 ## Demo
@@ -305,8 +305,8 @@ endpoints into your `ViewerServices` and the corresponding components
 swap from the browser approximation to ICC-derived data.
 
 ```sh
-cd server && docker build -t loupe-pdf-server .
-docker run -p 3000:3000 -v loupe-jobs:/var/lib/loupe-pdf/jobs loupe-pdf-server
+cd server && docker build -t lens-pdf-server .
+docker run -p 3000:3000 -v lens-jobs:/var/lib/lens-pdf/jobs lens-pdf-server
 ```
 
 See [docs/server.md](./docs/server.md) for the HTTP contract,
@@ -316,7 +316,7 @@ deployment notes, and security caveats.
 
 | Topic | Doc |
 | --- | --- |
-| The one-line `<LoupePDFViewer>` composition | [docs/loupe-pdf-viewer.md](./docs/loupe-pdf-viewer.md) |
+| The one-line `<LensPDFViewer>` composition | [docs/lens-pdf-viewer.md](./docs/lens-pdf-viewer.md) |
 | How the contexts, components, and plugins fit together | [docs/architecture.md](./docs/architecture.md) |
 | Wiring `ViewerServices` (page images, layers, separations, TAC, color, densitometer, annotations, reports) | [docs/services.md](./docs/services.md) |
 | Capability detection, debug logging, and the in-browser PDF fallback | [docs/fallback.md](./docs/fallback.md) |
@@ -338,7 +338,7 @@ deployment notes, and security caveats.
 
 ## License
 
-LoupePDF is licensed under the GNU Affero General Public License v3.0 or
+LensPDF is licensed under the GNU Affero General Public License v3.0 or
 later (AGPL-3.0-or-later). See [`LICENSE`](./LICENSE) for the full text.
 
 Copyright (C) 2026 Think Neverland LLC.

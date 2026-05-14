@@ -7,7 +7,7 @@ order: 2
 
 # Architecture
 
-LoupePDF deliberately knows nothing about your backend. Everything that
+LensPDF deliberately knows nothing about your backend. Everything that
 needs an API call goes through two React contexts your host application
 provides, and a slot-aware plugin registry on top of that.
 
@@ -52,14 +52,14 @@ Imports are organised by entry point so your bundler only pulls what you use.
 
 | Entry point | Contents |
 | --- | --- |
-| `@printwithsynergy/loupe-pdf/components` | Every React component (`PageCanvas`, `ZoomControls`, `PageNavigator`, `LayerCanvas`, `LayerPanel`, `SeparationCanvas`, `TACHeatmapOverlay`, `BoxOverlay`, `DielineOverlay`, `MeasureTool`, `ColorPickerTool`, `DensitometerTool`, `AnnotationCanvas`, `AnnotationNotesPanel`, `AnnotationThread`, `AnnotationToolbar`, `MobileDrawer`, `MobileBottomSheet`, **`LoupePDFViewer`**, **`LoupePDFDemo`**) plus the shell-plugin helpers (`createDefaultShellPlugins`, `pluginsForPreset`, `pluginsForSlot`, `resolveShellPlugins`, `computeFeatureAvailability`) and types (`LoupePDFShellPlugin`, `LoupePDFShellSlot`, `LoupePDFShellPluginContext`, `LoupePDFFeatureAvailability`, `LoupePDFPresetKind`). |
-| `@printwithsynergy/loupe-pdf/plugin` | Plugin protocol types (`OverlayPlugin`, `PanelPlugin`, `ToolbarPlugin`, `AnnotationSourceProvider`, `DialogPlugin`, `MeasurementUnit`, `OverlayItem`), `ViewerContext`, `ViewerServices`, the registry (`register`, `unregister`, `getPluginsForSlot`, `listAll`), and no-op defaults (`noopI18n`, `noopTelemetry`, `defaultThemeTokens`, **`darkThemeTokens`**). |
-| `@printwithsynergy/loupe-pdf/host` | `ViewerHostContext` + `ViewerServicesContext` and their `useViewerHost` / `useViewerServices` hooks. **`defaultUnwiredServices`**, **`useLoupePDF()`**, **`LoupePDFProvider`**, **`useFallbackMode`**, **`isUnwired`**, **`markUnwired`**, **`createPdfJsFallback`**, **`validatePdfFile`** / **`validatePdfUrl`**, **`generateShareLink`** / **`parseShareParams`**. |
-| `@printwithsynergy/loupe-pdf/browser` | Browser-only `ViewerServices` factory (`createBrowserViewerServices`, `BrowserViewerServices`, `BrowserViewerServicesOptions`), `defaultBrowserWorkerSrc`, `detectSpotInksFromPdfBytes`, `rgbToCmyk`, `useBrowserViewerServicesVersion`, `PROCESS_CHANNELS`, plus codex overlay helpers (`createCodexOverlayServices`, `extractInksFromColorWorld`, `extractLayersFromOcgs`). |
-| `@printwithsynergy/loupe-pdf/fallback-pdfjs` | The pdf.js-backed `PdfFallbackAdapter` factory: `createPdfJsFallback`, `defaultPdfWorkerSrc`. |
-| `@printwithsynergy/loupe-pdf/units` | Built-in `MeasurementUnit`s (`mmUnit`, `inchUnit`, `pointUnit`, `picaUnit`, `agateUnit`) plus the `defaultMeasurementUnits` and `allMeasurementUnits` arrays. |
-| `@printwithsynergy/loupe-pdf/types` | Shared type primitives (`PageInfo`, `PageBox`, `LayerInfo`, `ColorSample`, `ColorSampleInk`, `DensitometerSample`, `DensitometerChannel`, `DielineResult`, `ViewerConfig`, `ViewerCapabilityKey`, `FindingsSourceMode`, `DEFAULT_VIEWER_CONFIG`, `SEVERITY_COLORS`, `DEFAULT_DPI`, `THUMBNAIL_DPI`, **`pageInfoFromDimensions()`**). |
-| `@printwithsynergy/loupe-pdf` | Convenience barrel re-exporting `/plugin`, every component, every unit, plus the `/host` utilities, the drop-in `LoupePDF` and `LoupePDFDemo`, and the browser factory (`createBrowserViewerServices`, `defaultBrowserWorkerSrc`, `detectSpotInksFromPdfBytes`, `rgbToCmyk`, `useBrowserViewerServicesVersion`, `PROCESS_CHANNELS`). |
+| `@printwithsynergy/lens-pdf/components` | Every React component (`PageCanvas`, `ZoomControls`, `PageNavigator`, `LayerCanvas`, `LayerPanel`, `SeparationCanvas`, `TACHeatmapOverlay`, `BoxOverlay`, `DielineOverlay`, `MeasureTool`, `ColorPickerTool`, `DensitometerTool`, `AnnotationCanvas`, `AnnotationNotesPanel`, `AnnotationThread`, `AnnotationToolbar`, `MobileDrawer`, `MobileBottomSheet`, **`LensPDFViewer`**, **`LensPDFDemo`**) plus the shell-plugin helpers (`createDefaultShellPlugins`, `pluginsForPreset`, `pluginsForSlot`, `resolveShellPlugins`, `computeFeatureAvailability`) and types (`LensPDFShellPlugin`, `LensPDFShellSlot`, `LensPDFShellPluginContext`, `LensPDFFeatureAvailability`, `LensPDFPresetKind`). |
+| `@printwithsynergy/lens-pdf/plugin` | Plugin protocol types (`OverlayPlugin`, `PanelPlugin`, `ToolbarPlugin`, `AnnotationSourceProvider`, `DialogPlugin`, `MeasurementUnit`, `OverlayItem`), `ViewerContext`, `ViewerServices`, the registry (`register`, `unregister`, `getPluginsForSlot`, `listAll`), and no-op defaults (`noopI18n`, `noopTelemetry`, `defaultThemeTokens`, **`darkThemeTokens`**). |
+| `@printwithsynergy/lens-pdf/host` | `ViewerHostContext` + `ViewerServicesContext` and their `useViewerHost` / `useViewerServices` hooks. **`defaultUnwiredServices`**, **`useLensPDF()`**, **`LensPDFProvider`**, **`useFallbackMode`**, **`isUnwired`**, **`markUnwired`**, **`createPdfJsFallback`**, **`validatePdfFile`** / **`validatePdfUrl`**, **`generateShareLink`** / **`parseShareParams`**. |
+| `@printwithsynergy/lens-pdf/browser` | Browser-only `ViewerServices` factory (`createBrowserViewerServices`, `BrowserViewerServices`, `BrowserViewerServicesOptions`), `defaultBrowserWorkerSrc`, `detectSpotInksFromPdfBytes`, `rgbToCmyk`, `useBrowserViewerServicesVersion`, `PROCESS_CHANNELS`, plus codex overlay helpers (`createCodexOverlayServices`, `extractInksFromColorWorld`, `extractLayersFromOcgs`). |
+| `@printwithsynergy/lens-pdf/fallback-pdfjs` | The pdf.js-backed `PdfFallbackAdapter` factory: `createPdfJsFallback`, `defaultPdfWorkerSrc`. |
+| `@printwithsynergy/lens-pdf/units` | Built-in `MeasurementUnit`s (`mmUnit`, `inchUnit`, `pointUnit`, `picaUnit`, `agateUnit`) plus the `defaultMeasurementUnits` and `allMeasurementUnits` arrays. |
+| `@printwithsynergy/lens-pdf/types` | Shared type primitives (`PageInfo`, `PageBox`, `LayerInfo`, `ColorSample`, `ColorSampleInk`, `DensitometerSample`, `DensitometerChannel`, `DielineResult`, `ViewerConfig`, `ViewerCapabilityKey`, `FindingsSourceMode`, `DEFAULT_VIEWER_CONFIG`, `SEVERITY_COLORS`, `DEFAULT_DPI`, `THUMBNAIL_DPI`, **`pageInfoFromDimensions()`**). |
+| `@printwithsynergy/lens-pdf` | Convenience barrel re-exporting `/plugin`, every component, every unit, plus the `/host` utilities, the drop-in `LensPDF` and `LensPDFDemo`, and the browser factory (`createBrowserViewerServices`, `defaultBrowserWorkerSrc`, `detectSpotInksFromPdfBytes`, `rgbToCmyk`, `useBrowserViewerServicesVersion`, `PROCESS_CHANNELS`). |
 
 ## What lives where
 
@@ -74,7 +74,7 @@ Imports are organised by entry point so your bundler only pulls what you use.
 
 ## Coordinate space
 
-LoupePDF uses PDF points (1 pt = 1/72 inch) as the canonical coordinate
+LensPDF uses PDF points (1 pt = 1/72 inch) as the canonical coordinate
 space:
 
 - `PageInfo.width_pts` / `height_pts` describe the page in PDF points.

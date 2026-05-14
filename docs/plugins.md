@@ -7,7 +7,7 @@ order: 6
 
 # Plugin model
 
-LoupePDF mounts plugins into nine slots:
+LensPDF mounts plugins into nine slots:
 
 - `overlay.canvas` — drawn on top of the page tile.
 - `panel.right`, `panel.left`, `panel.bottom` — side / bottom panels.
@@ -112,7 +112,7 @@ interface DialogPlugin extends ViewerPluginManifest {
 ## Registering a plugin
 
 ```tsx
-import { register, type OverlayPlugin } from "@printwithsynergy/loupe-pdf/plugin";
+import { register, type OverlayPlugin } from "@printwithsynergy/lens-pdf/plugin";
 
 const ruler: OverlayPlugin = {
   id: "demo.overlay.ruler",
@@ -145,7 +145,7 @@ import { Fragment } from "react";
 import {
   getPluginsForSlot,
   type ViewerContext,
-} from "@printwithsynergy/loupe-pdf/plugin";
+} from "@printwithsynergy/lens-pdf/plugin";
 
 function OverlaySlot({ ctx }: { ctx: ViewerContext }) {
   const plugins = getPluginsForSlot("overlay.canvas");
@@ -190,31 +190,31 @@ Constraints:
   registers cleanly even before the target loads, and starts shadowing
   as soon as the target appears.
 
-## Viewer shell plugins (`LoupePDF` / `LoupePDFDemo`)
+## Viewer shell plugins (`LensPDF` / `LensPDFDemo`)
 
 The drop-in components also expose a focused shell-plugin API for
 sidebar/menu/tool customization without touching the global plugin
 registry.
 
-Import from `@printwithsynergy/loupe-pdf/components`:
+Import from `@printwithsynergy/lens-pdf/components`:
 
 ```ts
-type LoupePDFShellSlot = "panel.left" | "overlay.toolbar";
+type LensPDFShellSlot = "panel.left" | "overlay.toolbar";
 
-interface LoupePDFShellPlugin {
+interface LensPDFShellPlugin {
   id: string;
-  slot: LoupePDFShellSlot;
+  slot: LensPDFShellSlot;
   order?: number;
   replaces?: string;
-  isAvailable?: (ctx: LoupePDFShellPluginContext) => boolean;
-  render: (ctx: LoupePDFShellPluginContext) => ReactNode;
+  isAvailable?: (ctx: LensPDFShellPluginContext) => boolean;
+  render: (ctx: LensPDFShellPluginContext) => ReactNode;
 }
 ```
 
 Pass plugins directly:
 
 ```tsx
-<LoupePDF
+<LensPDF
   pdfUrl="/proofs/abc.pdf"
   plugins={[
     {

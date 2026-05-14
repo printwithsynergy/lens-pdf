@@ -1,5 +1,5 @@
 /**
- * `@printwithsynergy/loupe-pdf/browser`
+ * `@printwithsynergy/lens-pdf/browser`
  *
  * Browser-only ViewerServices factory. One call gives you a fully
  * wired {@link ViewerServices} instance backed by pdf.js — every
@@ -9,7 +9,7 @@
  * backend.
  *
  * ```ts
- * import { createBrowserViewerServices } from "@printwithsynergy/loupe-pdf/browser";
+ * import { createBrowserViewerServices } from "@printwithsynergy/lens-pdf/browser";
  * const services = createBrowserViewerServices({ pdfUrl: "/proofs/abc.pdf" });
  * await services.prepare(1); // pre-warm separations + heatmap + layers for page 1
  * // <ViewerServicesContext.Provider value={services}> ... </Provider>
@@ -416,7 +416,7 @@ async function rasterizeBlobUrl(
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("[loupe-pdf] 2D context unavailable.");
+  if (!ctx) throw new Error("[lens-pdf] 2D context unavailable.");
   const out = ctx.createImageData(width, height);
   const total = width * height;
   for (let p = 0; p < total; p++) {
@@ -451,12 +451,12 @@ async function canvasToPngBlob(
     dataUrl = canvas.toDataURL("image/png");
   } catch (err) {
     throw new Error(
-      `[loupe-pdf] ${caller}: PNG encode failed (canvas ${canvas.width}x${canvas.height} exceeds browser limit): ${(err as Error).message}`,
+      `[lens-pdf] ${caller}: PNG encode failed (canvas ${canvas.width}x${canvas.height} exceeds browser limit): ${(err as Error).message}`,
     );
   }
   if (!dataUrl || dataUrl === "data:,") {
     throw new Error(
-      `[loupe-pdf] ${caller}: PNG encode returned empty (canvas ${canvas.width}x${canvas.height} exceeds browser limit)`,
+      `[lens-pdf] ${caller}: PNG encode returned empty (canvas ${canvas.width}x${canvas.height} exceeds browser limit)`,
     );
   }
   const res = await fetch(dataUrl);
@@ -638,7 +638,7 @@ export function createBrowserViewerServices(
         const response = await fetch(opts.pdfUrl);
         if (!response.ok) {
           throw new Error(
-            `[loupe-pdf] PDF fetch failed: ${response.status} ${response.statusText}`,
+            `[lens-pdf] PDF fetch failed: ${response.status} ${response.statusText}`,
           );
         }
         const buf = await response.arrayBuffer();
@@ -675,7 +675,7 @@ export function createBrowserViewerServices(
           inks.push(...spots);
         } catch (err) {
           // eslint-disable-next-line no-console
-          console.warn("[loupe-pdf] spot ink detection failed", err);
+          console.warn("[lens-pdf] spot ink detection failed", err);
         }
         return inks;
       })();
@@ -693,7 +693,7 @@ export function createBrowserViewerServices(
     canvas.height = Math.ceil(viewport.height);
     const ctx = canvas.getContext("2d");
     if (!ctx) {
-      throw new Error("[loupe-pdf] 2D context unavailable for page raster.");
+      throw new Error("[lens-pdf] 2D context unavailable for page raster.");
     }
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -735,7 +735,7 @@ export function createBrowserViewerServices(
     canvas.height = heightPx;
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
     if (!ctx) {
-      throw new Error("[loupe-pdf] 2D context unavailable for analysis raster.");
+      throw new Error("[lens-pdf] 2D context unavailable for analysis raster.");
     }
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, widthPx, heightPx);
@@ -780,7 +780,7 @@ export function createBrowserViewerServices(
       .catch((err) => {
         pageBuilds.delete(key);
         // eslint-disable-next-line no-console
-        console.error("[loupe-pdf] page raster failed", err);
+        console.error("[lens-pdf] page raster failed", err);
         throw err;
       });
     pageBuilds.set(key, promise);
@@ -868,7 +868,7 @@ export function createBrowserViewerServices(
       .catch((err) => {
         channelBuilds.delete(key);
         // eslint-disable-next-line no-console
-        console.error("[loupe-pdf] channel raster failed", err);
+        console.error("[lens-pdf] channel raster failed", err);
         throw err;
       });
     channelBuilds.set(key, promise);
@@ -930,7 +930,7 @@ export function createBrowserViewerServices(
       .catch((err) => {
         heatmapBuilds.delete(key);
         // eslint-disable-next-line no-console
-        console.error("[loupe-pdf] heatmap raster failed", err);
+        console.error("[lens-pdf] heatmap raster failed", err);
         throw err;
       });
     heatmapBuilds.set(key, promise);
@@ -950,7 +950,7 @@ export function createBrowserViewerServices(
       return ids;
     } catch (err) {
       // eslint-disable-next-line no-console
-      console.warn("[loupe-pdf] OCG enumeration failed", err);
+      console.warn("[lens-pdf] OCG enumeration failed", err);
       ocgIdsPerPage.set(pageNum, []);
       return [];
     }
@@ -963,7 +963,7 @@ export function createBrowserViewerServices(
   ): Promise<string> {
     const ids = await getOcgIds(pageNum);
     if (layerIndex < 0 || layerIndex >= ids.length) {
-      throw new Error(`[loupe-pdf] layer ${layerIndex} out of range`);
+      throw new Error(`[lens-pdf] layer ${layerIndex} out of range`);
     }
     const targetId = ids[layerIndex];
     const doc = await getDoc();
@@ -991,7 +991,7 @@ export function createBrowserViewerServices(
     canvas.height = Math.ceil(viewport.height);
     const ctx = canvas.getContext("2d");
     if (!ctx) {
-      throw new Error("[loupe-pdf] 2D context unavailable for layer raster.");
+      throw new Error("[lens-pdf] 2D context unavailable for layer raster.");
     }
     // No paper fill — caller composites layers over their own
     // white-paper canvas via source-over blending. Transparent bg
@@ -1033,7 +1033,7 @@ export function createBrowserViewerServices(
       .catch((err) => {
         layerBuilds.delete(key);
         // eslint-disable-next-line no-console
-        console.error("[loupe-pdf] layer raster failed", err);
+        console.error("[lens-pdf] layer raster failed", err);
         throw err;
       });
     layerBuilds.set(key, promise);
@@ -1162,7 +1162,7 @@ export function createBrowserViewerServices(
           });
         } catch (err) {
           // eslint-disable-next-line no-console
-          console.warn("[loupe-pdf] listLayers failed", err);
+          console.warn("[lens-pdf] listLayers failed", err);
           return [];
         }
       },

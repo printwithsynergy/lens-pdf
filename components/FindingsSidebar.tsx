@@ -2,7 +2,7 @@
 
 /**
  * Findings sidebar — built-in component for hosts that pass
- * ``items`` (OverlayItems) to LoupePDF and want a polished list of
+ * ``items`` (OverlayItems) to LensPDF and want a polished list of
  * findings alongside the canvas.
  *
  * Behaviour out of the box:
@@ -18,7 +18,7 @@
  *   highlight + page jump.
  *
  * The component is intentionally opinionated about layout (vertical
- * sidebar, dark / brand palette honoured via Loupe's existing
+ * sidebar, dark / brand palette honoured via Lens's existing
  * ThemeTokens). Hosts that need a totally different chrome should
  * import the underlying helpers and roll their own.
  *
@@ -63,12 +63,12 @@ function tierLabel(t: OverlayItem["tier"] | undefined): Tier {
 
 export interface FindingsSidebarProps {
   /** All findings — both located and informational. Pass the same
-   *  superset you'd pass to ``<LoupePDF items={...}>``. */
+   *  superset you'd pass to ``<LensPDF items={...}>``. */
   items: readonly OverlayItem[];
   /** Current canvas selection, if any. Drives the highlighted row. */
   selected?: OverlayItem | null;
   /** Fires when the user clicks a located item. Hosts typically
-   *  forward this to LoupePDF's ``selectedItem`` prop so the canvas
+   *  forward this to LensPDF's ``selectedItem`` prop so the canvas
    *  jumps + tooltips the matching bbox. */
   onSelect?: (item: OverlayItem | null) => void;
   /** Optional title shown in the sidebar header. Default:
@@ -82,7 +82,7 @@ export interface FindingsSidebarProps {
 }
 
 /**
- * Sticky vertical sidebar for the LoupePDF viewer.
+ * Sticky vertical sidebar for the LensPDF viewer.
  */
 export function FindingsSidebar({
   items,

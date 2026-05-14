@@ -203,7 +203,7 @@ export function logUnwiredHide(componentName: string, serviceName: string): void
   loggedHideOnce.add(key);
   // eslint-disable-next-line no-console
   console.info(
-    `[loupe-pdf] ${componentName} hidden — host did not wire \`services.${serviceName}\`. ` +
+    `[lens-pdf] ${componentName} hidden — host did not wire \`services.${serviceName}\`. ` +
       `Provide an implementation, or set \`pdfFallback\` on the host context to use the in-browser PDF fallback.`,
   );
 }
@@ -254,8 +254,8 @@ export type { PdfValidationResult } from "./pdfValidation";
 export { generateShareLink, parseShareParams } from "./shareLink";
 export type { ShareLinkOptions, ParsedShareParams } from "./shareLink";
 
-export { useLoupePDF } from "./useLoupePDF";
-export type { UseLoupePDFOptions, UseLoupePDFReturn } from "./useLoupePDF";
+export { useLensPDF } from "./useLensPDF";
+export type { UseLensPDFOptions, UseLensPDFReturn } from "./useLensPDF";
 
-export { LoupePDFProvider } from "./LoupePDFProvider";
-export type { LoupePDFProviderProps } from "./LoupePDFProvider";
+export { LensPDFProvider } from "./LensPDFProvider";
+export type { LensPDFProviderProps } from "./LensPDFProvider";

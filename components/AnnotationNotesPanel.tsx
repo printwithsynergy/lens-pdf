@@ -83,7 +83,7 @@ export function AnnotationNotesPanel({
 
   const storageKey = useMemo(
     () =>
-      `loupe-pdf:annotation-notes:${storageScopeKey ?? "default-document"}`,
+      `lens-pdf:annotation-notes:${storageScopeKey ?? "default-document"}`,
     [storageScopeKey],
   );
 

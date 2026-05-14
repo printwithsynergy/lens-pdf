@@ -1,5 +1,5 @@
 /**
- * `@printwithsynergy/loupe-pdf/fallback-pdfjs`
+ * `@printwithsynergy/lens-pdf/fallback-pdfjs`
  *
  * In-browser PDF fallback adapter built on pdf.js. Provides "minimum
  * data" (page count, dimensions, page rasters, OCG layers, RGB color
@@ -13,11 +13,11 @@
  * this subpath and never pay the bundle cost.
  *
  * ```ts
- * import { createPdfJsFallback } from "@printwithsynergy/loupe-pdf/fallback-pdfjs";
+ * import { createPdfJsFallback } from "@printwithsynergy/lens-pdf/fallback-pdfjs";
  * const fallback = createPdfJsFallback({ pdfUrl: "/proofs/abc.pdf" });
  * ```
  *
- * Usually you don't import this directly — `<LoupePDFViewer>` uses
+ * Usually you don't import this directly — `<LensPDFViewer>` uses
  * it internally and is the one-liner most hosts want.
  *
  * **Security**: this adapter fetches whatever URL the host hands it.
@@ -109,7 +109,7 @@ export function createPdfJsFallback(opts: PdfJsFallbackOptions): PdfFallbackAdap
       canvas.width = Math.ceil(viewport.width);
       canvas.height = Math.ceil(viewport.height);
       const ctx = canvas.getContext("2d");
-      if (!ctx) throw new Error("[loupe-pdf] 2D context unavailable for fallback render.");
+      if (!ctx) throw new Error("[lens-pdf] 2D context unavailable for fallback render.");
       await page.render({ canvasContext: ctx, viewport }).promise;
       const url = canvas.toDataURL("image/png");
       renderCache.set(cacheKey, url);

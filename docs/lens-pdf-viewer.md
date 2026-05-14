@@ -1,21 +1,21 @@
 ---
-title: "LoupePDFViewer (one-line viewer)"
+title: "LensPDFViewer (one-line viewer)"
 description: "Default high-level composition. One JSX line gets you a working multi-page PDF viewer with auto-discovered pages, layers, zoom, color picker, and measure tool."
 group: "Getting started"
 order: 3
 ---
 
-# LoupePDFViewer
+# LensPDFViewer
 
 The default composition. Drop it into any React 19 project and you have
 a working PDF viewer — no host-context wiring, no per-page mounting, no
 worrying about pdf.js workers.
 
 ```tsx
-import { LoupePDFViewer } from "@printwithsynergy/loupe-pdf";
+import { LensPDFViewer } from "@printwithsynergy/lens-pdf";
 
 export function MyViewer() {
-  return <LoupePDFViewer pdfUrl="https://example.com/file.pdf" />;
+  return <LensPDFViewer pdfUrl="https://example.com/file.pdf" />;
 }
 ```
 
@@ -47,8 +47,8 @@ export function MyViewer() {
 | `tools` | `ReadonlyArray<"zoom"\|"layers"\|"color-picker"\|"measure">` | all four | Toolbar contents. Pass `[]` for no toolbar. |
 | `initialZoom` | `number` | `100` | Starting zoom percent. |
 | `brand` | `string` | _(none)_ | Optional brand label rendered in the top-left of the toolbar. |
-| `header` | `(state: LoupePDFViewerState) => ReactNode` | _(built-in toolbar)_ | Replace the default toolbar. Receives viewer state. |
-| `sidebar` | `(state: LoupePDFViewerState) => ReactNode` | _(none)_ | Inject a sidebar next to the page list. |
+| `header` | `(state: LensPDFViewerState) => ReactNode` | _(built-in toolbar)_ | Replace the default toolbar. Receives viewer state. |
+| `sidebar` | `(state: LensPDFViewerState) => ReactNode` | _(none)_ | Inject a sidebar next to the page list. |
 | `footer` | `ReactNode` | _(none)_ | Static footer content rendered below the viewer stage. |
 
 ## What gets hidden when no services are wired
@@ -69,19 +69,19 @@ contract from [fallback.md](./fallback.md). With only `pdfUrl` set:
 | Report links | ❌ hidden | Needs a backend. |
 
 Pass `services` to wire the backend-dependent ones. The reference
-server in [`server/`](https://github.com/Printwithsynergy/loupe-pdf/tree/main/server)
+server in [`server/`](https://github.com/Printwithsynergy/lens-pdf/tree/main/server)
 is a turnkey option — see [server.md](./server.md).
 
 ## Slot props
 
 Slot props let you replace individual regions without reimplementing the
 entire viewer. Each slot accepts a static `ReactNode` or a render
-function that receives the current `LoupePDFViewerState`:
+function that receives the current `LensPDFViewerState`:
 
 ```tsx
-import { LoupePDFViewer } from "@printwithsynergy/loupe-pdf/components";
+import { LensPDFViewer } from "@printwithsynergy/lens-pdf/components";
 
-<LoupePDFViewer
+<LensPDFViewer
   pdfUrl={url}
   header={(state) => (
     <div>
@@ -89,18 +89,18 @@ import { LoupePDFViewer } from "@printwithsynergy/loupe-pdf/components";
       <button onClick={() => state.setZoom(state.zoom + 25)}>Zoom in</button>
     </div>
   )}
-  footer={<p>Powered by LoupePDF</p>}
+  footer={<p>Powered by LensPDF</p>}
 />
 ```
 
-`LoupePDFViewerState` exposes: `zoom`, `setZoom`, `currentPage`,
+`LensPDFViewerState` exposes: `zoom`, `setZoom`, `currentPage`,
 `setCurrentPage`, `pageCount`, `activeTool`, `setActiveTool`,
 `enabledLayers`, `toggleLayer`, `setAllLayers`, `hasLayers`,
 `layersOpen`, `setLayersOpen`.
 
 ## Custom layouts
 
-`<LoupePDFViewer>` is purely additive. The lower-level surface stays
+`<LensPDFViewer>` is purely additive. The lower-level surface stays
 exactly as before — for bespoke layouts compose `PageCanvas`,
 `LayerPanel`, `MeasureTool`, `ColorPickerTool`, etc. with your own
 context providers. See [components.md](./components.md) for the per-
@@ -108,10 +108,10 @@ component reference.
 
 ## Other integration tiers
 
-- **Less boilerplate** — [`<LoupePDFDemo>`](./components.md#drop-in-demo)
+- **Less boilerplate** — [`<LensPDFDemo>`](./components.md#drop-in-demo)
   bakes in upload, URL paste, drag-drop, and validation. ~5 lines.
-- **More control** — [`useLoupePDF()`](./share-links.md) +
-  `<LoupePDFProvider>` manage state while you build the layout.
+- **More control** — [`useLensPDF()`](./share-links.md) +
+  `<LensPDFProvider>` manage state while you build the layout.
 - **Full custom** — wire `ViewerHostContext` + `ViewerServicesContext`
   yourself. See [architecture.md](./architecture.md).
 

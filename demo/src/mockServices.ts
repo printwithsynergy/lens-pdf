@@ -1,5 +1,5 @@
-import type { ViewerServices } from "@printwithsynergy/loupe-pdf/plugin";
-import { defaultThemeTokens, noopI18n, noopTelemetry } from "@printwithsynergy/loupe-pdf/plugin";
+import type { ViewerServices } from "@printwithsynergy/lens-pdf/plugin";
+import { defaultThemeTokens, noopI18n, noopTelemetry } from "@printwithsynergy/lens-pdf/plugin";
 
 /**
  * Fully-mocked services used in the demo's "Full mock" mode. Returns

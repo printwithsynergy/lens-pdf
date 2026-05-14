@@ -1,8 +1,8 @@
 /**
  * Public component barrel — every React component shipped by the OSS
- * loupe-pdf viewer core.
+ * lens-pdf viewer core.
  *
- * Consumed via `import { PageCanvas, ... } from "@printwithsynergy/loupe-pdf/components"`.
+ * Consumed via `import { PageCanvas, ... } from "@printwithsynergy/lens-pdf/components"`.
  *
  * @public
  */
@@ -18,8 +18,8 @@ export * from "./DielineOverlay";
 export * from "./defaultShellPlugins";
 export * from "./LayerCanvas";
 export * from "./LayerPanel";
-export * from "./LoupePDFDemo";
-export * from "./LoupePDFViewer";
+export * from "./LensPDFDemo";
+export * from "./LensPDFViewer";
 export * from "./MeasureTool";
 export * from "./MobileBottomSheet";
 export * from "./MobileDrawer";

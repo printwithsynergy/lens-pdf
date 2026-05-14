@@ -3,7 +3,7 @@
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import type { ThemeTokens, ViewerServices } from "../plugin/services";
 import type { AnnotationTool } from "./AnnotationToolbar";
-import type { LoupePDFDemoTool } from "./LoupePDFDemo";
+import type { LensPDFDemoTool } from "./LensPDFDemo";
 
 export type ViewerMode = "page" | "separation" | "layer" | "findings";
 export type PointerTool =
@@ -13,7 +13,7 @@ export type PointerTool =
   | "measure"
   | "annotate";
 
-export interface LoupePDFFeatureAvailability {
+export interface LensPDFFeatureAvailability {
   colorPicker: boolean;
   densitometer: boolean;
   measure: boolean;
@@ -23,8 +23,8 @@ export interface LoupePDFFeatureAvailability {
   layers: boolean;
 }
 
-export interface LoupePDFFeatureInputs {
-  tools: ReadonlyArray<LoupePDFDemoTool>;
+export interface LensPDFFeatureInputs {
+  tools: ReadonlyArray<LensPDFDemoTool>;
   services: ViewerServices | null;
   detectedInkCount: number;
   layerCount: number;
@@ -37,8 +37,8 @@ export function computeFeatureAvailability({
   detectedInkCount,
   layerCount,
   isUnwired,
-}: LoupePDFFeatureInputs): LoupePDFFeatureAvailability {
-  const toolSet = new Set<LoupePDFDemoTool>(tools);
+}: LensPDFFeatureInputs): LensPDFFeatureAvailability {
+  const toolSet = new Set<LensPDFDemoTool>(tools);
   const hasColorSampler = !!services && !isUnwired(services.colorSample);
   const hasDensitometer = !!services && !isUnwired(services.densitometer);
   const hasMeasurement = true;
@@ -60,7 +60,7 @@ export function computeFeatureAvailability({
   };
 }
 
-export interface LoupePDFShellPluginContext {
+export interface LensPDFShellPluginContext {
   tokens: ThemeTokens;
   isMobile: boolean;
   pdfUrl: string;
@@ -93,7 +93,7 @@ export interface LoupePDFShellPluginContext {
    *  values here so the separations panel renders accurate swatches. */
   spotPalette?: Record<string, string>;
   /** Preflight findings to surface inside the viewer's Inspection
-   *  panel. Same superset hosts pass to ``<LoupePDF items={...}>``;
+   *  panel. Same superset hosts pass to ``<LensPDF items={...}>``;
    *  the built-in ``findingsPlugin`` filters/groups by tier and lets
    *  the user click a row to focus the matching bbox on the canvas. */
   items?: ReadonlyArray<import("../plugin").OverlayItem>;
@@ -128,24 +128,24 @@ export interface LoupePDFShellPluginContext {
   }>;
   selectedAnnotationId: string | null;
   setSelectedAnnotationId: Dispatch<SetStateAction<string | null>>;
-  availability: LoupePDFFeatureAvailability;
+  availability: LensPDFFeatureAvailability;
 }
 
-export type LoupePDFShellSlot = "panel.left" | "overlay.toolbar";
+export type LensPDFShellSlot = "panel.left" | "overlay.toolbar";
 
-export interface LoupePDFShellPlugin {
+export interface LensPDFShellPlugin {
   id: string;
-  slot: LoupePDFShellSlot;
+  slot: LensPDFShellSlot;
   order?: number;
   replaces?: string;
-  isAvailable?: (ctx: LoupePDFShellPluginContext) => boolean;
-  render: (ctx: LoupePDFShellPluginContext) => ReactNode;
+  isAvailable?: (ctx: LensPDFShellPluginContext) => boolean;
+  render: (ctx: LensPDFShellPluginContext) => ReactNode;
 }
 
 export function resolveShellPlugins(
-  plugins: ReadonlyArray<LoupePDFShellPlugin>,
-): LoupePDFShellPlugin[] {
-  const byId = new Map<string, LoupePDFShellPlugin>();
+  plugins: ReadonlyArray<LensPDFShellPlugin>,
+): LensPDFShellPlugin[] {
+  const byId = new Map<string, LensPDFShellPlugin>();
   const overrides = new Map<string, string>();
   for (const plugin of plugins) {
     if (byId.has(plugin.id)) {
@@ -168,10 +168,10 @@ export function resolveShellPlugins(
 }
 
 export function pluginsForSlot(
-  plugins: ReadonlyArray<LoupePDFShellPlugin>,
-  slot: LoupePDFShellSlot,
-  ctx: LoupePDFShellPluginContext,
-): LoupePDFShellPlugin[] {
+  plugins: ReadonlyArray<LensPDFShellPlugin>,
+  slot: LensPDFShellSlot,
+  ctx: LensPDFShellPluginContext,
+): LensPDFShellPlugin[] {
   return plugins.filter((plugin) => {
     if (plugin.slot !== slot) return false;
     if (!plugin.isAvailable) return true;

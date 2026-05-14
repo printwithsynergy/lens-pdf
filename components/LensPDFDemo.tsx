@@ -1,22 +1,22 @@
 "use client";
 
 /**
- * `<LoupePDFDemo>` — kitchen-sink interactive demo component.
+ * `<LensPDFDemo>` — kitchen-sink interactive demo component.
  *
  * **Most consumers should not import this directly.** Use
- * {@link LoupePDF} instead — it's a one-liner production drop-in:
+ * {@link LensPDF} instead — it's a one-liner production drop-in:
  *
  * ```tsx
- * <LoupePDF pdfUrl="/proofs/abc.pdf" workerSrc={pdfWorkerSrc} />
+ * <LensPDF pdfUrl="/proofs/abc.pdf" workerSrc={pdfWorkerSrc} />
  * ```
  *
- * `<LoupePDFDemo>` is the same renderer with the marketing chrome
+ * `<LensPDFDemo>` is the same renderer with the marketing chrome
  * (URL bar, drag-and-drop upload, file picker, empty state) turned
- * on; it powers the public showcase at loupepdf.com so reviewers
+ * on; it powers the public showcase at lenspdf.com so reviewers
  * can drop arbitrary PDFs into the page without a host.
  *
  * One mount, full feature surface. Backed by
- * `createBrowserViewerServices`, every viewer-only feature LoupePDF
+ * `createBrowserViewerServices`, every viewer-only feature LensPDF
  * ships works on any PDF the browser can fetch:
  *
  *   - PageCanvas + multi-page navigation + multi-DPI tile cache
@@ -41,7 +41,7 @@
  *
  * Internal organisation:
  *
- *   - Inline CSS-in-JS lives in `LoupePDFDemo.styles.ts` (so this
+ *   - Inline CSS-in-JS lives in `LensPDFDemo.styles.ts` (so this
  *     file focuses on the React tree, not 270 lines of styling).
  *   - Smaller building blocks (`PageCanvas`, `SeparationCanvas`,
  *     `LayerCanvas`, `AnnotationCanvas`, `AnnotationToolbar`,
@@ -102,7 +102,7 @@ import {
   topbarStyle,
   urlBarStyle,
   urlInputStyle,
-} from "./LoupePDFDemo.styles";
+} from "./LensPDFDemo.styles";
 import { AnnotationCanvas } from "./AnnotationCanvas";
 import { useIsMobile } from "./useIsMobile";
 import type { AnnotationTool } from "./AnnotationToolbar";
@@ -115,12 +115,12 @@ import { MeasureTool } from "./MeasureTool";
 import { PageCanvas } from "./PageCanvas";
 import { SeparationCanvas } from "./SeparationCanvas";
 import { TACHeatmapOverlay } from "./TACHeatmapOverlay";
-import { pluginsForPreset, type LoupePDFPresetKind } from "./presets";
+import { pluginsForPreset, type LensPDFPresetKind } from "./presets";
 import {
   computeFeatureAvailability,
   pluginsForSlot,
   resolveShellPlugins,
-  type LoupePDFShellPlugin,
+  type LensPDFShellPlugin,
   type PointerTool,
   type ViewerMode,
 } from "./shellPlugins";
@@ -136,7 +136,7 @@ import {
  *
  * @public
  */
-export type LoupePDFDemoTool =
+export type LensPDFDemoTool =
   | "color-picker"
   | "densitometer"
   | "measure"
@@ -145,7 +145,7 @@ export type LoupePDFDemoTool =
   | "separations"
   | "layers";
 
-const DEFAULT_TOOLS: ReadonlyArray<LoupePDFDemoTool> = [
+const DEFAULT_TOOLS: ReadonlyArray<LensPDFDemoTool> = [
   "color-picker",
   "densitometer",
   "measure",
@@ -156,23 +156,23 @@ const DEFAULT_TOOLS: ReadonlyArray<LoupePDFDemoTool> = [
 ];
 
 /**
- * Props for {@link LoupePDFDemo}.
+ * Props for {@link LensPDFDemo}.
  *
  * @public
  */
-export interface LoupePDFDemoProps {
+export interface LensPDFDemoProps {
   /** Theme tokens. Defaults to {@link darkThemeTokens}. */
   tokens?: Partial<ThemeTokens>;
   /** Maximum upload size in bytes. Default: 50 MB. */
   maxFileSize?: number;
-  /** Brand label in the top bar. Default: "LoupePDF". */
+  /** Brand label in the top bar. Default: "LensPDF". */
   brand?: string;
   /** Brand logo URL for the top bar. */
   brandLogoUrl?: string;
   /** Optional className on the outermost div. */
   className?: string;
   /** Tools to show in the sidebar. Default: every tool. */
-  tools?: ReadonlyArray<LoupePDFDemoTool>;
+  tools?: ReadonlyArray<LensPDFDemoTool>;
   /** Initial zoom percentage. Default: 80. */
   initialZoom?: number;
   /** TAC limit for the heatmap + densitometer. Default: 300. */
@@ -180,7 +180,7 @@ export interface LoupePDFDemoProps {
   /** Override pdf.js worker URL (unpkg by default). */
   workerSrc?: string;
   /**
-   * Pre-built services. When provided, Loupe uses them where wired and
+   * Pre-built services. When provided, Lens uses them where wired and
    * automatically falls back to in-browser RGB/pdf.js services for any
    * unwired capability. This keeps LintPDF/backends optional.
    */
@@ -197,7 +197,7 @@ export interface LoupePDFDemoProps {
    * When true, hides the upload chrome (URL bar, file picker, drag &
    * drop, empty state) and renders as an embedded production viewer.
    * `initialPdfUrl` becomes effectively required. Used internally by
-   * `<LoupePDF>` to expose a clean drop-in surface.
+   * `<LensPDF>` to expose a clean drop-in surface.
    */
   embedded?: boolean;
   // ── Optional preflight integration ─────────────────────────────────────
@@ -265,14 +265,14 @@ export interface LoupePDFDemoProps {
   /** Fires when the viewer raises a recoverable error. */
   onError?: (message: string) => void;
   /** First-party plugin preset used as the base composition. */
-  preset?: LoupePDFPresetKind;
+  preset?: LensPDFPresetKind;
   /**
    * Additional shell plugins (or replacements) for panels and toolbar
    * slots. Use `replaces` on your plugin to override a built-in one.
    */
-  plugins?: ReadonlyArray<LoupePDFShellPlugin>;
+  plugins?: ReadonlyArray<LensPDFShellPlugin>;
   /**
-   * Optional codex client. When provided, `<LoupePDFDemo>` fires
+   * Optional codex client. When provided, `<LensPDFDemo>` fires
    * `extractStream` in the background after each PDF loads. As codex
    * events arrive the viewer silently upgrades:
    *
@@ -315,7 +315,7 @@ function formatMaxSize(bytes: number): string {
 // ---------------------------------------------------------------------------
 
 /**
- * Complete interactive LoupePDF demo — upload, URL paste, drag-drop,
+ * Complete interactive LensPDF demo — upload, URL paste, drag-drop,
  * validation, sidebar controls, theming, and optional fullscreen mode.
  * All viewer-only features (color picker, densitometer, measure,
  * separations, TAC heatmap, layers, annotations) are wired out of the
@@ -323,7 +323,7 @@ function formatMaxSize(bytes: number): string {
  *
  * @public
  */
-export function LoupePDFDemo({
+export function LensPDFDemo({
   tokens: tokenOverrides,
   maxFileSize = DEFAULT_MAX_BYTES,
   brand,
@@ -353,7 +353,7 @@ export function LoupePDFDemo({
   preset = "demo",
   plugins: customPlugins = [],
   codex,
-}: LoupePDFDemoProps) {
+}: LensPDFDemoProps) {
   const overlayItems = useMemo<readonly OverlayItem[]>(
     () => items ?? [],
     [items],
@@ -381,7 +381,7 @@ export function LoupePDFDemo({
   // Brand resolution: explicit prop > tokens.logo* > built-in default.
   // Lets a host bundle its identity (colors + logo + label) into one
   // tokens object without dropping the existing prop API.
-  const effectiveBrand = brand ?? tokens.logoText ?? "LoupePDF";
+  const effectiveBrand = brand ?? tokens.logoText ?? "LensPDF";
   const effectiveLogoUrl = brandLogoUrl ?? tokens.logoUrl;
   const effectiveLogoMaxHeight = tokens.logoMaxHeight ?? 24;
   const effectiveLogoAlt = tokens.logoAlt;
@@ -589,7 +589,7 @@ export function LoupePDFDemo({
       });
     })().catch((err) => {
       // eslint-disable-next-line no-console
-      console.warn("[loupe-pdf] codex overlay extraction failed", err);
+      console.warn("[lens-pdf] codex overlay extraction failed", err);
     });
 
     return () => {
@@ -1221,7 +1221,7 @@ export function LoupePDFDemo({
                       <svg width={16} height={16} viewBox="0 0 16 16" fill="none" aria-hidden>
                         <circle cx={8} cy={8} r={6} stroke="currentColor" strokeWidth={2} strokeOpacity={0.25} />
                         <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth={2} strokeLinecap="round"
-                          style={{ transformOrigin: "8px 8px", animation: "loupe-pdf-tools-spin 0.7s linear infinite" }} />
+                          style={{ transformOrigin: "8px 8px", animation: "lens-pdf-tools-spin 0.7s linear infinite" }} />
                       </svg>
                     ) : pdfUrl ? (
                       // Filled document — file is loaded
@@ -1587,11 +1587,11 @@ export function LoupePDFDemo({
                       borderRadius: "50%",
                       border: "2px solid rgba(255,255,255,0.2)",
                       borderTopColor: "rgba(255,255,255,0.75)",
-                      animation: "loupe-pdf-tools-spin 0.85s linear infinite",
+                      animation: "lens-pdf-tools-spin 0.85s linear infinite",
                     }}
                   />
                   <span>Loading tools…</span>
-                  <style>{`@keyframes loupe-pdf-tools-spin { to { transform: rotate(360deg); } }`}</style>
+                  <style>{`@keyframes lens-pdf-tools-spin { to { transform: rotate(360deg); } }`}</style>
                 </div>
               ) : (
                 leftPanelPlugins.map((plugin) => (
@@ -1654,7 +1654,7 @@ export function LoupePDFDemo({
                     margin: 0,
                   }}
                 >
-                  LoupePDF supports <strong>full CMYK + spot inks</strong>
+                  LensPDF supports <strong>full CMYK + spot inks</strong>
                   {" "}with no approximation when a backend (Ghostscript
                   / MuPDF + ICC profiles) is wired through the
                   {" "}<code>services</code> prop — the densitometer, TAC
@@ -1708,7 +1708,7 @@ export function LoupePDFDemo({
                       Layer is mounted at a time. */}
                   {viewerMode === "separation" && services ? (
                     <SeparationCanvas
-                      jobId="loupe-pdf-demo"
+                      jobId="lens-pdf-demo"
                       pageNum={page.page_num}
                       enabledChannels={enabledChannels}
                       allChannels={
@@ -1726,7 +1726,7 @@ export function LoupePDFDemo({
                       (layerIndex) => layerIndex !== FLATTENED_LAYER_INDEX,
                     ) ? (
                     <LayerCanvas
-                      jobId="loupe-pdf-demo"
+                      jobId="lens-pdf-demo"
                       pageNum={page.page_num}
                       enabledLayers={enabledLayers}
                       allLayers={allLayerIndices}
@@ -1735,7 +1735,7 @@ export function LoupePDFDemo({
                     />
                   ) : (
                     <PageCanvas
-                      jobId="loupe-pdf-demo"
+                      jobId="lens-pdf-demo"
                       page={page}
                       zoom={zoom}
                       items={overlayItems}
@@ -1769,7 +1769,7 @@ export function LoupePDFDemo({
 
                   {services && showHeatmap && (
                     <TACHeatmapOverlay
-                      jobId="loupe-pdf-demo"
+                      jobId="lens-pdf-demo"
                       pageNum={page.page_num}
                       width={canvasW}
                       height={canvasH}
@@ -1789,7 +1789,7 @@ export function LoupePDFDemo({
                       }}
                     >
                       <AnnotationCanvas
-                        jobId="loupe-pdf-demo"
+                        jobId="lens-pdf-demo"
                         pageNum={page.page_num}
                         width={canvasW}
                         height={canvasH}
@@ -1854,7 +1854,7 @@ export function LoupePDFDemo({
                     })}
                   {activeTool === "color-picker" && (
                     <ColorPickerTool
-                      jobId="loupe-pdf-demo"
+                      jobId="lens-pdf-demo"
                       pageNum={page.page_num}
                       pageWidthPts={page.width_pts}
                       pageHeightPts={page.height_pts}
@@ -1864,7 +1864,7 @@ export function LoupePDFDemo({
                   )}
                   {activeTool === "densitometer" && (
                     <DensitometerTool
-                      jobId="loupe-pdf-demo"
+                      jobId="lens-pdf-demo"
                       pageNum={page.page_num}
                       pageWidthPts={page.width_pts}
                       pageHeightPts={page.height_pts}

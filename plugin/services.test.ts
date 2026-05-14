@@ -49,7 +49,7 @@ describe("markUnwired", () => {
     // The marker is non-writable. Strict mode throws; non-strict silently
     // ignores. Either way the value should not change.
     expect(() => {
-      Object.defineProperty(obj, Symbol.for("@printwithsynergy/loupe-pdf:unwired"), {
+      Object.defineProperty(obj, Symbol.for("@printwithsynergy/lens-pdf:unwired"), {
         value: false,
       });
     }).toThrow();

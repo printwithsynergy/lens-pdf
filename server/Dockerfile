@@ -1,4 +1,4 @@
-# Reference deployable for the LoupePDF separations / densitometer /
+# Reference deployable for the LensPDF separations / densitometer /
 # TAC backend. Multi-stage so the runtime image stays small (Node +
 # Ghostscript only — no toolchain).
 
@@ -16,20 +16,20 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 # Non-root runtime user.
-RUN useradd --system --uid 1001 --user-group loupe \
- && mkdir -p /var/lib/loupe-pdf/jobs /var/cache/loupe-pdf \
- && chown -R loupe:loupe /var/lib/loupe-pdf /var/cache/loupe-pdf
+RUN useradd --system --uid 1001 --user-group lens \
+ && mkdir -p /var/lib/lens-pdf/jobs /var/cache/lens-pdf \
+ && chown -R lens:lens /var/lib/lens-pdf /var/cache/lens-pdf
 
 WORKDIR /app
-COPY --from=build --chown=loupe:loupe /app/node_modules ./node_modules
-COPY --from=build --chown=loupe:loupe /app/dist ./dist
-COPY --from=build --chown=loupe:loupe /app/package.json ./
+COPY --from=build --chown=lens:lens /app/node_modules ./node_modules
+COPY --from=build --chown=lens:lens /app/dist ./dist
+COPY --from=build --chown=lens:lens /app/package.json ./
 
-USER loupe
+USER lens
 ENV NODE_ENV=production \
     PORT=3000 \
-    LOUPE_JOBS_DIR=/var/lib/loupe-pdf/jobs \
-    LOUPE_CACHE_DIR=/var/cache/loupe-pdf
+    LENS_JOBS_DIR=/var/lib/lens-pdf/jobs \
+    LENS_CACHE_DIR=/var/cache/lens-pdf
 
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \

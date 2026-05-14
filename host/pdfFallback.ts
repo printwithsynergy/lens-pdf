@@ -9,7 +9,7 @@
  * pdf.js is loaded lazily via dynamic ``import("pdfjs-dist")`` so it
  * stays out of the bundle for hosts that don't use this fallback. Add
  * ``pdfjs-dist`` to your app's dependencies (it's an optional peer dep
- * of ``@printwithsynergy/loupe-pdf``).
+ * of ``@printwithsynergy/lens-pdf``).
  *
  * **Security**: this adapter fetches whatever URL the host hands it.
  * Sign / scope / expire the URL the same way you would any other PDF
@@ -48,14 +48,14 @@ async function loadPdfJs(): Promise<PdfJsLoader> {
     mod = (await import(/* @vite-ignore */ spec)) as PdfJsModule;
   } catch (err) {
     throw new Error(
-      "[loupe-pdf] createPdfJsFallback requires `pdfjs-dist` to be installed. " +
+      "[lens-pdf] createPdfJsFallback requires `pdfjs-dist` to be installed. " +
         "Add it to your app's dependencies, or omit `pdfFallback` from the host context.",
       { cause: err },
     );
   }
   const api = (mod.default ?? mod) as PdfJsLoader;
   if (!api.getDocument) {
-    throw new Error("[loupe-pdf] Loaded `pdfjs-dist` does not expose getDocument.");
+    throw new Error("[lens-pdf] Loaded `pdfjs-dist` does not expose getDocument.");
   }
   return api;
 }
@@ -77,7 +77,7 @@ interface PdfJsFallbackOptions {
  * calls don't re-parse or re-render.
  *
  * @deprecated Use ``createPdfJsFallback`` from
- *   ``@printwithsynergy/loupe-pdf/fallback-pdfjs`` instead. The
+ *   ``@printwithsynergy/lens-pdf/fallback-pdfjs`` instead. The
  *   subpath imports pdfjs-dist statically so bundlers trace it
  *   correctly without consumers having to side-effect-import the
  *   dep. This `/host` export uses a dynamic ``await import("...")``
@@ -130,7 +130,7 @@ export function createPdfJsFallback(opts: PdfJsFallbackOptions): PdfFallbackAdap
       canvas.width = Math.ceil(viewport.width);
       canvas.height = Math.ceil(viewport.height);
       const ctx = canvas.getContext("2d");
-      if (!ctx) throw new Error("[loupe-pdf] 2D context unavailable for fallback render.");
+      if (!ctx) throw new Error("[lens-pdf] 2D context unavailable for fallback render.");
       await page.render({ canvasContext: ctx, viewport }).promise;
       const url = canvas.toDataURL("image/png");
       renderCache.set(cacheKey, url);

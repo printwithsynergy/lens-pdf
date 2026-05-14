@@ -494,7 +494,7 @@ export function AnnotationCanvas({
       style={{
         position: "absolute",
         inset: 0,
-        // Inherit so the LoupePDFDemo wrapper's pointer-events:none
+        // Inherit so the LensPDFDemo wrapper's pointer-events:none
         // (active when activeTool !== "annotate") actually takes effect.
         // "auto" here would override it and let the canvas intercept
         // events in Move/Pan mode, causing accidental draws.

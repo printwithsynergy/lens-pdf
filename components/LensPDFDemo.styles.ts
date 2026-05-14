@@ -1,5 +1,5 @@
 /**
- * Inlined styles for {@link LoupePDFDemo} / {@link LoupePDF}. Kept
+ * Inlined styles for {@link LensPDFDemo} / {@link LensPDF}. Kept
  * outside the main component so the entrypoint focuses on viewer
  * behaviour, and so consumers reading the source aren't scrolling
  * past 270 lines of CSS-in-JS to find the React tree.

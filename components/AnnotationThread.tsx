@@ -112,10 +112,10 @@ const spinnerStyle: CSSProperties = {
   borderRadius: "50%",
   border: "2px solid rgba(255,255,255,0.18)",
   borderTopColor: "rgba(255,255,255,0.65)",
-  animation: "loupe-pdf-annotation-spin 0.85s linear infinite",
+  animation: "lens-pdf-annotation-spin 0.85s linear infinite",
 };
 
-const SPINNER_KEYFRAMES = `@keyframes loupe-pdf-annotation-spin {
+const SPINNER_KEYFRAMES = `@keyframes lens-pdf-annotation-spin {
   to { transform: rotate(360deg); }
 }`;
 

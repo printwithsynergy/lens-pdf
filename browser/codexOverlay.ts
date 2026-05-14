@@ -1,7 +1,7 @@
 /**
- * Codex accuracy overlay for `<LoupePDFDemo>`.
+ * Codex accuracy overlay for `<LensPDFDemo>`.
  *
- * When a host passes a `codex` client, `LoupePDFDemo` fires
+ * When a host passes a `codex` client, `LensPDFDemo` fires
  * `extractStream` in the background. This module wraps the codex
  * render APIs (renderSeparations, renderHeatmap, renderLayer) into
  * the `ViewerServices` slot interface so the viewer can swap in
@@ -25,7 +25,7 @@ import { PROCESS_CHANNELS } from "./constants";
 
 /**
  * Minimal subset of `@printwithsynergy/codex-client`'s `HttpClient`
- * that `LoupePDFDemo` uses for the accuracy overlay. Any object
+ * that `LensPDFDemo` uses for the accuracy overlay. Any object
  * implementing this interface (including `HttpClient`) is accepted.
  *
  * @public

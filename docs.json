@@ -1,6 +1,6 @@
 {
   "$schema": "https://docs.page/schema.json",
-  "name": "LoupePDF",
+  "name": "LensPDF",
   "description": "Host-agnostic OSS PDF viewer core. Plugin-driven canvas viewer with overlay, panel, and toolbar slots.",
   "logo": {
     "light": "/logo.svg",
@@ -17,17 +17,17 @@
     {
       "title": "GitHub",
       "icon": "github",
-      "link": "https://github.com/Printwithsynergy/loupe-pdf"
+      "link": "https://github.com/Printwithsynergy/lens-pdf"
     },
     {
       "title": "Issues",
       "icon": "circle-exclamation",
-      "link": "https://github.com/Printwithsynergy/loupe-pdf/issues"
+      "link": "https://github.com/Printwithsynergy/lens-pdf/issues"
     },
     {
       "title": "Discussions",
       "icon": "comments",
-      "link": "https://github.com/Printwithsynergy/loupe-pdf/discussions"
+      "link": "https://github.com/Printwithsynergy/lens-pdf/discussions"
     }
   ],
   "sidebar": [
@@ -36,7 +36,7 @@
       "pages": [
         { "title": "Overview", "href": "/" },
         { "title": "Architecture", "href": "/docs/architecture" },
-        { "title": "LoupePDFViewer (one-line viewer)", "href": "/docs/loupe-pdf-viewer" }
+        { "title": "LensPDFViewer (one-line viewer)", "href": "/docs/lens-pdf-viewer" }
       ]
     },
     {

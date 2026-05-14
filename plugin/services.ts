@@ -270,7 +270,7 @@ export interface I18nService {
  * Optional in-browser fallback that pulls "minimum data" directly from
  * a raw PDF blob when a host hasn't wired a richer service. Hosts that
  * supply this — typically by calling ``createPdfJsFallback(pdfUrl)``
- * exported from ``@printwithsynergy/loupe-pdf/host`` — let the viewer
+ * exported from ``@printwithsynergy/lens-pdf/host`` — let the viewer
  * keep tools like PageCanvas, PageNavigator, MeasureTool, LayerPanel,
  * and ColorPickerTool functional without a server backend.
  *
@@ -307,7 +307,7 @@ export interface PdfFallbackAdapter {
  * Theme tokens. Plugins that need brand colours read them from here
  * rather than hardcoding hex strings. The optional `logo*` fields let
  * a host bundle its full visual identity (colours + logo + label) into
- * a single object — `<LoupePDFDemo>` reads them as a fallback when the
+ * a single object — `<LensPDFDemo>` reads them as a fallback when the
  * equivalent props (`brand`, `brandLogoUrl`) are not set.
  *
  * @public
@@ -320,7 +320,7 @@ export interface ThemeTokens {
   readonly border: string;
   /** Optional brand logo image URL shown in the demo top bar. Any URL the browser can fetch — PNG / SVG / `data:` URI. */
   readonly logoUrl?: string;
-  /** Optional brand label shown next to the logo. Mirrors the `brand` prop on `<LoupePDFDemo>`. Default: `"LoupePDF"`. */
+  /** Optional brand label shown next to the logo. Mirrors the `brand` prop on `<LensPDFDemo>`. Default: `"LensPDF"`. */
   readonly logoText?: string;
   /** Optional pixel cap on the rendered logo height. Width is auto so non-square logos keep their aspect ratio. Default: 24. */
   readonly logoMaxHeight?: number;
@@ -415,7 +415,7 @@ export const darkThemeTokens: ThemeTokens = {
  * themselves outright; the latter still renders an empty state because
  * the host explicitly opted in.
  */
-const UNWIRED_MARKER = Symbol.for("@printwithsynergy/loupe-pdf:unwired");
+const UNWIRED_MARKER = Symbol.for("@printwithsynergy/lens-pdf:unwired");
 
 /**
  * Tag a service object as a no-op default. Hosts almost never call
