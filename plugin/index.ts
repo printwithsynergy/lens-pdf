@@ -64,4 +64,4 @@ export {
  * located findings (the viewer can highlight + click) from
  * informational findings (page-level metadata).
  */
-export { hasViewerLocation, splitFindingsByLocation } from "./findings-location";
+export { buildFindingNumberMap, hasViewerLocation, splitFindingsByLocation } from "./findings-location";

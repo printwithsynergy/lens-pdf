@@ -480,47 +480,84 @@ function findingsPlugin(): LensPDFShellPlugin {
               const t = (it.tier ?? "info") as string;
               const label = it.label ?? it.id ?? `Finding ${i + 1}`;
               const isSelected = ctx.selectedItem?.id === it.id;
+              const findingN = ctx.findingNumbers.get(it.id);
               return (
-                <button
+                <div
                   key={it.id ?? `f-${i}`}
-                  type="button"
-                  onClick={() => ctx.onItemSelect?.(isSelected ? null : it)}
                   style={{
                     display: "flex",
-                    width: "100%",
                     alignItems: "flex-start",
-                    gap: 8,
-                    padding: "6px 8px",
+                    gap: 4,
+                    borderRadius: 6,
                     border: "1px solid transparent",
                     borderColor: isSelected ? "rgba(255,255,255,0.18)" : "transparent",
-                    borderRadius: 6,
                     background: isSelected ? "rgba(255,255,255,0.05)" : "transparent",
-                    color: ctx.tokens.fg,
-                    cursor: "pointer",
-                    textAlign: "left",
-                    fontSize: 12,
                   }}
                 >
-                  <span
-                    aria-hidden
+                  {findingN != null && (
+                    <button
+                      type="button"
+                      title={`Open note for F${findingN}`}
+                      onClick={() => ctx.onFindingNoteRequest?.(it.id)}
+                      style={{
+                        flexShrink: 0,
+                        alignSelf: "center",
+                        margin: "0 0 0 4px",
+                        padding: "2px 5px",
+                        borderRadius: 4,
+                        border: "1px solid rgba(255,255,255,0.18)",
+                        background: tone(t),
+                        color: "#fff",
+                        fontSize: 10,
+                        fontWeight: 700,
+                        lineHeight: 1.4,
+                        cursor: "pointer",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      F{findingN}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => ctx.onItemSelect?.(isSelected ? null : it)}
                     style={{
-                      marginTop: 4,
-                      width: 8,
-                      height: 8,
-                      borderRadius: "50%",
-                      background: tone(t),
-                      flexShrink: 0,
+                      display: "flex",
+                      flex: 1,
+                      alignItems: "flex-start",
+                      gap: 8,
+                      padding: "6px 8px",
+                      border: "none",
+                      borderRadius: 0,
+                      background: "transparent",
+                      color: ctx.tokens.fg,
+                      cursor: "pointer",
+                      textAlign: "left",
+                      fontSize: 12,
+                      minWidth: 0,
                     }}
-                  />
-                  <span style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontWeight: 500, lineHeight: 1.3 }}>{label}</div>
-                    {it.description ? (
-                      <div style={{ opacity: 0.7, fontSize: 11, marginTop: 2 }}>
-                        {it.description}
-                      </div>
-                    ) : null}
-                  </span>
-                </button>
+                  >
+                    <span
+                      aria-hidden
+                      style={{
+                        marginTop: 4,
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        background: tone(t),
+                        flexShrink: 0,
+                      }}
+                    />
+                    <span style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontWeight: 500, lineHeight: 1.3 }}>{label}</div>
+                      {it.description ? (
+                        <div style={{ opacity: 0.7, fontSize: 11, marginTop: 2 }}>
+                          {it.description}
+                        </div>
+                      ) : null}
+                    </span>
+                  </button>
+                </div>
               );
             })}
           </div>
@@ -536,28 +573,38 @@ function annotationsPlugin(): LensPDFShellPlugin {
     slot: "panel.left",
     order: 40,
     isAvailable: (ctx) => ctx.availability.annotate,
-    render: (ctx: LensPDFShellPluginContext) => (
-      <>
-        <h2 style={headingStyle}>Annotations</h2>
-        <AnnotationThread
-          jobId="lens-pdf-demo"
-          currentUserEmail="you@browser.local"
-          onJumpToPage={(p) => ctx.setCurrentPage(p)}
-          refreshKey={ctx.servicesVersion}
-          comfortable={ctx.isMobile}
-        />
-        <div style={{ height: 8 }} />
-        <h2 style={headingStyle}>Notes</h2>
-        <AnnotationNotesPanel
-          refreshKey={ctx.servicesVersion}
-          storageScopeKey={ctx.pdfUrl || "lens-pdf-demo"}
-          onJumpToPage={(p) => ctx.setCurrentPage(p)}
-          indexedAnnotations={ctx.indexedAnnotations}
-          selectedAnnotationId={ctx.selectedAnnotationId}
-          onSelectedAnnotationIdChange={(id) => ctx.setSelectedAnnotationId(id)}
-        />
-      </>
-    ),
+    render: (ctx: LensPDFShellPluginContext) => {
+      const findingTargets = (ctx.items ?? []).map((item) => ({
+        id: `finding-${item.id}`,
+        label: `F${ctx.findingNumbers.get(item.id) ?? "?"} · ${item.label ?? item.id}`,
+        pageNum: item.page,
+      }));
+      return (
+        <>
+          <h2 style={headingStyle}>Annotations</h2>
+          <AnnotationThread
+            jobId="lens-pdf-demo"
+            currentUserEmail="you@browser.local"
+            onJumpToPage={(p) => ctx.setCurrentPage(p)}
+            refreshKey={ctx.servicesVersion}
+            comfortable={ctx.isMobile}
+          />
+          <div style={{ height: 8 }} />
+          <h2 style={headingStyle}>Notes</h2>
+          <AnnotationNotesPanel
+            refreshKey={ctx.servicesVersion}
+            storageScopeKey={ctx.pdfUrl || "lens-pdf-demo"}
+            onJumpToPage={(p) => ctx.setCurrentPage(p)}
+            indexedAnnotations={ctx.indexedAnnotations}
+            selectedAnnotationId={ctx.selectedAnnotationId}
+            onSelectedAnnotationIdChange={(id) => ctx.setSelectedAnnotationId(id)}
+            findingTargets={findingTargets}
+            pendingNoteTarget={ctx.pendingNoteTarget}
+            onPendingNoteConsumed={ctx.onPendingNoteConsumed}
+          />
+        </>
+      );
+    },
   };
 }
 

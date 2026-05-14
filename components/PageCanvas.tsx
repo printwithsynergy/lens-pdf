@@ -38,6 +38,58 @@ interface PageCanvasProps {
    * the full MediaBox unchanged.
    */
   cropToTrim?: boolean;
+  /** Stable F1…FN numbers keyed by item.id (from buildFindingNumberMap).
+   *  Drives the pill badges drawn on each located finding. */
+  findingNumbers?: ReadonlyMap<string, number>;
+}
+
+// Stable empty map — used as the default for findingNumbers to avoid
+// creating a new Map on each render when the prop is absent.
+const EMPTY_FINDING_NUMBERS: ReadonlyMap<string, number> = new Map();
+
+// Draws an F{n} pill badge anchored to the top-right corner of a bbox.
+// `selected` makes it slightly larger. Badge is always drawn at globalAlpha 1
+// so it stays readable even when the surrounding bbox is dimmed.
+function drawFindingBadge(
+  ctx: CanvasRenderingContext2D,
+  label: string,
+  bboxX: number,
+  bboxY: number,
+  bboxW: number,
+  color: string,
+  selected: boolean,
+): void {
+  const fontSize = selected ? 12 : 10;
+  ctx.save();
+  ctx.globalAlpha = 1;
+  ctx.font = `bold ${fontSize}px sans-serif`;
+  const textW = ctx.measureText(label).width;
+  const padX = selected ? 6 : 5;
+  const padY = selected ? 4 : 3;
+  const pillW = textW + padX * 2;
+  const pillH = fontSize + padY * 2;
+  const r = pillH / 2;
+  // Anchor: right edge at bbox right, pill bottom at bbox top
+  const px = bboxX + bboxW - pillW + 2;
+  const py = bboxY - pillH + 2;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  if (ctx.roundRect) {
+    ctx.roundRect(px, py, pillW, pillH, r);
+  } else {
+    // Fallback for older environments
+    ctx.arc(px + r, py + r, r, Math.PI, Math.PI * 1.5);
+    ctx.arc(px + pillW - r, py + r, r, Math.PI * 1.5, 0);
+    ctx.arc(px + pillW - r, py + pillH - r, r, 0, Math.PI * 0.5);
+    ctx.arc(px + r, py + pillH - r, r, Math.PI * 0.5, Math.PI);
+    ctx.closePath();
+  }
+  ctx.fill();
+  ctx.fillStyle = "#ffffff";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(label, px + pillW / 2, py + pillH / 2);
+  ctx.restore();
 }
 
 const TIER_HEX: Record<NonNullable<OverlayItem["tier"]>, string> = {
@@ -75,6 +127,7 @@ export function PageCanvas({
   tileDpi,
   tileCdnBase,
   cropToTrim = false,
+  findingNumbers = EMPTY_FINDING_NUMBERS,
 }: PageCanvasProps) {
   const { pageImages } = useViewerServices();
   const { debug, pdfFallback } = useViewerHost();
@@ -318,26 +371,24 @@ export function PageCanvas({
       selectedItem.page === page.page_num &&
       selectedItem.bbox;
 
-    // Counter for badge numbering
-    let badgeIndex = 0;
-
     for (const item of pageItems) {
       if (!item.bbox) continue;
-      badgeIndex++;
-      const [x0, y0, x1, y1] = item.bbox;
+      const [x0, , x1, y1] = item.bbox;
 
       // Convert PDF coordinates (origin lower-left) to canvas (origin upper-left)
       const px0 = x0 * ptsToPixels * scale;
       const py0 = (page.height_pts - y1) * ptsToPixels * scale;
       const pw = (x1 - x0) * ptsToPixels * scale;
-      const ph = (y1 - y0) * ptsToPixels * scale;
+      const ph = (item.bbox[3] - item.bbox[1]) * ptsToPixels * scale;
 
       const colors = colorsForTier(item.tier);
       const tierHex = item.color ?? TIER_HEX[item.tier ?? "neutral"];
       const isSelected = selectedItem?.id === item.id;
+      const findingN = findingNumbers.get(item.id);
+      const badgeLabel = findingN != null ? `F${findingN}` : null;
 
       if (hasSelected && !isSelected) {
-        // Dimmed: other items when one is selected
+        // Dimmed bbox when another item is selected
         ctx.globalAlpha = 0.3;
         ctx.fillStyle = colors.fill;
         ctx.fillRect(px0, py0, pw, ph);
@@ -345,6 +396,8 @@ export function PageCanvas({
         ctx.lineWidth = 1;
         ctx.strokeRect(px0, py0, pw, ph);
         ctx.globalAlpha = 1;
+        // Badge stays full-opacity even when the bbox is dimmed
+        if (badgeLabel) drawFindingBadge(ctx, badgeLabel, px0, py0, pw, tierHex, false);
       } else if (isSelected) {
         // Selected item: prominent highlight with animated glow
         const glowAlpha = 0.15 + pulsePhase * 0.2;
@@ -364,19 +417,7 @@ export function PageCanvas({
         ctx.shadowColor = "transparent";
         ctx.shadowBlur = 0;
 
-        // Numbered badge at top-right corner
-        const badgeRadius = 10;
-        const bx = px0 + pw - 2;
-        const by = py0 - 2;
-        ctx.fillStyle = tierHex;
-        ctx.beginPath();
-        ctx.arc(bx, by, badgeRadius, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = "#ffffff";
-        ctx.font = "bold 11px sans-serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(String(badgeIndex), bx, by);
+        if (badgeLabel) drawFindingBadge(ctx, badgeLabel, px0, py0, pw, tierHex, true);
       } else {
         // No selection active: show all at normal opacity
         ctx.fillStyle = colors.fill;
@@ -384,6 +425,7 @@ export function PageCanvas({
         ctx.strokeStyle = colors.stroke;
         ctx.lineWidth = 1.5;
         ctx.strokeRect(px0, py0, pw, ph);
+        if (badgeLabel) drawFindingBadge(ctx, badgeLabel, px0, py0, pw, tierHex, false);
       }
     }
   }, [
@@ -396,6 +438,7 @@ export function PageCanvas({
     scale,
     selectedItem,
     pulsePhase,
+    findingNumbers,
   ]);
 
   useEffect(() => {
