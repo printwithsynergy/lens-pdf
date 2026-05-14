@@ -6,6 +6,29 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0-beta.82] — 2026-05-14
+
+### Added
+- **Numbered findings (F1…FN) in Inspection panel and on canvas.** Every
+  finding gets a stable number in input order. The number appears as a
+  labelled pill badge (`F1`, `F2`, …) drawn on the canvas (located
+  findings only — whole-document findings get no canvas badge) and as a
+  small chip in each Inspection panel row.
+- **Click-to-note via F# badge.** Clicking the `F{n}` chip in the
+  Inspection panel selects the finding, switches the Notes panel to it,
+  and auto-creates a blank linked note focused for immediate typing.
+- **`buildFindingNumberMap(items)` helper exported from `./plugin`.**
+  Stable `Map<id, number>` useful for adapter authors mapping their own
+  findings into the viewer without duplicating the numbering logic.
+- **Separate numbering sequences.** Findings use F1…FN; hand-drawn
+  annotations keep their own #1, #2, … counter. The two sequences never
+  collide.
+- **Finding targets in the Notes panel dropdown.** All findings appear at
+  the top of the linked-note target selector so reviewers can attach
+  prose notes to any finding without switching modes.
+
+
+
 ## [0.3.0-beta.78] — 2026-05-13
 
 ### Added
