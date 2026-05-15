@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>
+      {% if brand and brand.anonymous %}Preflight Report{% elif brand and brand.name %}{{ brand.name }} Preflight Report{% else %}Preflight Report{% endif %}
+    </title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --primary: {% if brand and brand.primary_color %}{{ brand.primary_color }}{% else %}#1e3a8a{% endif %};
+        --accent: {% if brand and brand.accent_color %}{{ brand.accent_color }}{% else %}#2563eb{% endif %};
+        --error: #dc2626;
+        --warning: #ea580c;
+        --advisory: #2563eb;
+        --pass: #22c55e;
+        --fail: #ef4444;
+        --bg: #f8fafc;
+        --card-bg: #ffffff;
+        --border: #e2e8f0;
+        --text: #1e293b;
+        --text-muted: #64748b;
+        --text-light: #94a3b8;
+        --mono-font: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: var(--text); line-height: 1.6; background: var(--bg); }
+
+      /* Header */
+      .header { background: var(--primary); color: white; padding: 20px 28px; display: flex; align-items: center; justify-content: space-between; }
+      .header-left { display: flex; align-items: center; gap: 14px; }
+      .header-logo { height: 36px; width: auto; border-radius: 6px; }
+      .header h1 { font-size: 18px; font-weight: 700; }
+      .header .subtitle { font-size: 12px; opacity: 0.8; margin-top: 1px; }
+      .verdict { padding: 6px 18px; border-radius: 20px; font-weight: 700; font-size: 13px; letter-spacing: 0.5px; }
+      .verdict.pass { background: var(--pass); }
+      .verdict.fail { background: var(--fail); }
+
+      /* Summary bar */
+      .summary-bar { background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 14px 28px; display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+      .stat { text-align: center; min-width: 60px; }
+      .stat-value { font-size: 22px; font-weight: 700; }
+      .stat-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+      .stat.errors .stat-value { color: var(--error); }
+      .stat.warnings .stat-value { color: var(--warning); }
+      .stat.advisory .stat-value { color: var(--advisory); }
+      .stat-divider { width: 1px; height: 36px; background: var(--border); }
+
+      /* Toolbar */
+      .toolbar { display: flex; gap: 6px; padding: 12px 28px; background: var(--card-bg); border-bottom: 1px solid var(--border); flex-wrap: wrap; align-items: center; }
+      .toolbar button, .toolbar a {
+        font-family: inherit; font-size: 12px; font-weight: 500;
+        padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border);
+        background: var(--card-bg); color: var(--text); cursor: pointer; text-decoration: none;
+        display: inline-flex; align-items: center; gap: 4px; transition: all 0.15s;
+      }
+      .toolbar button:hover, .toolbar a:hover { background: var(--bg); }
+      .toolbar .active { background: var(--accent); color: #fff; border-color: var(--accent); }
+      .toolbar .viewer-link { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+      .toolbar .viewer-link:hover { opacity: 0.9; }
+
+      /* Search */
+      .search-box { display: block; width: 100%; max-width: 500px; margin: 0 auto 16px; padding: 8px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; font-family: inherit; }
+
+      /* EPM verdict card */
+      .epm-card { border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 0 0 16px; background: var(--card-bg); }
+      .epm-card.epm-tier-pass { border-left: 4px solid var(--pass); }
+      .epm-card.epm-tier-pass_with_advisory { border-left: 4px solid var(--advisory); }
+      .epm-card.epm-tier-marginal { border-left: 4px solid var(--warning); }
+      .epm-card.epm-tier-reject { border-left: 4px solid var(--error); }
+      .epm-card-header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+      .epm-tier-badge { font-weight: 700; font-size: 12px; padding: 4px 10px; border-radius: 12px; letter-spacing: 0.5px; color: white; background: var(--text-muted); }
+      .epm-tier-badge.pass { background: var(--pass); }
+      .epm-tier-badge.pass_with_advisory { background: var(--advisory); }
+      .epm-tier-badge.marginal { background: var(--warning); }
+      .epm-tier-badge.reject { background: var(--error); }
+      .epm-indichrome-hint { font-size: 11px; color: var(--accent); font-weight: 600; }
+      .epm-count { margin-left: auto; font-size: 11px; color: var(--text-muted); }
+      .epm-section { margin-top: 8px; font-size: 12px; }
+      .epm-section ul { margin: 4px 0 0 18px; }
+      .epm-section code { font-family: var(--mono-font); font-size: 11px; background: var(--bg); padding: 1px 5px; border-radius: 3px; }
+
+      /* AI-Explain block on finding cards */
+      .finding-ai-explain { margin-top: 8px; padding: 8px 10px; background: linear-gradient(90deg, #eff6ff, #ffffff); border-left: 3px solid var(--accent); border-radius: 4px; font-size: 12px; }
+      .ai-explain-label { display: inline-block; font-weight: 700; color: var(--accent); font-size: 10px; letter-spacing: 0.5px; text-transform: uppercase; margin-right: 6px; }
+      .ai-explain-text { color: var(--text); }
+
+      /* Content */
+      .content { max-width: 920px; margin: 20px auto; padding: 0 20px; }
+      .section-title { font-size: 15px; font-weight: 700; color: var(--primary); margin: 28px 0 12px; padding-bottom: 6px; border-bottom: 2px solid var(--border); }
+
+      /* Finding card */
+      .finding-card {
+        background: var(--card-bg); border-radius: 10px; border: 1px solid var(--border);
+        margin-bottom: 12px; overflow: hidden; display: flex; transition: box-shadow 0.15s;
+      }
+      .finding-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+      .finding-thumb {
+        width: 170px; min-height: 120px; background: #f1f5f9;
+        border-right: 1px solid var(--border); flex-shrink: 0;
+        position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center;
+      }
+      .finding-thumb img { width: 100%; height: 100%; object-fit: cover; position: relative; z-index: 1; }
+      .finding-thumb .page-label {
+        position: absolute; top: 6px; left: 6px; background: rgba(0,0,0,0.78);
+        color: #fff; font-size: 10px; padding: 2px 7px; border-radius: 4px;
+        font-weight: 600; line-height: 1.3; letter-spacing: 0.01em;
+        z-index: 2; pointer-events: none;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.25);
+      }
+      .finding-thumb-placeholder {
+        color: var(--text-light); font-size: 11px; text-align: center; padding: 8px;
+      }
+      .finding-body { flex: 1; padding: 14px 18px; }
+      .finding-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
+      .sev-badge {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 22px; height: 22px; border-radius: 50%; color: white;
+        font-size: 11px; font-weight: 700; flex-shrink: 0;
+      }
+      .sev-badge.error { background: var(--error); }
+      .sev-badge.warning { background: var(--warning); }
+      .sev-badge.advisory { background: var(--advisory); }
+      .finding-name { font-size: 14px; font-weight: 600; color: var(--text); }
+      .finding-id { font-family: var(--mono-font); font-size: 11px; color: var(--text-light); background: #f1f5f9; padding: 1px 7px; border-radius: 4px; }
+      .sev-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+      .sev-label.error { color: var(--error); }
+      .sev-label.warning { color: var(--warning); }
+      .sev-label.advisory { color: var(--advisory); }
+      .ai-tag { display: inline-flex; align-items: center; gap: 3px; background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; font-size: 10px; font-weight: 600; padding: 0px 5px; border-radius: 3px; }
+      .finding-desc { font-size: 13px; color: var(--text-muted); line-height: 1.4; margin-bottom: 4px; }
+      .finding-message { font-size: 12px; color: var(--text-light); line-height: 1.4; }
+      .finding-meta { margin-top: 6px; font-size: 11px; color: var(--text-light); display: flex; gap: 10px; flex-wrap: wrap; }
+
+      /* Comprehensive sections */
+      .data-table { width: 100%; border-collapse: collapse; margin: 8px 0 20px; font-size: 13px; }
+      .data-table th { text-align: left; padding: 6px 10px; background: #f1f5f9; border-bottom: 2px solid var(--border); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); }
+      .data-table td { padding: 6px 10px; border-bottom: 1px solid var(--border); }
+      .data-table tr:hover td { background: #f8fafc; }
+
+      /* Render failed banner */
+      .render-warning { background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 10px 16px; margin-bottom: 16px; color: #92400e; font-size: 13px; }
+      .render-warning a { color: #d97706; font-weight: 600; }
+
+      /* Footer */
+      .footer { text-align: center; padding: 20px; color: var(--text-light); font-size: 11px; border-top: 1px solid var(--border); margin-top: 32px; }
+      .footer a { color: var(--accent); text-decoration: none; }
+
+      /* Print */
+      @media print {
+        .toolbar, .search-box { display: none; }
+        .header, .summary-bar { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .finding-card { break-inside: avoid; }
+        .sev-badge { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        body { background: white; }
+      }
+      /* Compact finding row (doc-level, no thumbnail) */
+      .finding-compact {
+        display: flex; align-items: center; gap: 10px; padding: 8px 14px;
+        border-bottom: 1px solid var(--border); font-size: 12px;
+      }
+      .finding-compact:hover { background: #f8fafc; }
+      .finding-compact .finding-message { flex: 1; color: var(--text-muted); line-height: 1.3; }
+      .section-divider { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-light); padding: 16px 14px 6px; border-bottom: 1px solid var(--border); }
+      /* Responsive */
+      @media (max-width: 640px) {
+        .content { padding: 0 12px; }
+        .finding-card { flex-direction: column; margin-left: 4px; margin-right: 4px; }
+        .finding-thumb { width: 100%; min-height: 100px; max-height: 160px; border-right: none; border-bottom: 1px solid var(--border); }
+        .finding-body { padding: 12px 14px; }
+        .summary-bar { gap: 12px; padding: 12px 16px; }
+        .header { flex-direction: column; gap: 8px; text-align: center; padding: 16px; }
+        .toolbar { padding: 8px 12px; gap: 4px; }
+        .toolbar button, .toolbar a { font-size: 11px; padding: 4px 8px; }
+        .search-box { margin: 0 12px 12px; width: calc(100% - 24px); }
+        .summary-cover .cover-stats { flex-direction: column !important; gap: 16px !important; }
+        .summary-cover .color-box { width: 100% !important; min-width: 0 !important; }
+        .summary-cover .cover-header { flex-direction: column !important; text-align: center !important; }
+        .finding-compact { font-size: 11px; gap: 6px; padding: 6px 10px; }
+      }
+    </style>
+  </head>
+  <body>
+
+    {# ===== SUMMARY PAGE (cover sheet) ===== #}
+    {% if summary_page in ["prepend", "only"] %}
+    <div class="summary-cover" style="page-break-after: always; padding: 32px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+      {# Cover header #}
+      <div class="cover-header" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; border-bottom: 3px solid {{ brand.primary_color if brand else '#1e3a8a' }}; padding-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          {% if brand and brand.logo_url %}
+            {% if brand.logo_url and brand.logo_url.startswith('data:image/svg') %}
+              {{ brand.logo_url | decode_svg_data_uri }}
+            {% else %}
+              <img src="{{ brand.logo_url }}" alt="" style="height: 40px; width: auto;" />
+            {% endif %}
+          {% endif %}
+          <div>
+            <div style="font-size: 20px; font-weight: 700; color: {{ brand.primary_color if brand else '#1e3a8a' }};">{% if brand and brand.anonymous %}Preflight Report{% elif brand and brand.name %}{{ brand.name }}{% else %}LintPDF{% endif %}</div>
+            <div style="font-size: 11px; color: #6b7280;">Preflight Summary</div>
+          </div>
+        </div>
+        <div style="text-align: right;">
+          <div style="font-size: 11px; color: #6b7280;">{{ generated_at }}</div>
+          <div style="font-size: 11px; color: #6b7280;">{{ file_name }}</div>
+        </div>
+      </div>
+
+      {# Health score + verdict row #}
+      <div class="cover-stats" style="display: flex; gap: 24px; margin-bottom: 24px; flex-wrap: wrap;">
+        {# Health gauge #}
+        <div style="text-align: center; min-width: 120px;">
+          <div style="width: 100px; height: 100px; border-radius: 50%; border: 8px solid {{ health.color }}; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px;">
+            <div>
+              <div style="font-size: 32px; font-weight: 800; color: {{ health.color }}; line-height: 1;">{{ health.score }}</div>
+              <div style="font-size: 11px; color: #6b7280; margin-top: -2px;">/100</div>
+            </div>
+          </div>
+          <div style="font-size: 14px; font-weight: 700; color: {{ health.color }};">Grade {{ health.grade }}</div>
+        </div>
+
+        {# Stats #}
+        <div style="flex: 1;">
+          <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+            <div style="display: inline-block; padding: 6px 16px; border-radius: 6px; font-size: 13px; font-weight: 700; color: white; background: {{ badge_color }};">{{ pass_fail }}</div>
+            <div style="font-size: 12px; color: #6b7280; padding-top: 8px;">{% if summary %}{{ summary.page_count }} page{{ 's' if summary.page_count != 1 else '' }} &middot; {{ summary.total_findings }} findings{% endif %}</div>
+          </div>
+          <div style="display: flex; gap: 16px;">
+            <div style="text-align: center;"><div style="font-size: 24px; font-weight: 700; color: #ef4444;">{{ summary.error_count }}</div><div style="font-size: 10px; color: #6b7280; text-transform: uppercase;">Errors</div></div>
+            <div style="text-align: center;"><div style="font-size: 24px; font-weight: 700; color: #f59e0b;">{{ summary.warning_count }}</div><div style="font-size: 10px; color: #6b7280; text-transform: uppercase;">Warnings</div></div>
+            <div style="text-align: center;"><div style="font-size: 24px; font-weight: 700; color: #3b82f6;">{{ summary.advisory_count }}</div><div style="font-size: 10px; color: #6b7280; text-transform: uppercase;">Advisory</div></div>
+          </div>
+        </div>
+
+        {# Color info #}
+        <div class="color-box" style="min-width: 140px; padding: 8px 12px; background: #f8fafc; border-radius: 8px; font-size: 11px;">
+          <div style="font-weight: 700; font-size: 10px; text-transform: uppercase; color: #6b7280; margin-bottom: 6px;">Color Profile</div>
+          <div style="margin-bottom: 4px;">Spaces: {{ summary_color_info.color_spaces | join(', ') }}</div>
+          {% if summary_color_info.spot_colors %}<div style="margin-bottom: 4px;">Spots: {{ summary_color_info.spot_colors | join(', ') }}</div>{% endif %}
+          {% if summary_color_info.max_tac > 0 %}<div>Max TAC: {{ summary_color_info.max_tac }}%</div>{% endif %}
+        </div>
+      </div>
+
+      {# Page thumbnails grid #}
+      {% if page_thumbnails %}
+      <div style="margin-bottom: 20px;">
+        <div style="font-weight: 700; font-size: 10px; text-transform: uppercase; color: #6b7280; margin-bottom: 8px;">Page Preview</div>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+          {% for thumb in page_thumbnails %}
+          {% if thumb %}
+          <div style="border: 1px solid #e5e7eb; border-radius: 4px; overflow: hidden; width: 80px;">
+            <img src="data:image/png;base64,{{ thumb }}" alt="Page {{ loop.index }}" style="width: 100%; height: auto; display: block;" />
+            <div style="text-align: center; font-size: 9px; color: #9ca3af; padding: 2px 0;">{{ loop.index }}</div>
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      {# Top findings #}
+      {% if top_findings %}
+      <div>
+        <div style="font-weight: 700; font-size: 10px; text-transform: uppercase; color: #6b7280; margin-bottom: 8px;">Top Issues</div>
+        <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+          {% for f in top_findings %}{% if loop.index <= 5 %}
+          <tr style="border-bottom: 1px solid #f3f4f6;">
+            <td style="padding: 6px 8px; width: 16px;">
+              <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: {{ '#ef4444' if f.severity == 'error' else '#f59e0b' if f.severity == 'warning' else '#3b82f6' }};"></span>
+            </td>
+            <td style="padding: 6px 4px; font-family: monospace; font-size: 10px; color: #6b7280; white-space: nowrap;">{{ f.inspection_id }}</td>
+            <td style="padding: 6px 8px; color: #374151;">{{ f.message | truncate(100) }}</td>
+            <td style="padding: 6px 8px; text-align: right; font-size: 10px; color: #9ca3af; white-space: nowrap;">{% if f.page_num %}p.{{ f.page_num }}{% endif %}</td>
+          </tr>
+          {% endif %}{% endfor %}
+        </table>
+      </div>
+      {% endif %}
+
+      {% if brand and brand.viewer_url %}
+      <div style="margin-top: 16px; text-align: center;">
+        <a href="{{ brand.viewer_url }}" target="_blank" style="display: inline-block; padding: 8px 24px; background: {{ brand.primary_color if brand else '#1e3a8a' }}; color: white; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600;">Open Interactive Viewer</a>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% if summary_page != "only" %}
+    {# ===== HEADER ===== #}
+    <div class="header">
+      <div class="header-left">
+        {% if brand and brand.logo_url %}
+          {% if brand.logo_url and brand.logo_url.startswith('data:image/svg') %}
+            {{ brand.logo_url | decode_svg_data_uri }}
+          {% else %}
+            <img src="{{ brand.logo_url }}" alt="" class="header-logo" />
+          {% endif %}
+        {% endif %}
+        <div>
+          <h1>{% if brand and brand.anonymous %}Preflight Report{% elif brand and brand.name %}{{ brand.name }} Preflight Report{% else %}LintPDF Preflight Report{% endif %}</h1>
+          <div class="subtitle">{{ file_name }}{% if summary %} &middot; {{ summary.page_count }} page{{ 's' if summary.page_count != 1 else '' }}{% endif %} &middot; {{ generated_at }}</div>
+        </div>
+      </div>
+      <div class="verdict {{ 'pass' if summary.passed else 'fail' }}">{{ pass_fail }}</div>
+    </div>
+
+    {# ===== SUMMARY BAR ===== #}
+    <div class="summary-bar">
+      <div class="stat errors"><div class="stat-value">{{ summary.error_count }}</div><div class="stat-label">Errors</div></div>
+      <div class="stat-divider"></div>
+      <div class="stat warnings"><div class="stat-value">{{ summary.warning_count }}</div><div class="stat-label">Warnings</div></div>
+      <div class="stat-divider"></div>
+      <div class="stat advisory"><div class="stat-value">{{ summary.advisory_count }}</div><div class="stat-label">Advisory</div></div>
+      <div class="stat-divider"></div>
+      <div class="stat"><div class="stat-value" style="color:var(--primary)">{{ summary.total_findings }}</div><div class="stat-label">Total</div></div>
+      {% if color_quality_score %}
+      <div class="stat-divider"></div>
+      <div class="stat"><div class="stat-value" style="color:var(--pass)">{{ color_quality_score }}</div><div class="stat-label">Color Score</div></div>
+      {% endif %}
+    </div>
+
+    {# ===== TOOLBAR ===== #}
+    <div class="toolbar">
+      <button onclick="filterSeverity('')" class="active" data-filter="all">All</button>
+      <button onclick="filterSeverity('error')" data-filter="error">Errors</button>
+      <button onclick="filterSeverity('warning')" data-filter="warning">Warnings</button>
+      <button onclick="filterSeverity('advisory')" data-filter="advisory">Advisory</button>
+      <button onclick="filterSource('ai')" data-source="ai">AI Only</button>
+      <button onclick="filterSource('')" data-source="all">All Sources</button>
+      <button onclick="window.print()">Print</button>
+      {% if brand and brand.pdf_download_url and
+        (brand.pdf_download_url.startswith('https://') or
+         brand.pdf_download_url.startswith('http://') or
+         brand.pdf_download_url.startswith('/')) %}<a
+        href="{{ brand.pdf_download_url }}"
+      >Download PDF</a>{% endif %}
+      {% if brand and brand.viewer_url and
+        (brand.viewer_url.startswith('https://') or
+         brand.viewer_url.startswith('http://') or
+         brand.viewer_url.startswith('/')) %}<a
+        href="{{ brand.viewer_url }}"
+        target="_blank"
+        class="viewer-link"
+      >&#9654; Open Interactive Viewer</a>{% endif %}
+    </div>
+
+    <div class="content">
+
+      {# ===== EPM CANDIDACY VERDICT ===== #}
+      {% if epm %}
+      <div class="epm-card epm-tier-{{ epm.tier }}">
+        <div class="epm-card-header">
+          <span class="epm-tier-badge {{ epm.tier }}">EPM: {{ epm.tier | upper | replace("_", " ") }}</span>
+          {% if epm.recommends_indichrome %}
+          <span class="epm-indichrome-hint">Consider IndiChrome substrate</span>
+          {% endif %}
+          <span class="epm-count">{{ epm.epm_findings_count }} EPM finding{% if epm.epm_findings_count != 1 %}s{% endif %}</span>
+        </div>
+        {% if epm.rejection_drivers %}
+        <div class="epm-section">
+          <strong>Rejection drivers:</strong>
+          <ul>
+            {% for code in epm.rejection_drivers %}<li><code>{{ code }}</code></li>{% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+        {% if epm.advisories %}
+        <div class="epm-section">
+          <strong>Advisories:</strong>
+          <ul>
+            {% for code in epm.advisories %}<li><code>{{ code }}</code></li>{% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <input type="text" class="search-box" placeholder="Search findings by name, check ID, or message..." oninput="searchFindings(this.value)" />
+
+      {# ===== RENDER FAILED BANNER ===== #}
+      {% if render_failed %}
+      <div class="render-warning">
+        <strong>&#9888; Page screenshots unavailable.</strong>
+        The original PDF could not be rendered for visual annotation. Findings are listed without thumbnails.
+        {% if brand and brand.viewer_url %}<a href="{{ brand.viewer_url }}" target="_blank">Open Interactive Viewer &rarr;</a>{% endif %}
+      </div>
+      {% endif %}
+
+      {# ===== DOCUMENT & COMPLIANCE ISSUES (compact rows) ===== #}
+      {% set doc_findings = [] %}
+      {% set page_findings = [] %}
+      {% for f in all_findings_sorted %}
+        {% if (not f.page_num or f.page_num == 0) and not f.thumbnail_base64 and not f.bbox %}
+          {% if doc_findings.append(f) %}{% endif %}
+        {% else %}
+          {% if page_findings.append(f) %}{% endif %}
+        {% endif %}
+      {% endfor %}
+
+      {% if doc_findings %}
+      <div class="section-divider">Document &amp; Compliance Issues ({{ doc_findings | length }})</div>
+      {% set counter = {'n': 0} %}
+      {% for finding in doc_findings %}
+      {% if counter.update({'n': counter.n + 1}) %}{% endif %}
+      <div class="finding-compact finding-row"
+           data-severity="{{ finding.severity }}"
+           data-source="{{ finding.source }}"
+           data-search="{{ finding.friendly_name }} {{ finding.inspection_id }} {{ finding.message }}">
+        <div class="sev-badge {{ finding.severity }}">{{ counter.n }}</div>
+        <span class="finding-id">{{ finding.inspection_id }}</span>
+        <span class="finding-message">{{ finding.message }}</span>
+        <span class="sev-label {{ finding.severity }}">{{ finding.severity | upper }}</span>
+        {% if finding.source == 'ai' %}<span class="ai-tag">&#9733; AI</span>{% endif %}
+      </div>
+      {% endfor %}
+      {% endif %}
+
+      {# ===== PAGE ISSUES (card layout with thumbnails) ===== #}
+      {% if page_findings %}
+      <div class="section-divider">Page Issues ({{ page_findings | length }})</div>
+      {% set counter2 = {'n': 0} %}
+      {% for finding in page_findings %}
+      {% if counter2.update({'n': counter2.n + 1}) %}{% endif %}
+      <div class="finding-card finding-row"
+           data-severity="{{ finding.severity }}"
+           data-source="{{ finding.source }}"
+           data-search="{{ finding.friendly_name }} {{ finding.inspection_id }} {{ finding.message }}">
+        <div class="finding-thumb">
+          {% if finding.thumbnail_base64 %}
+            <img src="data:image/png;base64,{{ finding.thumbnail_base64 }}"
+                 alt="Page {{ finding.page_num }} — {{ finding.friendly_name }}" loading="lazy" />
+          {% else %}
+            <div class="finding-thumb-placeholder">
+              {% if finding.page_num and finding.page_num > 0 %}Page {{ finding.page_num }}{% else %}Document{% endif %}
+            </div>
+          {% endif %}
+          {% if finding.page_num and finding.page_num > 0 %}
+            <span class="page-label">p.{{ finding.page_num }}</span>
+          {% endif %}
+        </div>
+        <div class="finding-body">
+          <div class="finding-header">
+            <div class="sev-badge {{ finding.severity }}">{{ counter2.n }}</div>
+            <span class="finding-name">{{ finding.friendly_name or finding.inspection_id }}</span>
+            <span class="finding-id">{{ finding.inspection_id }}</span>
+            <span class="sev-label {{ finding.severity }}">{{ finding.severity | upper }}</span>
+            {% if finding.source == 'ai' %}<span class="ai-tag">&#9733; AI</span>{% endif %}
+          </div>
+          {% if finding.friendly_description %}
+          <div class="finding-desc">{{ finding.friendly_description }}</div>
+          {% endif %}
+          <div class="finding-message">{{ finding.message }}</div>
+          {% if finding.ai_explanation %}
+          <div class="finding-ai-explain">
+            <span class="ai-explain-label">AI Explain</span>
+            <span class="ai-explain-text">{{ finding.ai_explanation }}</span>
+          </div>
+          {% endif %}
+          <div class="finding-meta">
+            {% if finding.page_num and finding.page_num > 0 %}<span>Page {{ finding.page_num }}</span>{% else %}<span>Document</span>{% endif %}
+            {% if finding.iso_clause %}<span>{{ finding.iso_clause }}</span>{% endif %}
+            {% if finding.object_id %}<span>{{ finding.object_type }}: {{ finding.object_id }}</span>{% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+      {% endif %}
+
+      {% if not doc_findings and not page_findings %}
+      <div class="empty-state" style="padding: 24px; text-align: center; color: #475569; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc;">
+        <strong>No findings detected.</strong> This document passed every check in the selected profile.
+      </div>
+      {% endif %}
+
+      {# ===== COMPREHENSIVE: INK SEPARATIONS ===== #}
+      {% if detail_level == 'comprehensive' and ink_separations %}
+      <h2 class="section-title">Ink Separations</h2>
+      <table class="data-table">
+        <thead><tr><th>Channel</th><th>Pages</th><th>Max Value</th><th>Events</th></tr></thead>
+        <tbody>
+          {% for sep in ink_separations %}
+          <tr>
+            <td><strong>{{ sep.name }}</strong></td>
+            <td>{{ sep.pages_used | length }}</td>
+            <td>{{ sep.max_value }}%</td>
+            <td>{{ sep.event_count }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+
+      {% if detail_level == 'comprehensive' and ink_tac_by_page %}
+      <h2 class="section-title">TAC by Page</h2>
+      <table class="data-table">
+        <thead><tr><th>Page</th><th>Max TAC</th><th>Limit</th><th>Samples</th></tr></thead>
+        <tbody>
+          {% for item in ink_tac_by_page %}
+          {% set page = item[0] %}
+          {% set data = item[1] %}
+          <tr>
+            <td>{{ page }}</td>
+            <td>{{ data.max_tac }}%</td>
+            <td>{{ data.tac_limit }}%</td>
+            <td>{{ data.sample_count }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+
+      {% if detail_level == 'comprehensive' and color_score_breakdown %}
+      <h2 class="section-title">Color Quality Breakdown</h2>
+      <table class="data-table">
+        <thead><tr><th>Category</th><th>Score</th></tr></thead>
+        <tbody>
+          {% for item in color_score_breakdown %}
+          {% set cat = item[0] %}
+          {% set score = item[1] %}
+          <tr><td>{{ cat | replace("_", " ") | title }}</td><td>{{ score }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+
+      {# ===== METADATA ===== #}
+      {% if metadata %}
+      <h2 class="section-title">Document Info</h2>
+      <table class="data-table">
+        <tbody>
+          <tr><td><strong>PDF Version</strong></td><td>{{ metadata.pdf_version }}</td></tr>
+          <tr><td><strong>Pages</strong></td><td>{{ metadata.page_count }}</td></tr>
+          <tr><td><strong>File Size</strong></td><td>{{ (summary.file_size_bytes / 1024) | round(1) }} KB</td></tr>
+          <tr><td><strong>Encrypted</strong></td><td>{{ 'Yes' if metadata.is_encrypted else 'No' }}</td></tr>
+          <tr><td><strong>Conformance</strong></td><td>{{ metadata.conformance or 'None' }}</td></tr>
+          <tr><td><strong>Workflow</strong></td><td>{{ metadata.workflow }}</td></tr>
+          <tr><td><strong>AI Enabled</strong></td><td>{{ 'Yes' if metadata.ai_enabled else 'No' }}</td></tr>
+          {% if metadata.ai_findings_count %}<tr><td><strong>AI Findings</strong></td><td>{{ metadata.ai_findings_count }}</td></tr>{% endif %}
+          {% if color_quality_grade %}<tr><td><strong>Color Quality</strong></td><td>{{ color_quality_score }} / {{ color_quality_grade }}</td></tr>{% endif %}
+        </tbody>
+      </table>
+      {% endif %}
+
+    </div>
+
+    {# ===== FOOTER ===== #}
+    <div class="footer">
+      {% if brand and brand.anonymous %}
+        {{ generated_at }}
+      {% else %}
+        {% if brand and brand.footer_text %}{{ brand.footer_text }}{% else %}Powered by <a href="https://lintpdf.com">LintPDF</a>{% endif %}
+        &middot; Profile: {{ result.profile_id }} &middot; {{ generated_at }}
+      {% endif %}
+    </div>
+
+    <script>
+      function filterSeverity(sev) {
+        document.querySelectorAll('.finding-row').forEach(function(el) {
+          el.style.display = (!sev || el.dataset.severity === sev) ? '' : 'none';
+        });
+        document.querySelectorAll('.toolbar button[data-filter]').forEach(function(b) {
+          b.classList.toggle('active', b.dataset.filter === (sev || 'all'));
+        });
+      }
+      function filterSource(src) {
+        document.querySelectorAll('.finding-row').forEach(function(el) {
+          el.style.display = (!src || el.dataset.source === src) ? '' : 'none';
+        });
+        document.querySelectorAll('.toolbar button[data-source]').forEach(function(b) {
+          b.classList.toggle('active', b.dataset.source === (src || 'all'));
+        });
+      }
+      function searchFindings(query) {
+        var q = query.toLowerCase();
+        document.querySelectorAll('.finding-row').forEach(function(el) {
+          el.style.display = (!q || (el.dataset.search || '').toLowerCase().includes(q)) ? '' : 'none';
+        });
+      }
+    </script>
+    {% endif %}{# end summary_page != "only" #}
+  </body>
+</html>

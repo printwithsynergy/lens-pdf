@@ -11,6 +11,7 @@
 
 import express, { type ErrorRequestHandler, type Request, type Response, type NextFunction } from "express";
 import morgan from "morgan";
+import multer from "multer";
 import { config } from "./config.js";
 import {
   assertValidJobId,
@@ -36,6 +37,10 @@ import {
   sampleColor,
   sampleDensitometer,
 } from "./sampling.js";
+import type { RenderContext } from "./renderTypes.js";
+import { renderHtml, renderPdf } from "./reportRenderer.js";
+import { generateAnnotatedPdf } from "./annotatedPdfRenderer.js";
+import { generateMarkupPdf } from "./markupPdfRenderer.js";
 
 const app = express();
 app.disable("x-powered-by");
@@ -269,6 +274,62 @@ app.get("/jobs/:jobId/tac.png", async (req, res, next) => {
     const seps = await getOrRenderSeparations(jobId, pageNum, dpi);
     const png = await renderTacHeatmap({ separations: seps, tacLimit });
     sendPng(res, png, jobId);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Report rendering
+// ---------------------------------------------------------------------------
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 100 * 1024 * 1024 } });
+
+app.post("/render", upload.single("pdf"), async (req, res, next) => {
+  try {
+    const contextRaw = req.body?.context;
+    if (!contextRaw) {
+      throw new ValidationError("Multipart field 'context' (JSON string) is required.");
+    }
+    let ctx: RenderContext;
+    try {
+      ctx = JSON.parse(contextRaw) as RenderContext;
+    } catch {
+      throw new ValidationError("Field 'context' must be valid JSON.");
+    }
+    const fmt = ctx.format;
+    if (!["html", "pdf", "annotated_pdf", "markup_pdf"].includes(fmt)) {
+      throw new ValidationError("format must be html, pdf, annotated_pdf, or markup_pdf.");
+    }
+    const pdfBuf = req.file?.buffer ?? null;
+
+    // jobId from context (optional) for page raster access
+    const jobId = (ctx as unknown as Record<string, unknown>).job_id as string | undefined;
+
+    if (fmt === "html") {
+      const buf = await renderHtml(ctx, jobId);
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.send(buf);
+    } else if (fmt === "pdf") {
+      const buf = await renderPdf(ctx, jobId);
+      res.setHeader("Content-Type", "application/pdf");
+      res.send(buf);
+    } else if (fmt === "annotated_pdf") {
+      if (!pdfBuf) throw new ValidationError("'pdf' file part required for annotated_pdf.");
+      const findings = ctx.result_json?.findings ?? [];
+      const brandingName = ctx.branding?.name ?? "LintPDF";
+      const buf = await generateAnnotatedPdf(pdfBuf, findings, brandingName);
+      res.setHeader("Content-Type", "application/pdf");
+      res.send(buf);
+    } else if (fmt === "markup_pdf") {
+      if (!pdfBuf) throw new ValidationError("'pdf' file part required for markup_pdf.");
+      const annotations = ctx.annotations ?? [];
+      const comments = ctx.comments_by_annotation ?? {};
+      const brandingName = ctx.branding?.name ?? "LintPDF";
+      const buf = await generateMarkupPdf(pdfBuf, annotations, comments, brandingName);
+      res.setHeader("Content-Type", "application/pdf");
+      res.send(buf);
+    }
   } catch (err) {
     next(err);
   }
