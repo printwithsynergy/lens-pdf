@@ -375,6 +375,13 @@ export function LensPDFDemo({
     },
     [onItemSelect],
   );
+  // Jump to the finding's page when selection changes (sidebar click or controlled prop update).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (effectiveSelected?.page != null && effectiveSelected.page !== currentPage) {
+      setCurrentPage(effectiveSelected.page);
+    }
+  }, [effectiveSelected]);
   // Pending note target: set by handleFindingNoteRequest, cleared by the Notes panel.
   // The setter callbacks are defined after selectedAnnotationId state (see below).
   const [pendingNoteTarget, setPendingNoteTarget] = useState<string | null>(null);
@@ -975,6 +982,7 @@ export function LensPDFDemo({
       onFindingNoteRequest: handleFindingNoteRequest,
       pendingNoteTarget,
       onPendingNoteConsumed: handlePendingNoteConsumed,
+      onSelectItem: handleItemClick,
     }),
     [
       tokens,
@@ -1003,6 +1011,7 @@ export function LensPDFDemo({
       pendingNoteTarget,
       handleFindingNoteRequest,
       handlePendingNoteConsumed,
+      handleItemClick,
     ],
   );
 
@@ -1932,3 +1941,4 @@ export function LensPDFDemo({
     );
   }
 }
+
