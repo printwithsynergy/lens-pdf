@@ -101,6 +101,10 @@ export interface LensPDFShellPluginContext {
   selectedItem?: import("../plugin").OverlayItem | null;
   /** Fires when the user clicks a finding row in the Inspection panel. */
   onItemSelect?: (item: import("../plugin").OverlayItem | null) => void;
+  /** Selects a finding and jumps to its page. Works in both controlled and
+   *  uncontrolled modes. Prefer this over calling onItemSelect directly in
+   *  shell plugins so the page navigation is always handled. */
+  onSelectItem?: (item: import("../plugin").OverlayItem) => void;
   /** When true, render the Inspection panel even with no ``items``
    *  (panel shows a "no findings yet" empty state). Useful for hosts
    *  that want a stable layout while a preflight call is in-flight,
@@ -188,4 +192,5 @@ export function pluginsForSlot(
     return plugin.isAvailable(ctx);
   });
 }
+
 

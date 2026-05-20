@@ -534,7 +534,14 @@ function FindingsPanel({ ctx }: { ctx: LensPDFShellPluginContext }) {
               )}
               <button
                 type="button"
-                onClick={() => ctx.onItemSelect?.(isSelected ? null : it)}
+                onClick={() => {
+                  if (isSelected) {
+                    ctx.onItemSelect?.(null);
+                  } else {
+                    ctx.onSelectItem?.(it);
+                    ctx.setCurrentPage(it.page);
+                  }
+                }}
                 style={{
                   display: "flex",
                   flex: 1,
@@ -666,4 +673,5 @@ export function createDefaultShellPlugins(): LensPDFShellPlugin[] {
     annotationToolbarPlugin(),
   ];
 }
+
 

@@ -355,8 +355,15 @@ export function PageCanvas({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    canvas.width = canvasWidth;
-    canvas.height = canvasHeight;
+    // Only reset canvas dimensions when they actually change — resetting to
+    // the same value still clears the bitmap and can cause layout thrash
+    // during the 60fps pulse animation, producing scrollbar flicker.
+    if (canvas.width !== canvasWidth || canvas.height !== canvasHeight) {
+      canvas.width = canvasWidth;
+      canvas.height = canvasHeight;
+    } else {
+      ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+    }
 
     // Draw the page tile, scaled to the canvas size
     ctx.drawImage(tileImg, 0, 0, canvasWidth, canvasHeight);
@@ -565,3 +572,4 @@ export function PageCanvas({
     </div>
   );
 }
+
