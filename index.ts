@@ -112,6 +112,18 @@ export type {
   LensPDFShellSlot,
 } from "./components/shellPlugins";
 
+// Adapters — map raw engine outputs (codex, lint, callas, pitstop) to
+// lens types. Re-exported from the root for convenience; the canonical
+// import is `@printwithsynergy/lens-pdf/adapters`.
+export {
+  fromCallasFindings,
+  fromCodexFindings,
+  fromCodexSummary,
+  fromLintFindings,
+  fromPitstopFindings,
+} from "./adapters";
+export type { LensPDFDataConfig } from "./adapters";
+
 // Built-in MeasurementUnit definitions consumed by MeasureTool.
 export {
   agateUnit,
