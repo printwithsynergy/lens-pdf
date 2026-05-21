@@ -126,6 +126,7 @@ import {
   type ViewerMode,
 } from "./shellPlugins";
 import {
+  fromArtworkFindings,
   fromCallasFindings,
   fromCodexFindings,
   fromCodexSummary,
@@ -395,6 +396,8 @@ export function LensPDFDemo({
       derived.push(...fromCallasFindings(dataConfig.callasFindings));
     if (dataConfig.pitstopFindings?.length)
       derived.push(...fromPitstopFindings(dataConfig.pitstopFindings));
+    if (dataConfig.artworkFindings?.length)
+      derived.push(...fromArtworkFindings(dataConfig.artworkFindings));
     const { dieline: derivedDieline, spotPalette: derivedSpot } =
       dataConfig.codexSummary
         ? fromCodexSummary(dataConfig.codexSummary)
