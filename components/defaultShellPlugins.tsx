@@ -398,6 +398,7 @@ function tone(t: string): string {
 
 function FindingsPanel({ ctx }: { ctx: LensPDFShellPluginContext }) {
   const [activeTiers, setActiveTiers] = useState<Set<Tier>>(new Set());
+  const [locatedOnly, setLocatedOnly] = useState(false);
   const items = ctx.items ?? [];
 
   if (items.length === 0) {
@@ -438,10 +439,17 @@ function FindingsPanel({ ctx }: { ctx: LensPDFShellPluginContext }) {
     });
   }
 
-  const isFiltered = activeTiers.size > 0;
-  const visible = isFiltered
-    ? items.filter((it) => activeTiers.has((it.tier ?? "info") as Tier))
-    : items;
+  const tierFiltered =
+    activeTiers.size > 0
+      ? items.filter((it) => activeTiers.has((it.tier ?? "info") as Tier))
+      : items;
+
+  const visible = locatedOnly
+    ? tierFiltered.filter((it) => it.bbox != null)
+    : tierFiltered;
+
+  const isFiltered = activeTiers.size > 0 || locatedOnly;
+  const locatedCount = items.filter((it) => it.bbox != null).length;
 
   return (
     <>
@@ -449,6 +457,40 @@ function FindingsPanel({ ctx }: { ctx: LensPDFShellPluginContext }) {
         <h2 style={headingStyle}>
           Inspection ({isFiltered ? `${visible.length}/` : ""}{items.length})
         </h2>
+        <div style={panelHeaderActionsStyle}>
+          {locatedCount < items.length && (
+            <button
+              type="button"
+              onClick={() => setLocatedOnly((v) => !v)}
+              title={
+                locatedOnly
+                  ? `Show all ${items.length} findings`
+                  : `Show only the ${locatedCount} findings located on canvas`
+              }
+              style={{
+                ...panelAllButtonStyle,
+                borderColor: locatedOnly
+                  ? "rgba(255,255,255,0.45)"
+                  : "rgba(255,255,255,0.12)",
+                color: locatedOnly ? "#f1f5f9" : "#cbd5e1",
+              }}
+            >
+              {/* location pin icon */}
+              <svg
+                aria-hidden
+                width={10}
+                height={10}
+                viewBox="0 0 10 10"
+                fill="currentColor"
+                style={{ display: "inline", verticalAlign: "middle", marginRight: 3 }}
+              >
+                <circle cx={5} cy={4} r={2} />
+                <path d="M5 10 C5 10 1 6.5 1 4 a4 4 0 0 1 8 0 C9 6.5 5 10 5 10z" fillOpacity={0.6} />
+              </svg>
+              Located
+            </button>
+          )}
+        </div>
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
         {TIER_ORDER.map((t) =>
@@ -491,6 +533,7 @@ function FindingsPanel({ ctx }: { ctx: LensPDFShellPluginContext }) {
           const label = it.label ?? it.id ?? `Finding ${i + 1}`;
           const isSelected = ctx.selectedItem?.id === it.id;
           const findingN = ctx.findingNumbers.get(it.id);
+          const hasLocation = it.bbox != null;
           return (
             <div
               key={it.id ?? `f-${i}`}
@@ -555,13 +598,14 @@ function FindingsPanel({ ctx }: { ctx: LensPDFShellPluginContext }) {
                 }}
               >
                 <span
-                  aria-hidden
+                  title={hasLocation ? undefined : "No canvas location"}
                   style={{
                     marginTop: 4,
                     width: 8,
                     height: 8,
                     borderRadius: "50%",
-                    background: tone(t),
+                    background: hasLocation ? tone(t) : "transparent",
+                    border: hasLocation ? "none" : "1.5px solid rgba(148,163,184,0.4)",
                     flexShrink: 0,
                   }}
                 />
