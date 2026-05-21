@@ -125,6 +125,14 @@ import {
   type PointerTool,
   type ViewerMode,
 } from "./shellPlugins";
+import {
+  fromCallasFindings,
+  fromCodexFindings,
+  fromCodexSummary,
+  fromLintFindings,
+  fromPitstopFindings,
+} from "../adapters";
+import type { LensPDFDataConfig } from "../adapters";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -273,6 +281,18 @@ export interface LensPDFDemoProps {
    */
   plugins?: ReadonlyArray<LensPDFShellPlugin>;
   /**
+   * Zero-glue data config. Pass raw engine outputs here — lens maps
+   * them internally. Findings from all sources are shown together in
+   * the Inspection panel; dieline and spot palette from codex fill in
+   * as defaults when the explicit `dieline` / `spotPalette` props are
+   * absent.
+   *
+   * Supported engines: codex (`codexSummary` + `codexFindings`),
+   * lint-pdf (`lintFindings`), callas (`callasFindings`), PitStop
+   * (`pitstopFindings`).
+   */
+  dataConfig?: LensPDFDataConfig;
+  /**
    * Optional codex client. When provided, `<LensPDFDemo>` fires
    * `extractStream` in the background after each PDF loads. As codex
    * events arrive the viewer silently upgrades:
@@ -354,11 +374,48 @@ export function LensPDFDemo({
   preset = "demo",
   plugins: customPlugins = [],
   codex,
+  dataConfig,
 }: LensPDFDemoProps) {
+  // Resolve dataConfig into derived items, dieline, and spot palette.
+  // Explicit props win over dataConfig-derived values.
+  const dataConfigResolved = useMemo(() => {
+    if (!dataConfig) {
+      return {
+        items: [] as OverlayItem[],
+        dieline: null as DielineResult | null,
+        spotPalette: undefined as Record<string, string> | undefined,
+      };
+    }
+    const derived: OverlayItem[] = [];
+    if (dataConfig.codexFindings?.length)
+      derived.push(...fromCodexFindings(dataConfig.codexFindings));
+    if (dataConfig.lintFindings?.length)
+      derived.push(...fromLintFindings(dataConfig.lintFindings));
+    if (dataConfig.callasFindings?.length)
+      derived.push(...fromCallasFindings(dataConfig.callasFindings));
+    if (dataConfig.pitstopFindings?.length)
+      derived.push(...fromPitstopFindings(dataConfig.pitstopFindings));
+    const { dieline: derivedDieline, spotPalette: derivedSpot } =
+      dataConfig.codexSummary
+        ? fromCodexSummary(dataConfig.codexSummary)
+        : { dieline: null, spotPalette: undefined };
+    return {
+      items: derived,
+      dieline: derivedDieline,
+      spotPalette: derivedSpot,
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataConfig]);
+
+  // Merge dataConfig-derived items with explicit items prop (both shown).
+  // Explicit dieline / spotPalette props win over dataConfig-derived values.
   const overlayItems = useMemo<readonly OverlayItem[]>(
-    () => items ?? [],
-    [items],
+    () => [...dataConfigResolved.items, ...(items ?? [])],
+    [items, dataConfigResolved],
   );
+  const effectiveDieline =
+    dieline !== undefined ? dieline : dataConfigResolved.dieline;
+  const effectiveSpotPalette = spotPalette ?? dataConfigResolved.spotPalette;
   const findingNumbers = useMemo(
     () => buildFindingNumberMap(overlayItems),
     [overlayItems],
@@ -957,8 +1014,8 @@ export function LensPDFDemo({
         type: ink.type,
         altRgb: ink.altRgb,
       })),
-      spotPalette,
-      items,
+      spotPalette: effectiveSpotPalette,
+      items: overlayItems,
       forceInspectionPanel,
       selectedItem,
       onItemSelect,
@@ -1791,18 +1848,18 @@ export function LensPDFDemo({
                       page={page}
                       canvasWidth={canvasW}
                       canvasHeight={canvasH}
-                      dieline={dieline ?? null}
+                      dieline={effectiveDieline ?? null}
                     />
                   )}
                   {/* Dieline region size chips — independent of BoxOverlay
                       so hosts can flip on dieline-only without trim/bleed
                       clutter. */}
-                  {viewerMode === "page" && dieline && !showBoxOverlays && (
+                  {viewerMode === "page" && effectiveDieline && !showBoxOverlays && (
                     <DielineOverlay
                       page={page}
                       canvasWidth={canvasW}
                       canvasHeight={canvasH}
-                      dieline={dieline}
+                      dieline={effectiveDieline}
                     />
                   )}
 
