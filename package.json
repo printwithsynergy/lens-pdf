@@ -1,6 +1,6 @@
 {
   "name": "@printwithsynergy/lens-pdf",
-  "version": "0.3.0-beta.85",
+  "version": "0.3.0-beta.86",
   "type": "module",
   "description": "LensPDF \u2014 host-agnostic OSS PDF viewer core. Plugin-driven canvas viewer with overlay / panel / toolbar slots.",
   "license": "AGPL-3.0-or-later",
@@ -63,6 +63,10 @@
       "types": "./dist/types/index.d.ts",
       "import": "./dist/types/index.js"
     },
+    "./adapters": {
+      "types": "./dist/adapters/index.d.ts",
+      "import": "./dist/adapters/index.js"
+    },
     "./units": {
       "types": "./dist/units/index.d.ts",
       "import": "./dist/units/index.js"
@@ -90,6 +94,9 @@
       ],
       "types": [
         "./dist/types/index.d.ts"
+      ],
+      "adapters": [
+        "./dist/adapters/index.d.ts"
       ],
       "units": [
         "./dist/units/index.d.ts"
