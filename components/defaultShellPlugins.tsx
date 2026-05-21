@@ -345,8 +345,6 @@ function layersPlugin(): LensPDFShellPlugin {
             border: `1px solid ${ctx.tokens.border}`,
             borderRadius: 8,
             padding: 6,
-            maxHeight: 200,
-            overflowY: "auto",
           }}
         >
           <LayerPanel
@@ -483,8 +481,6 @@ function FindingsPanel({ ctx }: { ctx: LensPDFShellPluginContext }) {
       </div>
       <div
         style={{
-          maxHeight: 320,
-          overflowY: "auto",
           border: `1px solid ${ctx.tokens.border}`,
           borderRadius: 8,
           padding: 4,
