@@ -18,6 +18,7 @@ export * from "./DielineOverlay";
 export * from "./defaultShellPlugins";
 export * from "./LayerCanvas";
 export * from "./LayerPanel";
+export * from "./LensPDF";
 export * from "./LensPDFDemo";
 export * from "./LensPDFViewer";
 export * from "./MeasureTool";

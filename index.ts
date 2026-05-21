@@ -41,21 +41,25 @@ export { LensPDFProvider } from "./host/LensPDFProvider";
 export type { LensPDFProviderProps } from "./host/LensPDFProvider";
 export { pageInfoFromDimensions } from "./types";
 
-export { LensPDFDemo } from "./components/LensPDFDemo";
 export { FindingsSidebar } from "./components/FindingsSidebar";
 export type { FindingsSidebarProps } from "./components/FindingsSidebar";
 export { DielineInfoPanel } from "./components/DielineInfoPanel";
 export type { DielineInfoPanelProps } from "./components/DielineInfoPanel";
+
+// The complete viewer — all viewer state, services, and rendering live
+// here. The recommended single-component entry point for hosts
+// integrating LensPDF: pass a `pdfUrl` and you have a viewer.
+export { LensPDF } from "./components/LensPDF";
+export type { LensPDFProps, LensPDFTool } from "./components/LensPDF";
+
+// Thin wrapper that adds upload chrome (URL bar, drag-drop, file
+// picker, empty state) on top of <LensPDF>. Powers the lenspdf.com
+// showcase; most hosts want <LensPDF> instead.
+export { LensPDFDemo } from "./components/LensPDFDemo";
 export type {
   LensPDFDemoProps,
   LensPDFDemoTool,
 } from "./components/LensPDFDemo";
-
-// Drop-in production viewer — same feature surface as <LensPDFDemo>
-// without the upload chrome. The recommended single-component entry
-// point for hosts integrating LensPDF.
-export { LensPDF } from "./components/LensPDF";
-export type { LensPDFProps } from "./components/LensPDF";
 
 // Browser-only ViewerServices factory — gives consumers a one-liner
 // path to a fully wired viewer without a server backend.

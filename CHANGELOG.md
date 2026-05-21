@@ -6,6 +6,26 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0-beta.88] — 2026-05-21
+
+### Changed
+- **`<LensPDF>` is now the complete viewer; `<LensPDFDemo>` is a thin
+  wrapper.** Previously `<LensPDF>` was a facade that delegated to
+  `<LensPDFDemo embedded>`, which read backwards — the production
+  component appeared to depend on the demo. All viewer state, services
+  wiring, plugin slots, and rendering now live in `LensPDF.tsx`.
+  `<LensPDFDemo>` is a small layer that owns the upload chrome (URL
+  bar, drag-and-drop, file picker, empty state) and feeds the resolved
+  PDF URL into `<LensPDF>`.
+- `LensPDFProps` is now a standalone interface with a required `pdfUrl`.
+  `LensPDFDemoProps` is `Omit<LensPDFProps, "pdfUrl">` plus
+  `maxFileSize` and `initialPdfUrl`. The public prop surface of both
+  components is unchanged — this is an internal restructure.
+
+### Added
+- `LensPDFTool` type exported from the package root and `./components`.
+  `LensPDFDemoTool` remains as a deprecated alias.
+
 ## [0.3.0-beta.82] — 2026-05-14
 
 ### Added
