@@ -31,6 +31,8 @@ export interface LensPDFDataConfig {
   callasFindings?: ReadonlyArray<Record<string, unknown>> | null;
   /** Raw Enfocus PitStop results array. */
   pitstopFindings?: ReadonlyArray<Record<string, unknown>> | null;
+  /** Raw artwork-pdf preflight issues array. */
+  artworkFindings?: ReadonlyArray<Record<string, unknown>> | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -336,5 +338,58 @@ export function fromPitstopFindings(
       description: message,
       data: f,
     };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// fromArtworkFindings
+// ---------------------------------------------------------------------------
+
+/**
+ * Map raw artwork-pdf `PreflightIssue[]` to `OverlayItem[]`.
+ * Remaps legacy severity vocab: `"block"` → `"error"`, `"warn"` →
+ * `"warning"`. Handles missing bbox gracefully (no canvas overlay).
+ *
+ * @public
+ */
+export function fromArtworkFindings(
+  findings: ReadonlyArray<Record<string, unknown>>,
+): OverlayItem[] {
+  return findings.flatMap((f, i) => {
+    const rawSev = typeof f.severity === "string" ? f.severity : "";
+    const tier: OverlayItem["tier"] =
+      rawSev === "block"
+        ? "error"
+        : rawSev === "warn"
+          ? "warning"
+          : (["error", "warning", "advisory", "info"].includes(rawSev)
+              ? rawSev
+              : "advisory") as OverlayItem["tier"];
+    const page = typeof f.page === "number" && f.page > 0 ? f.page : 1;
+    const bbox = asBbox(f.bbox);
+    const message =
+      (typeof f.message === "string" && f.message) ||
+      (typeof f.checkName === "string" && f.checkName) ||
+      `artwork-${i}`;
+    const code =
+      (typeof f.checkName === "string" && f.checkName) ||
+      (typeof f.type === "string" && f.type) ||
+      undefined;
+    const id =
+      typeof f.id === "string" && f.id
+        ? f.id
+        : `artwork-${code ?? i}-${i}`;
+    return [
+      {
+        id,
+        page,
+        bbox,
+        tier,
+        code,
+        label: truncate(message, 80),
+        description: message,
+        data: f,
+      },
+    ];
   });
 }
