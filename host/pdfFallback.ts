@@ -131,7 +131,7 @@ export function createPdfJsFallback(opts: PdfJsFallbackOptions): PdfFallbackAdap
       canvas.height = Math.ceil(viewport.height);
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("[lens-pdf] 2D context unavailable for fallback render.");
-      await page.render({ canvasContext: ctx, viewport }).promise;
+      await page.render({ canvasContext: ctx, viewport, intent: "display" }).promise;
       const url = canvas.toDataURL("image/png");
       renderCache.set(cacheKey, url);
       return url;
@@ -143,7 +143,7 @@ export function createPdfJsFallback(opts: PdfJsFallbackOptions): PdfFallbackAdap
       // versions / RGB-only PDFs simply have no groups → empty list.
       let config;
       try {
-        config = await doc.getOptionalContentConfig();
+        config = await doc.getOptionalContentConfig({ intent: "display" });
       } catch {
         return [];
       }
@@ -172,7 +172,7 @@ export function createPdfJsFallback(opts: PdfJsFallbackOptions): PdfFallbackAdap
         canvas.height = Math.ceil(viewport.height);
         const renderCtx = canvas.getContext("2d", { willReadFrequently: true });
         if (!renderCtx) return null;
-        await page.render({ canvasContext: renderCtx, viewport }).promise;
+        await page.render({ canvasContext: renderCtx, viewport, intent: "display" }).promise;
         sampleCanvases.set(canvasKey, canvas);
       }
 
