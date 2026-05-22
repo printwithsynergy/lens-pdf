@@ -345,6 +345,8 @@ function layersPlugin(): LensPDFShellPlugin {
             border: `1px solid ${ctx.tokens.border}`,
             borderRadius: 8,
             padding: 6,
+            maxHeight: 200,
+            overflowY: "auto",
           }}
         >
           <LayerPanel
@@ -398,10 +400,16 @@ function tone(t: string): string {
 
 function FindingsPanel({ ctx }: { ctx: LensPDFShellPluginContext }) {
   const [activeTiers, setActiveTiers] = useState<Set<Tier>>(new Set());
-  const [locatedOnly, setLocatedOnly] = useState(false);
-  const items = ctx.items ?? [];
+  const allItems = ctx.items ?? [];
 
-  if (items.length === 0) {
+  // Filter spell_check items when spelling is hidden
+  const items = ctx.hideSpelling
+    ? allItems.filter((it) => it.type !== "spell_check")
+    : allItems;
+
+  const hasSpellItems = allItems.some((it) => it.type === "spell_check");
+
+  if (allItems.length === 0) {
     return (
       <>
         <div style={panelHeaderRowStyle}>
@@ -439,17 +447,10 @@ function FindingsPanel({ ctx }: { ctx: LensPDFShellPluginContext }) {
     });
   }
 
-  const tierFiltered =
-    activeTiers.size > 0
-      ? items.filter((it) => activeTiers.has((it.tier ?? "info") as Tier))
-      : items;
-
-  const visible = locatedOnly
-    ? tierFiltered.filter((it) => it.bbox != null)
-    : tierFiltered;
-
-  const isFiltered = activeTiers.size > 0 || locatedOnly;
-  const locatedCount = items.filter((it) => it.bbox != null).length;
+  const isFiltered = activeTiers.size > 0;
+  const visible = isFiltered
+    ? items.filter((it) => activeTiers.has((it.tier ?? "info") as Tier))
+    : items;
 
   return (
     <>
@@ -457,40 +458,6 @@ function FindingsPanel({ ctx }: { ctx: LensPDFShellPluginContext }) {
         <h2 style={headingStyle}>
           Inspection ({isFiltered ? `${visible.length}/` : ""}{items.length})
         </h2>
-        <div style={panelHeaderActionsStyle}>
-          {locatedCount < items.length && (
-            <button
-              type="button"
-              onClick={() => setLocatedOnly((v) => !v)}
-              title={
-                locatedOnly
-                  ? `Show all ${items.length} findings`
-                  : `Show only the ${locatedCount} findings located on canvas`
-              }
-              style={{
-                ...panelAllButtonStyle,
-                borderColor: locatedOnly
-                  ? "rgba(255,255,255,0.45)"
-                  : "rgba(255,255,255,0.12)",
-                color: locatedOnly ? "#f1f5f9" : "#cbd5e1",
-              }}
-            >
-              {/* location pin icon */}
-              <svg
-                aria-hidden
-                width={10}
-                height={10}
-                viewBox="0 0 10 10"
-                fill="currentColor"
-                style={{ display: "inline", verticalAlign: "middle", marginRight: 3 }}
-              >
-                <circle cx={5} cy={4} r={2} />
-                <path d="M5 10 C5 10 1 6.5 1 4 a4 4 0 0 1 8 0 C9 6.5 5 10 5 10z" fillOpacity={0.6} />
-              </svg>
-              Located
-            </button>
-          )}
-        </div>
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
         {TIER_ORDER.map((t) =>
@@ -520,9 +487,35 @@ function FindingsPanel({ ctx }: { ctx: LensPDFShellPluginContext }) {
             </button>
           ) : null,
         )}
+        {hasSpellItems && (
+          <button
+            type="button"
+            onClick={ctx.onToggleSpelling}
+            title={ctx.hideSpelling ? "Show spelling findings" : "Hide spelling findings"}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              padding: "2px 8px",
+              borderRadius: 999,
+              fontSize: 11,
+              fontWeight: 600,
+              background: ctx.hideSpelling ? "rgba(100,116,139,0.3)" : "rgba(217,119,6,0.25)",
+              color: ctx.hideSpelling ? "rgba(148,163,184,0.7)" : "rgb(252,211,77)",
+              border: "1px solid",
+              borderColor: ctx.hideSpelling ? "rgba(100,116,139,0.5)" : "rgba(217,119,6,0.6)",
+              cursor: "pointer",
+              transition: "opacity 0.15s",
+            }}
+          >
+            {ctx.hideSpelling ? "Spelling off" : "Spelling"}
+          </button>
+        )}
       </div>
       <div
         style={{
+          maxHeight: 320,
+          overflowY: "auto",
           border: `1px solid ${ctx.tokens.border}`,
           borderRadius: 8,
           padding: 4,
@@ -533,97 +526,184 @@ function FindingsPanel({ ctx }: { ctx: LensPDFShellPluginContext }) {
           const label = it.label ?? it.id ?? `Finding ${i + 1}`;
           const isSelected = ctx.selectedItem?.id === it.id;
           const findingN = ctx.findingNumbers.get(it.id);
-          const hasLocation = it.bbox != null;
+          const decision = ctx.decisions?.[it.id];
+          const hasActiveDecision = decision?.is_active === true;
           return (
             <div
               key={it.id ?? `f-${i}`}
               style={{
                 display: "flex",
-                alignItems: "flex-start",
-                gap: 4,
+                flexDirection: "column",
                 borderRadius: 6,
                 border: "1px solid transparent",
                 borderColor: isSelected ? "rgba(255,255,255,0.18)" : "transparent",
                 background: isSelected ? "rgba(255,255,255,0.05)" : "transparent",
+                opacity: hasActiveDecision ? 0.6 : 1,
               }}
             >
-              {findingN != null && (
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 4 }}>
+                {findingN != null && (
+                  <button
+                    type="button"
+                    title={`Open note for F${findingN}`}
+                    onClick={() => ctx.onFindingNoteRequest?.(it.id)}
+                    style={{
+                      flexShrink: 0,
+                      alignSelf: "center",
+                      margin: "0 0 0 4px",
+                      padding: "2px 5px",
+                      borderRadius: 4,
+                      border: "1px solid rgba(255,255,255,0.18)",
+                      background: tone(t),
+                      color: "#fff",
+                      fontSize: 10,
+                      fontWeight: 700,
+                      lineHeight: 1.4,
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    F{findingN}
+                  </button>
+                )}
                 <button
                   type="button"
-                  title={`Open note for F${findingN}`}
-                  onClick={() => ctx.onFindingNoteRequest?.(it.id)}
+                  onClick={() => {
+                    if (isSelected) {
+                      ctx.onItemSelect?.(null);
+                    } else {
+                      ctx.onSelectItem?.(it);
+                      ctx.setCurrentPage(it.page);
+                    }
+                  }}
                   style={{
-                    flexShrink: 0,
-                    alignSelf: "center",
-                    margin: "0 0 0 4px",
-                    padding: "2px 5px",
-                    borderRadius: 4,
-                    border: "1px solid rgba(255,255,255,0.18)",
-                    background: tone(t),
-                    color: "#fff",
-                    fontSize: 10,
-                    fontWeight: 700,
-                    lineHeight: 1.4,
+                    display: "flex",
+                    flex: 1,
+                    alignItems: "flex-start",
+                    gap: 8,
+                    padding: "6px 8px",
+                    border: "none",
+                    borderRadius: 0,
+                    background: "transparent",
+                    color: ctx.tokens.fg,
                     cursor: "pointer",
-                    whiteSpace: "nowrap",
+                    textAlign: "left",
+                    fontSize: 12,
+                    minWidth: 0,
                   }}
                 >
-                  F{findingN}
+                  <span
+                    aria-hidden
+                    style={{
+                      marginTop: 4,
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      background: tone(t),
+                      flexShrink: 0,
+                    }}
+                  />
+                  <span style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontWeight: 500, lineHeight: 1.3 }}>{label}</div>
+                    {it.description ? (
+                      <div style={{ opacity: 0.7, fontSize: 11, marginTop: 2 }}>
+                        {it.description}
+                      </div>
+                    ) : null}
+                  </span>
+                  {hasActiveDecision && (
+                    <span
+                      style={{
+                        flexShrink: 0,
+                        fontSize: 10,
+                        padding: "1px 6px",
+                        borderRadius: 999,
+                        background: "rgba(16,185,129,0.2)",
+                        color: "rgb(52,211,153)",
+                        border: "1px solid rgba(16,185,129,0.4)",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      ✓ {decision.decision_type}
+                    </span>
+                  )}
                 </button>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  if (isSelected) {
-                    ctx.onItemSelect?.(null);
-                  } else {
-                    ctx.onSelectItem?.(it);
-                    ctx.setCurrentPage(it.page);
-                  }
-                }}
-                style={{
-                  display: "flex",
-                  flex: 1,
-                  alignItems: "flex-start",
-                  gap: 8,
-                  padding: "6px 8px",
-                  border: "none",
-                  borderRadius: 0,
-                  background: "transparent",
-                  color: ctx.tokens.fg,
-                  cursor: "pointer",
-                  textAlign: "left",
-                  fontSize: 12,
-                  minWidth: 0,
-                }}
-              >
-                <span
-                  title={hasLocation ? undefined : "No canvas location"}
+              </div>
+              {ctx.onDecide && (
+                <div
                   style={{
-                    marginTop: 4,
-                    width: 8,
-                    height: 8,
-                    borderRadius: "50%",
-                    background: hasLocation ? tone(t) : "transparent",
-                    border: hasLocation ? "none" : "1.5px solid rgba(148,163,184,0.4)",
-                    flexShrink: 0,
+                    display: "flex",
+                    gap: 4,
+                    padding: "2px 8px 6px 16px",
+                    opacity: 0,
                   }}
-                />
-                <span style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontWeight: 500, lineHeight: 1.3 }}>{label}</div>
-                  {it.description ? (
-                    <div style={{ opacity: 0.7, fontSize: 11, marginTop: 2 }}>
-                      {it.description}
-                    </div>
-                  ) : null}
-                </span>
-              </button>
+                  className="findings-panel-actions"
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLDivElement).style.opacity = "1";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLDivElement).style.opacity = "0";
+                  }}
+                >
+                  {hasActiveDecision ? (
+                    <button
+                      type="button"
+                      onClick={() => ctx.onDecide!(it, "suppress")}
+                      style={decideButtonStyle("slate")}
+                    >
+                      Revoke
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => ctx.onDecide!(it, "approve")}
+                        style={decideButtonStyle("green")}
+                      >
+                        Approve
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => ctx.onDecide!(it, "waive")}
+                        style={decideButtonStyle("amber")}
+                      >
+                        Waive
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => ctx.onDecide!(it, "reject")}
+                        style={decideButtonStyle("red")}
+                      >
+                        Reject
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}
       </div>
     </>
   );
+}
+
+function decideButtonStyle(color: "green" | "amber" | "red" | "slate"): CSSProperties {
+  const colors = {
+    green: { border: "rgba(16,185,129,0.5)", text: "rgb(52,211,153)", bg: "rgba(16,185,129,0.1)" },
+    amber: { border: "rgba(217,119,6,0.5)", text: "rgb(251,191,36)", bg: "rgba(217,119,6,0.1)" },
+    red: { border: "rgba(239,68,68,0.5)", text: "rgb(252,165,165)", bg: "rgba(239,68,68,0.1)" },
+    slate: { border: "rgba(100,116,139,0.5)", text: "rgb(148,163,184)", bg: "rgba(100,116,139,0.1)" },
+  }[color];
+  return {
+    padding: "1px 8px",
+    borderRadius: 4,
+    border: `1px solid ${colors.border}`,
+    background: colors.bg,
+    color: colors.text,
+    fontSize: 10,
+    cursor: "pointer",
+  };
 }
 
 function findingsPlugin(): LensPDFShellPlugin {
