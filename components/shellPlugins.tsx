@@ -143,6 +143,18 @@ export interface LensPDFShellPluginContext {
   pendingNoteTarget?: string | null;
   /** Called by the Notes panel once it has consumed pendingNoteTarget. */
   onPendingNoteConsumed?: () => void;
+  /** Active decisions keyed by finding id (from lint-pdf decisions API). */
+  decisions?: Record<string, import("../plugin/types").DecisionRecord>;
+  /** Fires when the user approves / waives / rejects a finding. */
+  onDecide?: (
+    item: import("../plugin").OverlayItem,
+    type: import("../plugin/types").DecisionType,
+    notes?: string,
+  ) => void;
+  /** When true, spell-check findings are hidden from the Inspection panel. */
+  hideSpelling?: boolean;
+  /** Toggles spell-check visibility. */
+  onToggleSpelling?: () => void;
 }
 
 export type LensPDFShellSlot = "panel.left" | "overlay.toolbar";

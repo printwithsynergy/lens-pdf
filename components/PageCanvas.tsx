@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { OverlayItem } from "../plugin/types";
+import type { DecisionRecord, OverlayItem } from "../plugin/types";
 import type { PageInfo } from "../types";
 import { DEFAULT_DPI, SEVERITY_COLORS } from "../types";
 import {
@@ -41,6 +41,13 @@ interface PageCanvasProps {
   /** Stable F1…FN numbers keyed by item.id (from buildFindingNumberMap).
    *  Drives the pill badges drawn on each located finding. */
   findingNumbers?: ReadonlyMap<string, number>;
+  /**
+   * Active decisions keyed by finding id. When a finding has an active
+   * approve/waive decision, the canvas dims it to 25% opacity and adds
+   * a ✓ glyph alongside the F-badge so reviewers see approval state
+   * without opening the sidebar.
+   */
+  decisions?: Record<string, DecisionRecord>;
 }
 
 // Stable empty map — used as the default for findingNumbers to avoid
@@ -92,6 +99,37 @@ function drawFindingBadge(
   ctx.restore();
 }
 
+// Draw a sinusoidal squiggly underline along the bottom edge of a bbox.
+// Used for spell-check findings (item.type === "spell_check") so they render
+// like Word-style wavy underlines rather than the default filled rect.
+function drawSquiggly(
+  ctx: CanvasRenderingContext2D,
+  px0: number,
+  py0: number,
+  pw: number,
+  ph: number,
+  color: string,
+  alpha: number,
+): void {
+  if (pw <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.lineCap = "round";
+  const baseY = py0 + ph + 2; // 2px below bbox bottom
+  const amplitude = 1.5;
+  const wavelength = 5;
+  ctx.beginPath();
+  ctx.moveTo(px0, baseY);
+  for (let x = px0 + 1; x <= px0 + pw; x++) {
+    const y = baseY + Math.sin(((x - px0) / wavelength) * 2 * Math.PI) * amplitude;
+    ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
 const TIER_HEX: Record<NonNullable<OverlayItem["tier"]>, string> = {
   error: "#ef4444",
   warning: "#f59e0b",
@@ -128,6 +166,7 @@ export function PageCanvas({
   tileCdnBase,
   cropToTrim = false,
   findingNumbers = EMPTY_FINDING_NUMBERS,
+  decisions,
 }: PageCanvasProps) {
   const { pageImages } = useViewerServices();
   const { debug, pdfFallback } = useViewerHost();
@@ -392,11 +431,49 @@ export function PageCanvas({
       const tierHex = item.color ?? TIER_HEX[item.tier ?? "neutral"];
       const isSelected = selectedItem?.id === item.id;
       const findingN = findingNumbers.get(item.id);
-      const badgeLabel = findingN != null ? `F${findingN}` : null;
 
-      if (hasSelected && !isSelected) {
+      // Decision state — approved/waived findings render at 25% opacity
+      const decision = decisions?.[item.id];
+      const isApproved =
+        decision?.is_active &&
+        (decision.decision_type === "approve" ||
+          decision.decision_type === "waive");
+      const baseAlpha = isApproved ? 0.25 : 1;
+
+      // Badge label: F{n} for numbered findings, ✓ suffix when approved
+      const badgeLabel =
+        findingN != null
+          ? `F${findingN}${isApproved ? " ✓" : ""}`
+          : isApproved
+            ? "✓"
+            : null;
+
+      // Spell-check findings render as squiggly underlines, not filled rects.
+      const isSpellCheck = item.type === "spell_check";
+
+      if (isSpellCheck) {
+        // Squiggly underline — no fill rect
+        const alpha = isSelected
+          ? baseAlpha
+          : hasSelected && !isSelected
+            ? 0.3 * baseAlpha
+            : 0.85 * baseAlpha;
+        if (isSelected) {
+          // Glow effect on selection
+          ctx.save();
+          ctx.shadowColor = tierHex;
+          ctx.shadowBlur = 4 + pulsePhase * 4;
+          drawSquiggly(ctx, px0, py0, pw, ph, tierHex, alpha);
+          ctx.shadowColor = "transparent";
+          ctx.shadowBlur = 0;
+          ctx.restore();
+        } else {
+          drawSquiggly(ctx, px0, py0, pw, ph, tierHex, alpha);
+        }
+        if (badgeLabel) drawFindingBadge(ctx, badgeLabel, px0, py0, pw, tierHex, isSelected);
+      } else if (hasSelected && !isSelected) {
         // Dimmed bbox when another item is selected
-        ctx.globalAlpha = 0.3;
+        ctx.globalAlpha = 0.3 * baseAlpha;
         ctx.fillStyle = colors.fill;
         ctx.fillRect(px0, py0, pw, ph);
         ctx.strokeStyle = colors.stroke;
@@ -407,7 +484,7 @@ export function PageCanvas({
         if (badgeLabel) drawFindingBadge(ctx, badgeLabel, px0, py0, pw, tierHex, false);
       } else if (isSelected) {
         // Selected item: prominent highlight with animated glow
-        const glowAlpha = 0.15 + pulsePhase * 0.2;
+        const glowAlpha = (0.15 + pulsePhase * 0.2) * baseAlpha;
         ctx.fillStyle = colors.fill.replace(
           /[\d.]+\)$/,
           `${glowAlpha.toFixed(2)})`,
@@ -427,11 +504,13 @@ export function PageCanvas({
         if (badgeLabel) drawFindingBadge(ctx, badgeLabel, px0, py0, pw, tierHex, true);
       } else {
         // No selection active: show all at normal opacity
+        ctx.globalAlpha = baseAlpha;
         ctx.fillStyle = colors.fill;
         ctx.fillRect(px0, py0, pw, ph);
         ctx.strokeStyle = colors.stroke;
         ctx.lineWidth = 1.5;
         ctx.strokeRect(px0, py0, pw, ph);
+        ctx.globalAlpha = 1;
         if (badgeLabel) drawFindingBadge(ctx, badgeLabel, px0, py0, pw, tierHex, false);
       }
     }
@@ -446,6 +525,7 @@ export function PageCanvas({
     selectedItem,
     pulsePhase,
     findingNumbers,
+    decisions,
   ]);
 
   useEffect(() => {
@@ -566,6 +646,38 @@ export function PageCanvas({
               return text.length > 160 ? text.slice(0, 160) + "..." : text;
             })()}
           </p>
+          {/* Spell-check suggestions */}
+          {Array.isArray(tooltip.item.data?.suggestions) &&
+            (tooltip.item.data.suggestions as string[]).length > 0 && (
+              <div className="mt-2 border-t border-white/20 pt-2">
+                <p className="mb-1 text-[10px] uppercase tracking-wide text-gray-400">
+                  Did you mean?
+                </p>
+                <div className="flex flex-wrap gap-1">
+                  {(tooltip.item.data.suggestions as string[])
+                    .slice(0, 5)
+                    .map((s) => (
+                      <span
+                        key={s}
+                        className="rounded bg-white/10 px-1.5 py-0.5 text-xs text-white"
+                      >
+                        {s}
+                      </span>
+                    ))}
+                </div>
+              </div>
+            )}
+          {/* Decision badge in tooltip */}
+          {decisions?.[tooltip.item.id]?.is_active && (
+            <div className="mt-2 border-t border-white/20 pt-2 text-[10px] text-emerald-400">
+              ✓{" "}
+              {decisions[tooltip.item.id].decision_type.charAt(0).toUpperCase() +
+                decisions[tooltip.item.id].decision_type.slice(1)}
+              {" — "}
+              {decisions[tooltip.item.id].decided_by_email ??
+                decisions[tooltip.item.id].decided_by_user_id}
+            </div>
+          )}
         </div>
       )}
       </div>

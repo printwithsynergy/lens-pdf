@@ -223,4 +223,52 @@ export interface OverlayItem {
   readonly code?: string;
   /** Free-form payload for round-tripping host-specific data. */
   readonly data?: Record<string, unknown>;
+  /**
+   * Optional rendering hint. When set to ``"spell_check"``, the canvas
+   * draws a squiggly underline along the bottom of the bbox instead of
+   * the default filled rectangle. Set by ``fromLintFindings()`` for
+   * ``LPDF_SPELL_*`` findings; hosts can also set it directly.
+   */
+  readonly type?: string;
 }
+
+// ---------------------------------------------------------------------------
+// Decision types (for the decisions / approval UI)
+// ---------------------------------------------------------------------------
+
+/**
+ * A single active or revoked decision recorded against a finding.
+ * Populated by the host from ``GET /api/v1/jobs/{id}/decisions`` and
+ * passed to ``<LensPDF decisions={...}>`` so the viewer can show
+ * approval state without a round-trip.
+ *
+ * @public
+ */
+export interface DecisionRecord {
+  /** Decision UUID — used for revocation. */
+  id: string;
+  /** One of: approve | reject | waive | suppress | annotate | escalate. */
+  decision_type: DecisionType;
+  /** ISO 8601 timestamp of the decision. */
+  decided_at: string;
+  /** User identifier who recorded the decision. */
+  decided_by_user_id: string;
+  /** Optional email shown in the UI. */
+  decided_by_email?: string | null;
+  /** Optional free-text notes attached to the decision. */
+  notes?: string | null;
+  /** False when the decision has been soft-revoked. */
+  is_active: boolean;
+}
+
+/**
+ * Valid decision types, matching the lint-pdf decisions service vocabulary.
+ * @public
+ */
+export type DecisionType =
+  | "approve"
+  | "reject"
+  | "waive"
+  | "suppress"
+  | "annotate"
+  | "escalate";

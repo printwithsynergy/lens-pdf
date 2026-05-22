@@ -6,6 +6,8 @@
 
 export type {
   AnnotationSourceProvider,
+  DecisionRecord,
+  DecisionType,
   DialogPlugin,
   MeasurementUnit,
   OverlayItem,
