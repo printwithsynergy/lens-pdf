@@ -238,6 +238,12 @@ export function fromLintFindings(
             : 1
           : 1;
     const bbox = asBbox(f.bbox);
+    // Spell-check findings get a squiggly rendering hint so PageCanvas
+    // draws a wavy underline instead of the standard filled rectangle.
+    const type =
+      typeof code === "string" && code.startsWith("LPDF_SPELL")
+        ? "spell_check"
+        : undefined;
     return {
       id,
       page,
@@ -247,6 +253,7 @@ export function fromLintFindings(
       label: truncate(message, 80),
       description: message,
       data: f,
+      ...(type ? { type } : {}),
     };
   });
 }
