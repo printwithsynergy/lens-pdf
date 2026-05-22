@@ -28,7 +28,7 @@
 import * as React from "react";
 import { useMemo, useState } from "react";
 
-import type { OverlayItem } from "../plugin";
+import type { DecisionRecord, DecisionType, OverlayItem } from "../plugin";
 import { splitFindingsByLocation } from "../plugin";
 
 type Tier = NonNullable<OverlayItem["tier"]>;
@@ -79,6 +79,26 @@ export interface FindingsSidebarProps {
   filename?: string;
   /** Width class applied to the aside; defaults to ``w-80``. */
   widthClass?: string;
+  /**
+   * Active decisions keyed by finding id. Populate from
+   * ``GET /api/v1/jobs/{id}/decisions`` — the sidebar shows approval
+   * state badges and a Revoke action when a decision is active.
+   */
+  decisions?: Record<string, DecisionRecord>;
+  /**
+   * Fires when the user clicks Approve / Waive / Reject / Suppress on a
+   * finding row. The host calls the lint-pdf decisions API and re-fetches
+   * decisions to update this prop.
+   */
+  onDecide?: (item: OverlayItem, type: DecisionType, notes?: string) => void;
+  /**
+   * When true, spell-check findings (type === "spell_check") are hidden
+   * from the list. The canvas squiggles hide simultaneously via LensPDF's
+   * spellingHidden state. Default false.
+   */
+  hideSpelling?: boolean;
+  /** Fires when the user clicks the Spelling toggle pill. */
+  onToggleSpelling?: () => void;
 }
 
 /**
@@ -91,12 +111,22 @@ export function FindingsSidebar({
   title = "Preflight findings",
   filename,
   widthClass = "w-80",
+  decisions,
+  onDecide,
+  hideSpelling = false,
+  onToggleSpelling,
 }: FindingsSidebarProps): React.ReactElement {
   const [tierFilter, setTierFilter] = useState<TierFilter>("all");
   const [locatedOpen, setLocatedOpen] = useState(true);
   const [infoOpen, setInfoOpen] = useState(true);
 
-  const allItems = useMemo(() => Array.from(items ?? []), [items]);
+  const allItems = useMemo(
+    () =>
+      Array.from(items ?? []).filter(
+        (it) => !hideSpelling || it.type !== "spell_check",
+      ),
+    [items, hideSpelling],
+  );
 
   const tierCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -159,6 +189,22 @@ export function FindingsSidebar({
                 </button>
               );
             })}
+            {/* Spelling toggle — only shown when there are spell_check items */}
+            {Array.from(items ?? []).some((it) => it.type === "spell_check") && (
+              <button
+                type="button"
+                onClick={onToggleSpelling}
+                className={
+                  "rounded-full border px-2.5 py-0.5 text-[10px] font-medium transition " +
+                  (hideSpelling
+                    ? "border-slate-700 bg-slate-800 text-slate-500"
+                    : "border-amber-700/60 bg-amber-900/20 text-amber-300 hover:border-amber-500/60")
+                }
+                title={hideSpelling ? "Show spelling findings" : "Hide spelling findings"}
+              >
+                {hideSpelling ? "Spelling off" : "✓ Spelling"}
+              </button>
+            )}
           </div>
         ) : null}
       </div>
@@ -184,21 +230,48 @@ export function FindingsSidebar({
             {located.map((item) => {
               const tier = tierLabel(item.tier);
               const isSelected = selected?.id === item.id;
+              const decision = decisions?.[item.id];
+              const hasActiveDecision = decision?.is_active === true;
               return (
-                <li key={item.id}>
+                <li key={item.id} className="group">
                   <button
                     type="button"
                     onClick={() => onSelect?.(item)}
                     className={
                       "flex w-full flex-col items-start gap-1 px-4 py-3 text-left text-xs transition " +
-                      (isSelected ? "bg-brand-900/40" : "hover:bg-slate-900/80")
+                      (isSelected ? "bg-brand-900/40" : "hover:bg-slate-900/80") +
+                      (hasActiveDecision ? " opacity-60" : "")
                     }
                   >
-                    <FindingRowHeader item={item} tier={tier} />
+                    <FindingRowHeader item={item} tier={tier} decision={decision} />
                     <span className="text-slate-200">
                       {item.label ?? item.description ?? item.code ?? "Finding"}
                     </span>
                   </button>
+                  {/* Decision action buttons — shown on row hover */}
+                  {onDecide && (
+                    <div className="flex gap-1 border-t border-slate-800/60 px-4 py-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+                      {hasActiveDecision ? (
+                        <span className="text-[10px] text-emerald-400">
+                          ✓ {decision.decision_type.charAt(0).toUpperCase() + decision.decision_type.slice(1)}
+                          {" · "}
+                          <button
+                            type="button"
+                            className="underline hover:text-white"
+                            onClick={() => onDecide(item, "suppress")}
+                          >
+                            Revoke
+                          </button>
+                        </span>
+                      ) : (
+                        <>
+                          <DecideButton label="Approve" type="button" onClick={() => onDecide(item, "approve")} color="emerald" />
+                          <DecideButton label="Waive" type="button" onClick={() => onDecide(item, "waive")} color="amber" />
+                          <DecideButton label="Reject" type="button" onClick={() => onDecide(item, "reject")} color="red" />
+                        </>
+                      )}
+                    </div>
+                  )}
                 </li>
               );
             })}
@@ -241,9 +314,11 @@ export function FindingsSidebar({
 function FindingRowHeader({
   item,
   tier,
+  decision,
 }: {
   item: OverlayItem;
   tier: Tier;
+  decision?: DecisionRecord;
 }): React.ReactElement {
   return (
     <div className="flex w-full items-center gap-2">
@@ -257,8 +332,40 @@ function FindingRowHeader({
       {item.code ? (
         <span className="truncate font-mono text-[11px] text-slate-400">{item.code}</span>
       ) : null}
+      {decision?.is_active && (
+        <span className="rounded-full bg-emerald-900/40 px-1.5 py-0.5 text-[10px] text-emerald-400">
+          ✓ {decision.decision_type}
+        </span>
+      )}
       <span className="ml-auto shrink-0 text-[11px] text-slate-500">p{item.page}</span>
     </div>
+  );
+}
+
+function DecideButton({
+  label,
+  onClick,
+  color,
+}: {
+  label: string;
+  type: "button";
+  onClick: () => void;
+  color: "emerald" | "amber" | "red";
+}): React.ReactElement {
+  const cls =
+    color === "emerald"
+      ? "border-emerald-700/60 text-emerald-400 hover:bg-emerald-900/30"
+      : color === "amber"
+        ? "border-amber-700/60 text-amber-400 hover:bg-amber-900/30"
+        : "border-red-700/60 text-red-400 hover:bg-red-900/30";
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded border px-2 py-0.5 text-[10px] transition ${cls}`}
+    >
+      {label}
+    </button>
   );
 }
 
