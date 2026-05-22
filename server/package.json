@@ -2,7 +2,7 @@
   "name": "lens-pdf-server",
   "version": "0.0.0",
   "private": true,
-  "description": "Reference HTTP backend for LensPDF — provides ink separations, densitometer, TAC heatmap, color sampling via Ghostscript.",
+  "description": "Reference HTTP backend for LensPDF \u2014 provides ink separations, densitometer, TAC heatmap, color sampling via Ghostscript.",
   "type": "module",
   "scripts": {
     "dev": "tsx --watch src/index.ts",
@@ -13,7 +13,7 @@
   "dependencies": {
     "express": "^4.21.0",
     "morgan": "^1.10.0",
-    "multer": "^1.4.5-lts.1",
+    "multer": "^2.1.1",
     "nunjucks": "^3.2.4",
     "pdf-lib": "^1.17.1",
     "puppeteer": "^22.0.0",
