@@ -116,7 +116,7 @@
     "prepare": "tsc -p tsconfig.build.json && node scripts/fix-import-extensions.mjs"
   },
   "dependencies": {
-    "pdfjs-dist": "^4.0.0"
+    "pdfjs-dist": "^5.7.284"
   },
   "peerDependencies": {
     "react": "^19.0.0",
