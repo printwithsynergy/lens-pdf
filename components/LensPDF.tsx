@@ -76,7 +76,7 @@ import {
 } from "../browser";
 import type { ThemeTokens, ViewerServices } from "../plugin/services";
 import { darkThemeTokens } from "../plugin/services";
-import type { OverlayItem } from "../plugin/types";
+import type { DecisionRecord, DecisionType, OverlayItem } from "../plugin/types";
 import { buildFindingNumberMap } from "../plugin/findings-location";
 import type { DielineResult, PageInfo } from "../types";
 import { DEFAULT_DPI, pageInfoFromDimensions } from "../types";
@@ -285,6 +285,23 @@ export interface LensPDFProps {
    */
   dataConfig?: LensPDFDataConfig;
   /**
+   * Active decisions keyed by finding id. Populate from
+   * ``GET /api/v1/jobs/{id}/decisions`` and re-pass after each
+   * record / revoke. The sidebar shows approval badges and the
+   * canvas dims approved / waived findings to 25% opacity.
+   *
+   * @public
+   */
+  decisions?: Record<string, DecisionRecord>;
+  /**
+   * Fires when the user clicks Approve / Waive / Reject / Suppress on a
+   * finding in the sidebar. The host should call the lint-pdf decisions
+   * API and refresh the ``decisions`` prop.
+   *
+   * @public
+   */
+  onDecide?: (item: OverlayItem, type: DecisionType, notes?: string) => void;
+  /**
    * Optional codex client. When provided, `<LensPDFDemo>` fires
    * `extractStream` in the background after each PDF loads. As codex
    * events arrive the viewer silently upgrades:
@@ -358,7 +375,11 @@ export function LensPDF({
   plugins: customPlugins = [],
   codex,
   dataConfig,
+  decisions,
+  onDecide,
 }: LensPDFProps) {
+  // Spelling toggle state — lives here so both canvas and sidebar stay in sync
+  const [spellingHidden, setSpellingHidden] = useState(false);
   // Resolve dataConfig into derived items, dieline, and spot palette.
   // Explicit props win over dataConfig-derived values.
   const dataConfigResolved = useMemo(() => {
@@ -404,6 +425,15 @@ export function LensPDF({
   const findingNumbers = useMemo(
     () => buildFindingNumberMap(overlayItems),
     [overlayItems],
+  );
+
+  // When spelling is toggled off, filter squiggles from the canvas too.
+  const canvasItems = useMemo(
+    () =>
+      spellingHidden
+        ? overlayItems.filter((it) => it.type !== "spell_check")
+        : overlayItems,
+    [overlayItems, spellingHidden],
   );
   // Selection: controlled when onItemSelect is supplied, uncontrolled otherwise.
   const [internalSelected, setInternalSelected] =
@@ -913,6 +943,10 @@ export function LensPDF({
       pendingNoteTarget,
       onPendingNoteConsumed: handlePendingNoteConsumed,
       onSelectItem: handleItemClick,
+      decisions,
+      onDecide,
+      hideSpelling: spellingHidden,
+      onToggleSpelling: () => setSpellingHidden((v) => !v),
     }),
     [
       tokens,
@@ -942,6 +976,9 @@ export function LensPDF({
       handleFindingNoteRequest,
       handlePendingNoteConsumed,
       handleItemClick,
+      decisions,
+      onDecide,
+      spellingHidden,
     ],
   );
 
@@ -1349,11 +1386,12 @@ export function LensPDF({
                       jobId="lens-pdf-demo"
                       page={page}
                       zoom={zoom}
-                      items={overlayItems}
+                      items={canvasItems}
                       selectedItem={effectiveSelected}
                       onItemClick={handleItemClick}
                       cropToTrim={cropToTrim}
                       findingNumbers={findingNumbers}
+                      decisions={decisions}
                     />
                   )}
 
