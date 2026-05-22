@@ -18,6 +18,7 @@ reviews:
     - "!**/*.min.js"
     - "!**/*.lock"
     - "!**/package-lock.json"
+    - "!**/pnpm-lock.yaml"
     - "!**/uv.lock"
     - "!**/poetry.lock"
   path_instructions:

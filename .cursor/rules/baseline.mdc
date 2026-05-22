@@ -3,7 +3,7 @@ description: PrintWithSynergy baseline rules
 alwaysApply: true
 ---
 
-You are working in this repository, part of the printwithsynergy organization.
+You are working in the `lens-pdf` repository, part of the printwithsynergy organization.
 
 # Conventions
 - Conventional commits (feat:, fix:, chore:, refactor:, docs:, test:)
