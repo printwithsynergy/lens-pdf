@@ -6,6 +6,34 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0-beta.93] — 2026-05-23
+
+### Fixed
+- Clicking a preflight finding whose `page` lands past the document
+  end no longer surfaces the red `Invalid page request.` banner from
+  pdfjs. The selection→currentPage effect in `<LensPDF>` now clamps
+  the target page to `[1, pageCount]` before driving `setCurrentPage`,
+  so a drifted adapter (e.g. a lint engine that emits `page_num >
+  total - 1`) cannot push the viewer into an out-of-range
+  `doc.getPage(n)` call. Reproduced via lintpdf.com/demo against a
+  single-page label PDF.
+- The "prepare page" effect now swallows pdfjs failures instead of
+  surfacing the raw error string in a banner. With the new clamp
+  ahead of it, a failure here means a transient pdfjs error or a
+  mid-prepare document swap — both recover on the next page change,
+  and the bare `Invalid page request.` string was poor UX either way.
+- `fromLintFindings` rejects non-finite, non-integer, and negative
+  `page_num` values (NaN / floats / `-1` / `"3"`) and falls back to
+  page 1 instead of silently producing `page: NaN + 1` / `page: 0`
+  overlay items.
+
+### Internal
+- Added `adapters/index.test.ts` covering the `fromLintFindings`
+  page-handling contract and pinning the host-side clamp math
+  (`min(max(1, pageCount), max(1, item.page))`) so a future
+  refactor of the inline expression in `LensPDF.tsx` can't drift
+  silently.
+
 ## [0.3.0-beta.92] — 2026-05-23
 
 ### Fixed
