@@ -441,7 +441,7 @@ export function LensPDF({
   const effectiveSelected =
     onItemSelect !== undefined ? (selectedItem ?? null) : internalSelected;
   const handleItemClick = useCallback(
-    (item: OverlayItem) => {
+    (item: OverlayItem | null) => {
       if (onItemSelect) onItemSelect(item);
       else setInternalSelected(item);
     },
@@ -920,7 +920,7 @@ export function LensPDF({
       spotPalette: effectiveSpotPalette,
       items: overlayItems,
       forceInspectionPanel,
-      selectedItem,
+      selectedItem: effectiveSelected,
       onItemSelect,
       enabledLayers,
       setEnabledLayers,
@@ -976,6 +976,7 @@ export function LensPDF({
       handleFindingNoteRequest,
       handlePendingNoteConsumed,
       handleItemClick,
+      effectiveSelected,
       decisions,
       onDecide,
       spellingHidden,

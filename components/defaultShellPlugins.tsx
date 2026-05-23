@@ -570,10 +570,9 @@ function FindingsPanel({ ctx }: { ctx: LensPDFShellPluginContext }) {
                   type="button"
                   onClick={() => {
                     if (isSelected) {
-                      ctx.onItemSelect?.(null);
+                      ctx.onSelectItem?.(null);
                     } else {
                       ctx.onSelectItem?.(it);
-                      ctx.setCurrentPage(it.page);
                     }
                   }}
                   style={{

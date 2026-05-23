@@ -608,10 +608,12 @@ export function PageCanvas({
           height: canvasHeight,
         }}
       />
-      {/* Page-level indicator for items without bbox */}
+      {/* Page-level indicator for items without bbox — static border so it
+          doesn't pulse the entire canvas on mobile, where partial drawer
+          coverage made the pulse read as a corner blink. */}
       {selectedItem && !selectedItem.bbox && selectedItem.page === page.page_num && (
         <div
-          className="pointer-events-none absolute inset-0 animate-pulse rounded border-2"
+          className="pointer-events-none absolute inset-0 rounded border-2"
           style={{
             borderColor: TIER_HEX[selectedItemTier],
             boxShadow: `inset 0 0 30px ${TIER_HEX[selectedItemTier]}30`,
