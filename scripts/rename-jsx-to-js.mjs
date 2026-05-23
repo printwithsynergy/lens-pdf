@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { readdir, rename } from 'fs/promises';
-import { join, resolve } from 'path';
+import { join, resolve, sep } from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
@@ -14,7 +14,7 @@ async function renameJsxToJs(dir) {
 
   for (const entry of entries) {
     const fullPath = resolve(join(dir, entry.name));
-    if (!fullPath.startsWith(distDir + '/') && fullPath !== distDir) continue;
+    if (!fullPath.startsWith(distDir + sep) && fullPath !== distDir) continue;
 
     if (entry.isDirectory()) {
       await renameJsxToJs(fullPath);
