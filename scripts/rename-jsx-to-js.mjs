@@ -1,47 +1,55 @@
 #!/usr/bin/env node
 
 import { readdir, rename, realpath } from 'fs/promises';
-import { join, resolve, sep, isAbsolute } from 'path';
+import { resolve, sep, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { dirname } from 'path';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const distDir = await realpath(resolve(join(__dirname, '..', 'dist')));
+const SAFE_SEGMENT = /^[A-Za-z0-9._-]+$/;
 
-const SAFE_NAME = /^[A-Za-z0-9._-]+$/;
+const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
+const DIST_DIR = await realpath(resolve(SCRIPT_DIR, '..', 'dist'));
+const DIST_PREFIX = DIST_DIR + sep;
 
-function isSafeName(name) {
-  return typeof name === 'string' && name.length > 0 && name.length <= 255 && SAFE_NAME.test(name) && name !== '.' && name !== '..';
+function isSafeSegment(name) {
+  return (
+    typeof name === 'string'
+    && name.length > 0
+    && name.length <= 255
+    && name !== '.'
+    && name !== '..'
+    && SAFE_SEGMENT.test(name)
+  );
 }
 
-async function safeResolveWithin(base, name) {
-  if (!isSafeName(name)) return null;
-  const candidate = resolve(base, name);
-  if (isAbsolute(name) || (candidate !== base && !candidate.startsWith(base + sep))) return null;
-  return candidate;
+function isInsideDist(absolutePath) {
+  return absolutePath === DIST_DIR || absolutePath.startsWith(DIST_PREFIX);
 }
 
-async function renameJsxToJs(dir) {
-  const realDir = await realpath(dir);
-  if (realDir !== distDir && !realDir.startsWith(distDir + sep)) return;
+async function processDist() {
+  const queue = [DIST_DIR];
+  while (queue.length > 0) {
+    const currentDir = queue.shift();
+    if (!isInsideDist(currentDir)) continue;
 
-  const entries = await readdir(realDir, { withFileTypes: true });
+    const entries = await readdir(currentDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!isSafeSegment(entry.name)) continue;
 
-  for (const entry of entries) {
-    const fullPath = await safeResolveWithin(realDir, entry.name);
-    if (!fullPath) continue;
+      const childPath = currentDir + sep + entry.name;
+      if (!isInsideDist(childPath)) continue;
 
-    if (entry.isDirectory()) {
-      await renameJsxToJs(fullPath);
-    } else if (entry.isFile() && entry.name.endsWith('.jsx')) {
-      const newName = entry.name.slice(0, -4) + '.js';
-      const newPath = await safeResolveWithin(realDir, newName);
-      if (!newPath) continue;
-      await rename(fullPath, newPath);
-      console.log(`Renamed: ${entry.name} -> ${newName}`);
+      if (entry.isDirectory()) {
+        queue.push(childPath);
+      } else if (entry.isFile() && entry.name.endsWith('.jsx')) {
+        const newName = entry.name.slice(0, -4) + '.js';
+        if (!isSafeSegment(newName)) continue;
+        const newPath = currentDir + sep + newName;
+        if (!isInsideDist(newPath)) continue;
+        await rename(childPath, newPath);
+        console.log(`Renamed: ${entry.name} -> ${newName}`);
+      }
     }
   }
 }
 
-renameJsxToJs(distDir).catch(console.error);
+processDist().catch(console.error);
