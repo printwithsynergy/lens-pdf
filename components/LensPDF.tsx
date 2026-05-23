@@ -447,13 +447,9 @@ export function LensPDF({
     },
     [onItemSelect],
   );
-  // Jump to the finding's page when selection changes (sidebar click or controlled prop update).
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (effectiveSelected?.page != null && effectiveSelected.page !== currentPage) {
-      setCurrentPage(effectiveSelected.page);
-    }
-  }, [effectiveSelected]);
+  // The selection→currentPage jump effect lives further down, right
+  // after `pageCount` / `currentPage` state is declared, so the
+  // clamp against pageCount stays in scope. See `selectionPageJump`.
   // Pending note target: set by handleFindingNoteRequest, cleared by the Notes panel.
   // The setter callbacks are defined after selectedAnnotationId state (see below).
   const [pendingNoteTarget, setPendingNoteTarget] = useState<string | null>(null);
@@ -511,6 +507,24 @@ export function LensPDF({
   );
   const [pageCount, setPageCount] = useState(1);
   const [currentPage, setCurrentPage] = useState(initialPage);
+
+  // Jump to the finding's page when selection changes (sidebar click
+  // or controlled prop update). Clamps against pageCount so an
+  // out-of-range `item.page` — e.g. a lint adapter whose page
+  // indexing drifted past the document end — cannot push currentPage
+  // past the document. pdfjs rejects `doc.getPage(n > total)` with
+  // `Error: Invalid page request.`, which surfaces as the LensPDF
+  // error banner; this clamp is the viewer's guarantee that no
+  // adapter output can drive that path.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (effectiveSelected?.page == null) return;
+    const target = Math.min(
+      Math.max(1, pageCount),
+      Math.max(1, effectiveSelected.page),
+    );
+    if (target !== currentPage) setCurrentPage(target);
+  }, [effectiveSelected, pageCount]);
 
   // Lifecycle callbacks: fire host listeners whenever core state moves.
   // Wrapped in effects rather than threading through every setter
@@ -756,12 +770,14 @@ export function LensPDF({
     (async () => {
       try {
         await svc.prepare(currentPage, { tacLimit });
-      } catch (err) {
-        if (!cancelled) {
-          setError(
-            err instanceof Error ? err.message : "Failed to prepare page.",
-          );
-        }
+      } catch {
+        // The currentPage useEffect above clamps to pageCount, so a
+        // raw pdfjs `Invalid page request.` from prepare() here means
+        // the document changed under us (e.g. switched mid-prepare) or
+        // analysis raster generation hit a transient pdfjs error.
+        // Either way, surfacing the raw pdfjs string in a red banner
+        // is worse UX than silently skipping the prep — the canvas
+        // useEffect below will retry on the next currentPage change.
       } finally {
         if (!cancelled) setPreparing(false);
       }

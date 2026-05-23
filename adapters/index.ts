@@ -209,6 +209,16 @@ export function fromCodexFindings(
  * Map raw lint-pdf engine findings to `OverlayItem[]`. Lint engine
  * emits 0-indexed `page_num`; OverlayItem expects 1-indexed.
  *
+ * This adapter does not know the document's pageCount and cannot
+ * clamp against it — if an engine version drifts and emits a
+ * `page_num` past the document end, the resulting `page` value
+ * will be out of range. That is caught downstream by `<LensPDF>`'s
+ * finding-selection effect, which clamps `currentPage` to
+ * `[1, pageCount]` before driving pdfjs. The adapter itself only
+ * drops `page_num`s that aren't finite non-negative integers, so
+ * a stray `NaN` / `-1` / `"3"` can't become a `page: 0` or
+ * `page: -2` overlay item.
+ *
  * @public
  */
 export function fromLintFindings(
@@ -229,14 +239,19 @@ export function fromLintFindings(
     const tier = pickTier(
       (f.severity ?? f.level) as string | null | undefined,
     );
-    const page =
-      typeof f.page_num === "number"
-        ? f.page_num + 1
-        : typeof f.page === "number"
-          ? f.page > 0
-            ? f.page
-            : 1
-          : 1;
+    const validPageNum =
+      typeof f.page_num === "number" &&
+      Number.isInteger(f.page_num) &&
+      f.page_num >= 0;
+    const validPage1 =
+      typeof f.page === "number" &&
+      Number.isInteger(f.page) &&
+      f.page > 0;
+    const page = validPageNum
+      ? (f.page_num as number) + 1
+      : validPage1
+        ? (f.page as number)
+        : 1;
     const bbox = asBbox(f.bbox);
     // Spell-check findings get a squiggly rendering hint so PageCanvas
     // draws a wavy underline instead of the standard filled rectangle.
