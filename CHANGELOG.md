@@ -6,6 +6,28 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0-beta.92] — 2026-05-23
+
+### Fixed
+- Inspection panel rows now reflect the active selection in uncontrolled
+  mode. `shellPluginContext.selectedItem` was forwarding the raw
+  `selectedItem` prop, so hosts that let the library own selection state
+  (`<LensPDF items={...} />` without `onItemSelect`) saw the row stay
+  unhighlighted after a click. The context now exposes the effective
+  selection.
+- Clearing the selection from a shell plugin now works in uncontrolled
+  mode. `handleItemClick` and `LensPDFShellPluginContext.onSelectItem`
+  accept `OverlayItem | null`; the default FindingsPanel toggle-off path
+  routes through `ctx.onSelectItem(null)` instead of the host-only
+  `ctx.onItemSelect(null)`.
+- Page-level indicator for findings without a bbox is now a static
+  border + glow instead of `animate-pulse`. On mobile, the sidebar
+  drawer partially covers the canvas; the pulse on the visible corner
+  read as a stray "bottom-left blink" on every selection.
+- Removed the redundant `ctx.setCurrentPage(it.page)` call from the
+  FindingsPanel row handler; LensPDF's existing `effectiveSelected`
+  effect already syncs the current page when selection changes.
+
 ## [0.3.0-beta.88] — 2026-05-21
 
 ### Changed
