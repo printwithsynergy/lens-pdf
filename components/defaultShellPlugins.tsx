@@ -259,6 +259,7 @@ function modeToolsPlugin(): LensPDFShellPlugin {
               <span>TAC heatmap (limit 300%)</span>
             </label>
           )}
+          {viewerMode === "findings" && hasFindings && <FindingsPanel ctx={ctx} />}
         </>
       );
     },
@@ -705,18 +706,6 @@ function decideButtonStyle(color: "green" | "amber" | "red" | "slate"): CSSPrope
   };
 }
 
-function findingsPlugin(): LensPDFShellPlugin {
-  return {
-    id: "lens.findings-panel",
-    slot: "panel.left",
-    order: 25,
-    isAvailable: (ctx) =>
-      ctx.viewerMode === "findings" &&
-      Boolean((ctx.items && ctx.items.length > 0) || ctx.forceInspectionPanel),
-    render: (ctx: LensPDFShellPluginContext) => <FindingsPanel ctx={ctx} />,
-  };
-}
-
 function annotationsPlugin(): LensPDFShellPlugin {
   return {
     id: "lens.annotations-panel",
@@ -784,7 +773,6 @@ function annotationToolbarPlugin(): LensPDFShellPlugin {
 
 export function createDefaultShellPlugins(): LensPDFShellPlugin[] {
   return [
-    findingsPlugin(),
     modeToolsPlugin(),
     separationsPlugin(),
     layersPlugin(),
