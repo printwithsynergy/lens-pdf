@@ -93,9 +93,10 @@ export interface LensPDFShellPluginContext {
    *  values here so the separations panel renders accurate swatches. */
   spotPalette?: Record<string, string>;
   /** Preflight findings to surface inside the viewer's Inspection
-   *  panel. Same superset hosts pass to ``<LensPDF items={...}>``;
-   *  the built-in ``findingsPlugin`` filters/groups by tier and lets
-   *  the user click a row to focus the matching bbox on the canvas. */
+   *  view. Same superset hosts pass to ``<LensPDF items={...}>``;
+   *  the built-in Tools panel renders the filtered/grouped list inline
+   *  when the user activates Inspection mode and lets them click a row
+   *  to focus the matching bbox on the canvas. */
   items?: ReadonlyArray<import("../plugin").OverlayItem>;
   /** Currently-selected finding, if any. */
   selectedItem?: import("../plugin").OverlayItem | null;
