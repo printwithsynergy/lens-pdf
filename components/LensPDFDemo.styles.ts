@@ -133,9 +133,19 @@ export const stageStyle: CSSProperties = {
   overflow: "auto",
   display: "flex",
   flexDirection: "column",
-  alignItems: "center",
+  // `safe center` falls back to `start` when the inner content
+  // overflows the cross axis — without it, iOS Safari clips both
+  // sides of an over-wide canvas and the user can't pan to either
+  // edge. Modern Chrome / Firefox handle this fine, but mobile
+  // Safari historically refuses to scroll past a centered child.
+  alignItems: "safe center",
   padding: 24,
   gap: 12,
+  // iOS momentum scroll + explicit touch-action so the section is
+  // unambiguously the pan target (no parent should swallow the pan
+  // event when starting from inside the canvas region).
+  WebkitOverflowScrolling: "touch",
+  touchAction: "pan-x pan-y",
 };
 
 export function errorStyle(): CSSProperties {
@@ -260,7 +270,9 @@ export function pageNavBtnStyle(
 export const stageInnerStyle: CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  alignItems: "center",
+  // Match `stageStyle` — `safe center` so an over-wide canvas
+  // doesn't clip off the left/right edges on mobile.
+  alignItems: "safe center",
   gap: 12,
 };
 

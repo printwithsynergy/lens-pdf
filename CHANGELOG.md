@@ -6,6 +6,25 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0-beta.99] — 2026-05-25
+
+### Fixed
+- **Mobile panning regression** — over-wide canvases were unscrollable
+  on iOS Safari after b97 introduced the LensTopBar. Two root causes:
+  1. `stageStyle` and `stageInnerStyle` used `align-items: center`,
+     which on iOS clips overflowing children on both sides so the
+     user can't pan to either edge of a canvas wider than the
+     viewport. Switched to `align-items: safe center` — falls back
+     to `start` when overflow occurs.
+  2. The new `LensTopBar` used `position: sticky` inside a parent
+     with `overflow: hidden`. Sticky degrades to relative there
+     anyway, but on iOS Safari it occasionally misroutes touch
+     events away from sibling scroll containers. Switched to
+     `position: relative`.
+- Added `-webkit-overflow-scrolling: touch` and explicit
+  `touch-action: pan-x pan-y` to `stageStyle` as belt-and-suspenders
+  for iOS momentum scroll + unambiguous pan-target routing.
+
 ## [0.3.0-beta.98] — 2026-05-25
 
 ### Changed
