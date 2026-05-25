@@ -1,6 +1,6 @@
 {
   "name": "@printwithsynergy/lens-pdf",
-  "version": "0.3.0-beta.101",
+  "version": "0.4.0-beta.0",
   "type": "module",
   "description": "LensPDF — host-agnostic OSS PDF viewer core. Plugin-driven canvas viewer with overlay / panel / toolbar slots.",
   "license": "AGPL-3.0-or-later",
@@ -116,13 +116,15 @@
     "prepare": "tsc -p tsconfig.build.json && node scripts/fix-import-extensions.mjs"
   },
   "dependencies": {
-    "pdfjs-dist": "^5.7.284"
+    "pdfjs-dist": "^5.7.284",
+    "react-pdf": "^10.4.1",
+    "react-zoom-pan-pinch": "^4.0.3"
   },
   "peerDependencies": {
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "@printwithsynergy/codex-client": "^1.15.0",
     "fabric": "^7.3.1",
-    "@printwithsynergy/codex-client": "^1.15.0"
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   },
   "peerDependenciesMeta": {
     "fabric": {
