@@ -168,7 +168,33 @@ export interface LensPDFShellPluginContext {
   onToggleSpelling?: () => void;
 }
 
-export type LensPDFShellSlot = "panel.left" | "overlay.toolbar";
+export type LensPDFShellSlot = "panel.left" | "overlay.toolbar" | "topbar";
+
+/**
+ * Declarative action button rendered inside the LensPDF top bar.
+ *
+ * Hosts pass an array of these via the `topBarActions` prop on
+ * `<LensPDF>` to add buttons like "Download PDF", "Back to demo",
+ * etc. without authoring a full shell plugin. For richer needs
+ * (custom React content, real-time state) target the `topbar`
+ * shell-plugin slot instead.
+ */
+export interface LensTopBarAction {
+  /** Stable identifier. Doubles as the React key. */
+  id: string;
+  /** Visible text on the button. */
+  label: string;
+  /** When set, renders as `<a href>`. One of `href` / `onClick` is required. */
+  href?: string;
+  /** When set, renders as `<button>`. */
+  onClick?: () => void;
+  /** When set with `href`, applies the HTML `download` attribute. */
+  download?: string;
+  /** When set with `href`, opens in a new tab (target=_blank rel=noopener). */
+  external?: boolean;
+  /** Sort order — lower comes first. Default 100. */
+  order?: number;
+}
 
 export interface LensPDFShellPlugin {
   id: string;
