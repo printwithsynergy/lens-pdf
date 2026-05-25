@@ -2,24 +2,19 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import type { ThemeTokens } from "../plugin/services";
-import type { LensTopBarAction } from "./shellPlugins";
-import { ghostBtnStyle } from "./LensPDFDemo.styles";
 
 interface LensTopBarProps {
   tokens: ThemeTokens;
   isMobile: boolean;
-  /** Brand label text (e.g., "LintPDF"). Hidden under ~480px to keep
-   *  room for the action buttons on narrow screens. */
+  /** Brand label text (e.g., "LintPDF"). */
   brand?: string;
   /** Optional brand logo URL. Rendered to the left of the brand text. */
   brandLogoUrl?: string;
-  /** Host-injected action buttons (Download, Back to demo, etc.). */
-  actions?: ReadonlyArray<LensTopBarAction>;
-  /** Slot content from `topbar` shell plugins. Rendered between the
-   *  brand block and the action buttons (typically empty). */
+  /** Slot content from `topbar` shell plugins. Rendered to the right
+   *  of the brand block (typically empty). */
   pluginNodes?: ReadonlyArray<ReactNode>;
   /** True when the mobile drawer is open — controls hamburger
-   *  aria-expanded + lets the parent dim/hide the bar if it wants. */
+   *  `aria-expanded`. */
   mobileSidebarOpen: boolean;
   /** Toggle for the mobile drawer. Only invoked on mobile. */
   onToggleMobileSidebar: () => void;
@@ -35,9 +30,8 @@ function rootStyle(tokens: ThemeTokens): CSSProperties {
     borderBottom: `1px solid ${tokens.border}`,
     flexShrink: 0,
     minHeight: 48,
-    // Sticky inside the LensPDF flex column — stays visible while the
-    // canvas scrolls. zIndex chosen to clear sticky overlay toolbars
-    // (30) and canvas content but stay below the mobile drawer (141).
+    // Sticky inside the LensPDF flex column. zIndex clears sticky
+    // overlay toolbars (30) but stays below the mobile drawer (141).
     position: "sticky",
     top: 0,
     zIndex: 50,
@@ -62,7 +56,7 @@ function hamburgerStyle(tokens: ThemeTokens): CSSProperties {
   };
 }
 
-function brandStyle(tokens: ThemeTokens, hideText: boolean): CSSProperties {
+function brandBlockStyle(tokens: ThemeTokens): CSSProperties {
   return {
     display: "flex",
     alignItems: "center",
@@ -74,13 +68,7 @@ function brandStyle(tokens: ThemeTokens, hideText: boolean): CSSProperties {
     overflow: "hidden",
     textOverflow: "ellipsis",
     minWidth: 0,
-    // Allow the brand to shrink before action buttons do
     flexShrink: 1,
-    // Used to mark the text portion as hidden via CSS-in-JS
-    // (display: none) when the viewport is narrower than the brand
-    // breakpoint. We can't use real media queries here, so callers
-    // pass `hideText` based on a window-width check upstream.
-    ...(hideText ? { fontSize: 0 } : {}),
   };
 }
 
@@ -94,48 +82,23 @@ function logoStyle(): CSSProperties {
   };
 }
 
-function actionsRowStyle(): CSSProperties {
-  return {
-    marginLeft: "auto",
-    display: "flex",
-    alignItems: "center",
-    gap: 6,
-    flexShrink: 0,
-    overflowX: "auto",
-    // Hide horizontal scrollbar on overflow so the bar still looks
-    // clean if a host adds many buttons — users can flick-scroll.
-    scrollbarWidth: "none",
-  };
-}
-
-function sortedActions(
-  actions: ReadonlyArray<LensTopBarAction>,
-): ReadonlyArray<LensTopBarAction> {
-  return [...actions].sort(
-    (a, b) => (a.order ?? 100) - (b.order ?? 100),
-  );
-}
-
 export function LensTopBar({
   tokens,
   isMobile,
   brand,
   brandLogoUrl,
-  actions,
   pluginNodes,
   mobileSidebarOpen,
   onToggleMobileSidebar,
 }: LensTopBarProps) {
   const hasBrand = !!brand || !!brandLogoUrl;
-  const orderedActions = actions && actions.length > 0 ? sortedActions(actions) : [];
-  const ghost = ghostBtnStyle(tokens);
 
   return (
     <div style={rootStyle(tokens)} role="toolbar" aria-label="Viewer top bar">
       {isMobile && (
         <button
           type="button"
-          aria-label="Open tools panel"
+          aria-label="Open tools menu"
           aria-expanded={mobileSidebarOpen}
           onClick={onToggleMobileSidebar}
           style={hamburgerStyle(tokens)}
@@ -145,7 +108,7 @@ export function LensTopBar({
       )}
 
       {hasBrand && (
-        <div style={brandStyle(tokens, false)}>
+        <div style={brandBlockStyle(tokens)}>
           {brandLogoUrl && (
             <img src={brandLogoUrl} alt="" style={logoStyle()} />
           )}
@@ -154,42 +117,10 @@ export function LensTopBar({
       )}
 
       {pluginNodes && pluginNodes.length > 0 && (
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: "auto" }}>
           {pluginNodes.map((node, i) => (
             <div key={i}>{node}</div>
           ))}
-        </div>
-      )}
-
-      {orderedActions.length > 0 && (
-        <div style={actionsRowStyle()}>
-          {orderedActions.map((action) => {
-            const commonStyle = ghost;
-            if (action.href) {
-              return (
-                <a
-                  key={action.id}
-                  href={action.href}
-                  download={action.download}
-                  target={action.external ? "_blank" : undefined}
-                  rel={action.external ? "noopener noreferrer" : undefined}
-                  style={{ ...commonStyle, textDecoration: "none" }}
-                >
-                  {action.label}
-                </a>
-              );
-            }
-            return (
-              <button
-                key={action.id}
-                type="button"
-                onClick={action.onClick}
-                style={commonStyle}
-              >
-                {action.label}
-              </button>
-            );
-          })}
         </div>
       )}
     </div>

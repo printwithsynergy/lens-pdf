@@ -234,13 +234,13 @@ set `replaces: "<builtin-id>"` to override a first-party shell plugin.
 
 | Slot | Where it renders | Typical use |
 | --- | --- | --- |
-| `panel.left` | Left-side tools drawer (always-on desktop; hamburger-toggled drawer on mobile). | Mode picker, separations panel, layers panel, annotations panel, custom inspectors. |
+| `panel.left` | Tools menu — persistent left sidebar on desktop; hamburger-toggled drawer on mobile. Host `menuActions` render above plugin nodes here. | Mode picker, separations panel, layers panel, annotations panel, custom inspectors. |
 | `overlay.toolbar` | Sticky toolbar above the canvas. | Annotation toolbar, sticky tool palettes. |
-| `topbar` | Inside `LensTopBar`, between the brand block and the right-aligned action buttons. | Save-status indicators, search inputs, host-controlled stateful UI. |
+| `topbar` | Inside `LensTopBar`, to the right of the brand block. | Save-status indicators, search inputs, host-controlled stateful UI. |
 
-For simple link / button actions in the top bar, prefer the
-declarative [`topBarActions`](./components.md#built-in-top-bar) prop
-on `<LensPDF>` — no plugin authoring required.
+For simple link / button actions in the tools menu, prefer the
+declarative [`menuActions`](./components.md#tools-menu-menuactions)
+prop on `<LensPDF>` — no plugin authoring required.
 
 ## `OverlayItem`
 

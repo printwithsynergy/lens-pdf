@@ -54,8 +54,8 @@ export function ProofPage() {
 | `tacLimit` | `number` | `300` | TAC limit (in percent) for the heatmap + densitometer. |
 | `tokens` | `Partial<ThemeTokens>` | `darkThemeTokens` | Theme override merged onto the dark palette. Add `logoUrl` / `logoText` / `logoMaxHeight` / `logoAlt` to bundle brand identity into the tokens object. |
 | `brand` / `brandLogoUrl` | `string` | _(none)_ | Optional brand label / logo. Rendered in the built-in [top bar](#built-in-top-bar) when `showTopBar` is on. Falls back to `tokens.logoText` / `tokens.logoUrl` when the props are unset. |
-| `showTopBar` | `boolean` | `true` | Renders the built-in `LensTopBar` (hamburger on mobile, brand block, host action buttons). Set `false` for hosts that already render their own chrome around the viewer. |
-| `topBarActions` | `ReadonlyArray<LensTopBarAction>` | `[]` | Declarative right-aligned action buttons in the top bar (Download, Back to demo, etc.). Each action: `{ id, label, href?/onClick?, download?, external?, order? }`. See [Built-in top bar](#built-in-top-bar) below. |
+| `showTopBar` | `boolean` | `true` | Renders the built-in `LensTopBar` (hamburger on mobile, brand block). Set `false` for hosts that already render their own chrome around the viewer. |
+| `menuActions` | `ReadonlyArray<LensMenuAction>` | `[]` | Declarative action buttons pinned to the top of the tools menu (hamburger drawer on mobile, persistent left sidebar on desktop). Use for Download / Back / deep-link buttons. Each action: `{ id, label, href?/onClick?, download?, external?, order? }`. See [Tools menu](#tools-menu-menuactions) below. |
 | `items` | `OverlayItem[]` | `[]` | Preflight findings (error / warning / advisory bboxes). |
 | `selectedItem` | `OverlayItem \| null` | _(internal)_ | Controlled selection. |
 | `onItemSelect` | `(item) => void` | _(internal)_ | Selection callback. |
@@ -77,23 +77,30 @@ export function ProofPage() {
 `<LensPDF>` ships with a persistent `LensTopBar` at the top of the
 viewer region. It holds — left to right:
 
-1. A hamburger button (mobile only; toggles the tools drawer).
+1. A hamburger button (mobile only; toggles the tools menu drawer).
 2. The brand logo (`brandLogoUrl`) + brand text (`brand`).
 3. Nodes from any shell plugin targeting the `"topbar"` slot.
-4. Right-aligned host action buttons supplied via `topBarActions`.
 
 The bar uses `tokens.bg` + `tokens.border` so it inherits your theme.
 Pass `showTopBar={false}` to suppress it entirely — useful for hosts
 that already render their own chrome around `<LensPDF>`.
 
-##### Declarative buttons via `topBarActions`
+Host action buttons live in the [tools menu](#tools-menu-menuactions),
+not the top bar — keeps the bar compact on narrow viewports.
 
-The easy 90% case — no plugin authoring required:
+#### Tools menu (`menuActions`)
+
+The tools menu is the hamburger drawer on mobile and the persistent
+left sidebar on desktop. It holds the built-in panels (mode picker,
+separations, layers, annotations, inspection) plus any host-injected
+action buttons pinned to the top via `menuActions`.
+
+The easy case — declarative buttons, no plugin authoring required:
 
 ```tsx
-import type { LensTopBarAction } from "@printwithsynergy/lens-pdf";
+import type { LensMenuAction } from "@printwithsynergy/lens-pdf";
 
-const actions: LensTopBarAction[] = [
+const actions: LensMenuAction[] = [
   { id: "download", label: "Download PDF", href: fileUrl,
     download: filename, order: 10 },
   { id: "report", label: "JSON report",
@@ -105,12 +112,12 @@ const actions: LensTopBarAction[] = [
   pdfUrl={fileUrl}
   brand="LintPDF"
   brandLogoUrl="/logo.svg"
-  topBarActions={actions}
+  menuActions={actions}
   /* … */
 />
 ```
 
-`LensTopBarAction` fields:
+`LensMenuAction` fields:
 
 | Field | Type | Notes |
 | --- | --- | --- |
@@ -126,12 +133,9 @@ Actions that the host can't satisfy (e.g., no JSON report endpoint in
 a non-demo context) are simply omitted from the array — the library
 makes no assumption about which buttons are "standard".
 
-##### Full control via the `"topbar"` plugin slot
-
-For stateful or rich-React buttons (save-status indicators, search
-inputs, etc.), target the `"topbar"` slot from a shell plugin —
-see [plugins.md](./plugins.md) for the manifest shape. Plugin nodes
-render between the brand block and the right-aligned action buttons.
+For stateful or rich-React content in the menu (save-status, search,
+etc.), target the `"panel.left"` shell-plugin slot — see
+[plugins.md](./plugins.md). For top-bar content target `"topbar"`.
 
 ---
 

@@ -114,11 +114,12 @@ import {
   pluginsForSlot,
   resolveShellPlugins,
   type LensPDFShellPlugin,
-  type LensTopBarAction,
+  type LensMenuAction,
   type PointerTool,
   type ViewerMode,
 } from "./shellPlugins";
 import { LensTopBar } from "./LensTopBar";
+import { LensMenuActions } from "./LensMenuActions";
 import {
   fromArtworkFindings,
   fromCallasFindings,
@@ -181,13 +182,14 @@ export interface LensPDFProps {
    */
   brandLogoUrl?: string;
   /**
-   * Host-injected action buttons shown on the right side of the
-   * built-in top bar. Use this for "Download", "Back to demo",
-   * deep-links etc. without authoring a shell plugin. Each action
-   * renders as a token-styled anchor or button. See
-   * {@link LensTopBarAction}.
+   * Host-injected action buttons shown inside the tools menu
+   * (hamburger drawer on mobile, persistent sidebar on desktop),
+   * pinned above the plugin panels. Use this for "Download",
+   * "Back to demo", deep-links etc. without authoring a shell
+   * plugin. Each action renders as a token-styled anchor or
+   * button. See {@link LensMenuAction}.
    */
-  topBarActions?: ReadonlyArray<LensTopBarAction>;
+  menuActions?: ReadonlyArray<LensMenuAction>;
   /**
    * When `false`, suppresses the built-in top bar. Hosts that already
    * render their own chrome around `<LensPDF>` should pass `false`.
@@ -367,7 +369,7 @@ export function LensPDF({
   tokens: tokenOverrides,
   brand,
   brandLogoUrl,
-  topBarActions,
+  menuActions,
   showTopBar = true,
   className,
   tools = DEFAULT_TOOLS,
@@ -1053,7 +1055,8 @@ export function LensPDF({
   const showAnnotate = availability.annotate;
   const showSeparations = availability.separations;
   const showLayersControl = availability.layers;
-  const hasAnyTool = leftPanelPlugins.length > 0;
+  const hasAnyTool =
+    leftPanelPlugins.length > 0 || (menuActions?.length ?? 0) > 0;
 
   useEffect(() => {
     if (viewerMode === "separation" && !availability.separations) setViewerMode("page");
@@ -1139,7 +1142,6 @@ export function LensPDF({
             isMobile={isMobile}
             brand={brand}
             brandLogoUrl={brandLogoUrl}
-            actions={topBarActions}
             pluginNodes={topBarPlugins.map((plugin) =>
               plugin.render(shellPluginContext),
             )}
@@ -1293,6 +1295,9 @@ export function LensPDF({
                     &rsaquo;
                   </button>
                 </div>
+              )}
+              {menuActions && menuActions.length > 0 && (
+                <LensMenuActions tokens={tokens} actions={menuActions} />
               )}
               {toolsLoading ? (
                 <div

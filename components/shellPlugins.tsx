@@ -171,15 +171,17 @@ export interface LensPDFShellPluginContext {
 export type LensPDFShellSlot = "panel.left" | "overlay.toolbar" | "topbar";
 
 /**
- * Declarative action button rendered inside the LensPDF top bar.
+ * Declarative action button rendered inside the LensPDF tools menu
+ * (the hamburger drawer on mobile / the persistent left sidebar on
+ * desktop), pinned at the top above the plugin panels.
  *
- * Hosts pass an array of these via the `topBarActions` prop on
- * `<LensPDF>` to add buttons like "Download PDF", "Back to demo",
- * etc. without authoring a full shell plugin. For richer needs
- * (custom React content, real-time state) target the `topbar`
- * shell-plugin slot instead.
+ * Hosts pass an array of these via the `menuActions` prop on
+ * `<LensPDF>` to add navigation / utility buttons like
+ * "Download PDF", "Back to demo", etc. without authoring a full
+ * shell plugin. For richer needs (custom React, real-time state)
+ * target the `panel.left` shell-plugin slot instead.
  */
-export interface LensTopBarAction {
+export interface LensMenuAction {
   /** Stable identifier. Doubles as the React key. */
   id: string;
   /** Visible text on the button. */
