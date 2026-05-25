@@ -166,6 +166,14 @@ export interface LensPDFShellPluginContext {
   hideSpelling?: boolean;
   /** Toggles spell-check visibility. */
   onToggleSpelling?: () => void;
+  /** Set of finding ids whose canvas overlays + badges are hidden.
+   *  The Inspection panel reads/writes this via {@link setHiddenFindings}
+   *  to support per-finding visibility toggles + Show all / Hide all
+   *  bulk controls. Hidden findings still appear in the panel list
+   *  (greyed out) so the user can re-enable them. */
+  hiddenFindings: ReadonlySet<string>;
+  /** Setter for {@link hiddenFindings}. */
+  setHiddenFindings: Dispatch<SetStateAction<Set<string>>>;
 }
 
 export type LensPDFShellSlot = "panel.left" | "overlay.toolbar" | "topbar";

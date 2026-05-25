@@ -6,6 +6,38 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0-beta.100] — 2026-05-25
+
+### Fixed
+- **Mobile horizontal panning (round 3)** — the b99 `align-items:
+  safe center` fix wasn't enough on iOS Safari. Switched the stage
+  `<section>` to plain block layout and gave `stageInnerStyle` the
+  cross-browser `width: max-content; min-width: 100%; margin: 0
+  auto` pattern. Centers the canvas when it fits the section,
+  scrolls horizontally to either edge when it doesn't. Tested for
+  flexbox-centered-overflow gotchas that defeated every prior
+  attempt.
+
+### Added
+- **Per-finding visibility toggles in the Inspection panel.** Each
+  row now ships a `Show` / `Hide` button. Hidden findings are
+  filtered out of the canvas overlay set (bboxes + F-number badges
+  disappear) but remain in the panel list, greyed, for re-enable.
+- **`Show all` / `Hide all` bulk controls** in the Inspection
+  panel header. Buttons disable themselves when the action would
+  be a no-op (Show all when nothing is hidden, Hide all when
+  everything is already hidden).
+- **`hiddenFindings` + `setHiddenFindings`** added to
+  `LensPDFShellPluginContext` so third-party shell plugins can
+  read/write the same visibility state.
+
+### Changed
+- **Inspection panel selection styling** — selected rows now show
+  a 1px border, a 3px left accent stripe, and a translucent
+  background in the **tier colour** (red for errors, amber for
+  warnings, etc.). The previous 5%-white tint was almost invisible
+  on the dark panel.
+
 ## [0.3.0-beta.99] — 2026-05-25
 
 ### Fixed
