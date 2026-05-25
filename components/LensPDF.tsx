@@ -114,9 +114,11 @@ import {
   pluginsForSlot,
   resolveShellPlugins,
   type LensPDFShellPlugin,
+  type LensTopBarAction,
   type PointerTool,
   type ViewerMode,
 } from "./shellPlugins";
+import { LensTopBar } from "./LensTopBar";
 import {
   fromArtworkFindings,
   fromCallasFindings,
@@ -171,14 +173,27 @@ export interface LensPDFProps {
   pdfUrl: string;
   /** Theme tokens. Defaults to {@link darkThemeTokens}. */
   tokens?: Partial<ThemeTokens>;
-  /** Brand label shown in the viewer footer. Default: "LensPDF". */
+  /** Brand label shown in the viewer top bar + footer. Default: "LensPDF". */
   brand?: string;
   /**
-   * Brand logo URL. Consumed by {@link LensPDFDemo}'s upload header;
-   * accepted here for prop parity so a shared config object can be
-   * spread onto either component.
+   * Brand logo URL. Rendered to the left of the brand label in the
+   * built-in top bar (see `showTopBar`).
    */
   brandLogoUrl?: string;
+  /**
+   * Host-injected action buttons shown on the right side of the
+   * built-in top bar. Use this for "Download", "Back to demo",
+   * deep-links etc. without authoring a shell plugin. Each action
+   * renders as a token-styled anchor or button. See
+   * {@link LensTopBarAction}.
+   */
+  topBarActions?: ReadonlyArray<LensTopBarAction>;
+  /**
+   * When `false`, suppresses the built-in top bar. Hosts that already
+   * render their own chrome around `<LensPDF>` should pass `false`.
+   * Default: `true`.
+   */
+  showTopBar?: boolean;
   /** Optional className on the outermost div. */
   className?: string;
   /** Tools to show in the sidebar. Default: every tool. */
@@ -351,6 +366,9 @@ export function LensPDF({
   pdfUrl,
   tokens: tokenOverrides,
   brand,
+  brandLogoUrl,
+  topBarActions,
+  showTopBar = true,
   className,
   tools = DEFAULT_TOOLS,
   initialZoom = 80,
@@ -1024,6 +1042,10 @@ export function LensPDF({
     () => pluginsForSlot(resolvedPlugins, "overlay.toolbar", shellPluginContext),
     [resolvedPlugins, shellPluginContext],
   );
+  const topBarPlugins = useMemo(
+    () => pluginsForSlot(resolvedPlugins, "topbar", shellPluginContext),
+    [resolvedPlugins, shellPluginContext],
+  );
 
   const showColorPicker = availability.colorPicker;
   const showDensitometer = availability.densitometer;
@@ -1111,47 +1133,22 @@ export function LensPDF({
           </div>
         )}
 
-        <div style={{ ...layoutStyle, position: "relative" }}>
-          {/* Mobile tools-drawer toggle — a corner FAB so it never
-              covers the annotation toolbar. */}
-          {hasAnyTool && isMobile && !mobileSidebarOpen && (
-            <button
-              type="button"
-              aria-label={
-                "Open tools panel"
-              }
-              aria-expanded={mobileSidebarOpen}
-              onClick={() => setMobileSidebarOpen((v) => !v)}
-              style={{
-                // Anchored to the LensPDF region (parent is position:
-                // relative) so it can't collide with host page nav.
-                // safe-area-inset still respected for iPhone notch +
-                // landscape. z-index sits above the canvas but below
-                // the drawer (141) and dimmer (140).
-                position: "absolute",
-                top: "max(12px, env(safe-area-inset-top))",
-                right: "max(12px, env(safe-area-inset-right))",
-                left: "auto",
-                zIndex: 100,
-                width: 44,
-                height: 44,
-                borderRadius: 8,
-                border: `1px solid ${tokens.border}`,
-                background: tokens.bg,
-                color: tokens.fg,
-                cursor: "pointer",
-                fontSize: 22,
-                lineHeight: 1,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.35)",
-              }}
-            >
-              {"\u2630"}
-            </button>
-          )}
+        {showTopBar && (
+          <LensTopBar
+            tokens={tokens}
+            isMobile={isMobile}
+            brand={brand}
+            brandLogoUrl={brandLogoUrl}
+            actions={topBarActions}
+            pluginNodes={topBarPlugins.map((plugin) =>
+              plugin.render(shellPluginContext),
+            )}
+            mobileSidebarOpen={mobileSidebarOpen}
+            onToggleMobileSidebar={() => setMobileSidebarOpen((v) => !v)}
+          />
+        )}
 
+        <div style={{ ...layoutStyle, position: "relative" }}>
           {/* Mobile drawer dimmer — sits above all chrome so the tools panel
               is never trapped behind the top bar/header layers. */}
           {hasAnyTool && isMobile && mobileSidebarOpen && (
