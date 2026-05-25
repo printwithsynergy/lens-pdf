@@ -259,6 +259,29 @@ function modeToolsPlugin(): LensPDFShellPlugin {
               <span>TAC heatmap (limit 300%)</span>
             </label>
           )}
+          {/* Overlay toggles — only meaningful outside Inspection mode
+              (where these auto-render). Hide on Inspection to avoid
+              redundant controls. */}
+          {viewerMode !== "findings" && hasFindings && (
+            <>
+              <label style={rowStyle}>
+                <input
+                  type="checkbox"
+                  checked={ctx.showFindings}
+                  onChange={(e) => ctx.setShowFindings(e.target.checked)}
+                />
+                <span>Finding overlays</span>
+              </label>
+              <label style={rowStyle}>
+                <input
+                  type="checkbox"
+                  checked={ctx.showDieline}
+                  onChange={(e) => ctx.setShowDieline(e.target.checked)}
+                />
+                <span>Dieline outline</span>
+              </label>
+            </>
+          )}
           {viewerMode === "findings" && hasFindings && <FindingsPanel ctx={ctx} />}
         </>
       );

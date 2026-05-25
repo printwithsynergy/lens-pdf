@@ -73,6 +73,15 @@ export interface LensPDFShellPluginContext {
   setActiveTool: Dispatch<SetStateAction<PointerTool>>;
   showHeatmap: boolean;
   setShowHeatmap: Dispatch<SetStateAction<boolean>>;
+  /** Manual dieline overlay toggle. Independent of viewerMode — when
+   *  `true` the dieline draws on top of any canvas mode. When `false`,
+   *  dieline only renders in Inspection mode (`viewerMode === "findings"`). */
+  showDieline: boolean;
+  setShowDieline: Dispatch<SetStateAction<boolean>>;
+  /** Manual finding-overlay toggle (bbox highlights + F-number badges
+   *  on the canvas). Same gating logic as `showDieline`. */
+  showFindings: boolean;
+  setShowFindings: Dispatch<SetStateAction<boolean>>;
   enabledChannels: Set<string>;
   setEnabledChannels: Dispatch<SetStateAction<Set<string>>>;
   detectedInks: Array<{
