@@ -199,7 +199,7 @@ registry.
 Import from `@printwithsynergy/lens-pdf/components`:
 
 ```ts
-type LensPDFShellSlot = "panel.left" | "overlay.toolbar";
+type LensPDFShellSlot = "panel.left" | "overlay.toolbar" | "topbar";
 
 interface LensPDFShellPlugin {
   id: string;
@@ -229,6 +229,18 @@ Pass plugins directly:
 
 `replaces` uses the same shadow semantics as the global registry:
 set `replaces: "<builtin-id>"` to override a first-party shell plugin.
+
+### Shell slots
+
+| Slot | Where it renders | Typical use |
+| --- | --- | --- |
+| `panel.left` | Left-side tools drawer (always-on desktop; hamburger-toggled drawer on mobile). | Mode picker, separations panel, layers panel, annotations panel, custom inspectors. |
+| `overlay.toolbar` | Sticky toolbar above the canvas. | Annotation toolbar, sticky tool palettes. |
+| `topbar` | Inside `LensTopBar`, between the brand block and the right-aligned action buttons. | Save-status indicators, search inputs, host-controlled stateful UI. |
+
+For simple link / button actions in the top bar, prefer the
+declarative [`topBarActions`](./components.md#built-in-top-bar) prop
+on `<LensPDF>` — no plugin authoring required.
 
 ## `OverlayItem`
 

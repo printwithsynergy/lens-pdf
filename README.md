@@ -101,8 +101,20 @@ in directly:
   tokens={{ accent: "#e50c6a" }}
   brand="MyApp"
   brandLogoUrl="/logo.svg"
+  topBarActions={[
+    { id: "back", label: "← Home", href: "/" },
+    { id: "download", label: "Download PDF",
+      href: "/proofs/abc.pdf", download: "abc.pdf" },
+  ]}
 />
 ```
+
+The built-in `LensTopBar` shows the brand block + your `topBarActions`
+buttons + the mobile hamburger. Hosts that already render their own
+chrome can pass `showTopBar={false}` to opt out. See
+[Built-in top bar](./docs/components.md#built-in-top-bar) for the full
+action shape and the `"topbar"` shell-plugin slot for stateful
+content.
 
 No backend required for the viewer side. Server-only features (HTML /
 PDF report exports, ICC-correct preflight separations, server-
