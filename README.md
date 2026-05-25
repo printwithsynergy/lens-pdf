@@ -101,7 +101,7 @@ in directly:
   tokens={{ accent: "#e50c6a" }}
   brand="MyApp"
   brandLogoUrl="/logo.svg"
-  topBarActions={[
+  menuActions={[
     { id: "back", label: "← Home", href: "/" },
     { id: "download", label: "Download PDF",
       href: "/proofs/abc.pdf", download: "abc.pdf" },
@@ -109,12 +109,13 @@ in directly:
 />
 ```
 
-The built-in `LensTopBar` shows the brand block + your `topBarActions`
-buttons + the mobile hamburger. Hosts that already render their own
-chrome can pass `showTopBar={false}` to opt out. See
-[Built-in top bar](./docs/components.md#built-in-top-bar) for the full
-action shape and the `"topbar"` shell-plugin slot for stateful
-content.
+The built-in `LensTopBar` shows the brand block + the mobile
+hamburger. Your `menuActions` render inside the tools menu (drawer
+on mobile, sidebar on desktop), pinned above the plugin panels. Pass
+`showTopBar={false}` to suppress the top bar for hosts that already
+render their own chrome. See
+[Tools menu](./docs/components.md#tools-menu-menuactions) for the
+full action shape.
 
 No backend required for the viewer side. Server-only features (HTML /
 PDF report exports, ICC-correct preflight separations, server-

@@ -114,7 +114,7 @@ export type {
   LensPDFShellPlugin,
   LensPDFShellPluginContext,
   LensPDFShellSlot,
-  LensTopBarAction,
+  LensMenuAction,
 } from "./components/shellPlugins";
 
 // Adapters — map raw engine outputs (codex, lint, callas, pitstop) to

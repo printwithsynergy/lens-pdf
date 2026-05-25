@@ -6,6 +6,22 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0-beta.98] — 2026-05-25
+
+### Changed
+- **`topBarActions` → `menuActions` (renamed + relocated).** The
+  declarative host action buttons now render inside the tools menu
+  (hamburger drawer on mobile / persistent left sidebar on desktop),
+  pinned above the plugin panels. Top-bar real estate was getting
+  crowded on narrow viewports — moving these into the menu keeps the
+  top bar compact (just brand + hamburger). The `LensTopBarAction`
+  type is now `LensMenuAction`. Hosts that adopted b97 should rename
+  the prop + import; behaviour is otherwise identical (same fields:
+  `{ id, label, href?/onClick?, download?, external?, order? }`).
+- `hasAnyTool` (which drives sidebar / drawer rendering) now also
+  considers `menuActions.length > 0`, so a host can ship a menu with
+  actions even before any plugins become available.
+
 ## [0.3.0-beta.97] — 2026-05-25
 
 ### Added
