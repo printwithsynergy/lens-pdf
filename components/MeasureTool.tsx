@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { MeasurementUnit } from "../plugin/types";
 import { defaultMeasurementUnits } from "../units";
 
@@ -111,32 +111,43 @@ export function MeasureTool({
   );
   const handleMouseUp = useCallback(() => finishMeasure(), [finishMeasure]);
 
-  // Touch handlers
-  const handleTouchStart = useCallback(
-    (e: React.TouchEvent<HTMLDivElement>) => {
+  // Native touch handlers — attached via addEventListener with
+  // {passive: false} so e.preventDefault() actually prevents iOS
+  // Safari from initiating its own scroll/zoom gestures mid-measure.
+  // React's synthetic touch handlers are passive in some bundler /
+  // React-version combinations, which silently broke measurement on
+  // mobile (the touchmove event would fire but the browser would
+  // also pan the canvas, racing the React state update).
+  useEffect(() => {
+    const el = overlayRef.current;
+    if (!el) return;
+    const onStart = (e: TouchEvent) => {
       if (e.touches.length !== 1) return;
       e.preventDefault();
       const t = e.touches[0]!;
-      beginMeasure(t.clientX, t.clientY, e.currentTarget);
-    },
-    [beginMeasure],
-  );
-  const handleTouchMove = useCallback(
-    (e: React.TouchEvent<HTMLDivElement>) => {
+      beginMeasure(t.clientX, t.clientY, el);
+    };
+    const onMove = (e: TouchEvent) => {
       if (e.touches.length !== 1) return;
       e.preventDefault();
       const t = e.touches[0]!;
-      moveMeasure(t.clientX, t.clientY, e.currentTarget);
-    },
-    [moveMeasure],
-  );
-  const handleTouchEnd = useCallback(
-    (e: React.TouchEvent<HTMLDivElement>) => {
+      moveMeasure(t.clientX, t.clientY, el);
+    };
+    const onEnd = (e: TouchEvent) => {
       e.preventDefault();
       finishMeasure();
-    },
-    [finishMeasure],
-  );
+    };
+    el.addEventListener("touchstart", onStart, { passive: false });
+    el.addEventListener("touchmove", onMove, { passive: false });
+    el.addEventListener("touchend", onEnd, { passive: false });
+    el.addEventListener("touchcancel", onEnd, { passive: false });
+    return () => {
+      el.removeEventListener("touchstart", onStart);
+      el.removeEventListener("touchmove", onMove);
+      el.removeEventListener("touchend", onEnd);
+      el.removeEventListener("touchcancel", onEnd);
+    };
+  }, [beginMeasure, moveMeasure, finishMeasure]);
 
   const isTouch = typeof window !== "undefined" && "ontouchstart" in window;
 
@@ -149,9 +160,6 @@ export function MeasureTool({
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
       style={{
         position: "absolute",
         inset: 0,

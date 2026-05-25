@@ -1341,6 +1341,37 @@ export function LensPDF({
             </aside>
           )}
 
+          {/* Stage column — wraps the annotation toolbar + the
+              scrolling canvas section. The toolbar lives OUTSIDE the
+              scroll container so it stays anchored to the viewport
+              (independent of canvas pan) on mobile. */}
+          <div
+            style={{
+              flex: 1,
+              minWidth: 0,
+              minHeight: 0,
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+            }}
+          >
+            {toolbarOverlayPlugins.length > 0 && (
+              <div
+                style={{
+                  flexShrink: 0,
+                  display: "flex",
+                  justifyContent: "center",
+                  zIndex: 30,
+                  background: tokens.bg,
+                  ...(isMobile ? { padding: "8px 8px 0" } : { padding: "8px 0 0" }),
+                }}
+              >
+                {toolbarOverlayPlugins.map((plugin) => (
+                  <div key={plugin.id}>{plugin.render(shellPluginContext)}</div>
+                ))}
+              </div>
+            )}
+
           {/* Stage */}
           <section
             style={{
@@ -1359,31 +1390,6 @@ export function LensPDF({
               </div>
             ) : (
               <div style={stageInnerStyle}>
-                {toolbarOverlayPlugins.length > 0 && (
-                  // Sticky at the top of the stage scroll container on both
-                  // mobile and desktop — the toolbar stays visible while the
-                  // canvas scrolls, but never escapes upward into the host
-                  // page's chrome (the `fixed` variant covered marketing-site
-                  // nav when the viewer was mounted in `embedded` mode).
-                  <div
-                    style={{
-                      position: "sticky",
-                      top: 0,
-                      zIndex: 30,
-                      alignSelf: "center",
-                      ...(isMobile
-                        ? {
-                            paddingTop: 8,
-                            maxWidth: "100%",
-                          }
-                        : {}),
-                    }}
-                  >
-                    {toolbarOverlayPlugins.map((plugin) => (
-                      <div key={plugin.id}>{plugin.render(shellPluginContext)}</div>
-                    ))}
-                  </div>
-                )}
                 <div
                   style={{
                     width: canvasW,
@@ -1601,6 +1607,7 @@ export function LensPDF({
               </div>
             )}
           </section>
+          </div>
         </div>
 
         <footer style={footerStyle(tokens)}>

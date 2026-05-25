@@ -6,6 +6,25 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0-beta.101] — 2026-05-25
+
+### Fixed
+- **Annotation toolbar no longer drifts off-screen on mobile.** After
+  b100's pan fix made `stageInnerStyle` `width: max-content`, the
+  toolbar inside it (with `align-self: center`) ended up centered
+  relative to the **canvas** rather than the viewport — panning right
+  on a wide PDF pushed it off the screen. Hoisted the toolbar out of
+  the scroll container into a sibling above `<section>`, so it stays
+  anchored to the viewport regardless of canvas pan.
+- **Measurement tool now works on mobile.** Switched from React
+  synthetic touch handlers to native `addEventListener` with
+  `{ passive: false }`. React's synthetic touch events are passive in
+  some bundler / React-version combinations, so `e.preventDefault()`
+  was a no-op — iOS Safari would initiate its own scroll/zoom on
+  touchmove and race the measurement state update, leaving the tool
+  in a no-op state. The element still carries `touch-action: none`
+  belt-and-suspenders.
+
 ## [0.3.0-beta.100] — 2026-05-25
 
 ### Fixed
