@@ -569,6 +569,11 @@ export function LensPDF({
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [showDieline, setShowDieline] = useState(false);
   const [showFindings, setShowFindings] = useState(false);
+  // Per-finding visibility toggle state. The Inspection panel writes
+  // here; canvasItems are filtered against this set before they reach
+  // PageCanvas, so unchecked findings disappear from the canvas while
+  // staying in the panel list (greyed) for re-enable.
+  const [hiddenFindings, setHiddenFindings] = useState<Set<string>>(new Set());
   const [allLayerIndices, setAllLayerIndices] = useState<number[]>([]);
   const [enabledLayers, setEnabledLayers] = useState<Set<number>>(new Set());
   const [enabledChannels, setEnabledChannels] = useState<Set<string>>(
@@ -956,6 +961,8 @@ export function LensPDF({
       setShowDieline,
       showFindings,
       setShowFindings,
+      hiddenFindings,
+      setHiddenFindings,
       enabledChannels,
       setEnabledChannels,
       detectedInks: detectedInks.map((ink) => ({
@@ -1005,6 +1012,7 @@ export function LensPDF({
       showHeatmap,
       showDieline,
       showFindings,
+      hiddenFindings,
       enabledChannels,
       detectedInks,
       enabledLayers,
@@ -1341,7 +1349,6 @@ export function LensPDF({
                 ? {
                     padding: "12px 8px",
                     paddingBottom: "max(12px, env(safe-area-inset-bottom))",
-                    gap: 8,
                   }
                 : {}),
             }}
@@ -1425,10 +1432,14 @@ export function LensPDF({
                       // Only feed PageCanvas the finding overlays when
                       // the user is on the Inspection tab or has
                       // explicitly flipped the Findings toggle. Page
-                      // view defaults to a clean read.
+                      // view defaults to a clean read. `hiddenFindings`
+                      // further filters out items the user has toggled
+                      // off via the per-row eye button in the panel.
                       items={
                         viewerMode === "findings" || showFindings
-                          ? canvasItems
+                          ? canvasItems.filter(
+                              (it) => !hiddenFindings.has(it.id),
+                            )
                           : []
                       }
                       selectedItem={effectiveSelected}

@@ -476,12 +476,71 @@ function FindingsPanel({ ctx }: { ctx: LensPDFShellPluginContext }) {
     ? items.filter((it) => activeTiers.has((it.tier ?? "info") as Tier))
     : items;
 
+  // Bulk visibility controls. `hiddenFindings` lives in LensPDF
+  // shell state so the canvas + the panel agree on what's hidden.
+  const hiddenSet = ctx.hiddenFindings;
+  const allVisibleHidden = items.length > 0 && items.every((it) => hiddenSet.has(it.id));
+  const noneHidden = items.every((it) => !hiddenSet.has(it.id));
+  const hideAll = () => {
+    ctx.setHiddenFindings(new Set(items.map((it) => it.id)));
+  };
+  const showAll = () => {
+    if (hiddenSet.size === 0) return;
+    ctx.setHiddenFindings(new Set());
+  };
+  const toggleOne = (id: string) => {
+    ctx.setHiddenFindings((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   return (
     <>
       <div style={panelHeaderRowStyle}>
         <h2 style={headingStyle}>
           Inspection ({isFiltered ? `${visible.length}/` : ""}{items.length})
         </h2>
+        <div style={{ display: "flex", gap: 4 }}>
+          <button
+            type="button"
+            onClick={showAll}
+            disabled={noneHidden}
+            title="Show every finding on the canvas"
+            style={{
+              padding: "3px 8px",
+              borderRadius: 4,
+              border: `1px solid ${ctx.tokens.border}`,
+              background: noneHidden ? "transparent" : "rgba(255,255,255,0.06)",
+              color: ctx.tokens.fg,
+              fontSize: 11,
+              cursor: noneHidden ? "default" : "pointer",
+              opacity: noneHidden ? 0.4 : 1,
+            }}
+          >
+            Show all
+          </button>
+          <button
+            type="button"
+            onClick={hideAll}
+            disabled={allVisibleHidden}
+            title="Hide every finding from the canvas"
+            style={{
+              padding: "3px 8px",
+              borderRadius: 4,
+              border: `1px solid ${ctx.tokens.border}`,
+              background: allVisibleHidden ? "transparent" : "rgba(255,255,255,0.06)",
+              color: ctx.tokens.fg,
+              fontSize: 11,
+              cursor: allVisibleHidden ? "default" : "pointer",
+              opacity: allVisibleHidden ? 0.4 : 1,
+            }}
+          >
+            Hide all
+          </button>
+        </div>
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
         {TIER_ORDER.map((t) =>
@@ -549,9 +608,11 @@ function FindingsPanel({ ctx }: { ctx: LensPDFShellPluginContext }) {
           const t = (it.tier ?? "info") as string;
           const label = it.label ?? it.id ?? `Finding ${i + 1}`;
           const isSelected = ctx.selectedItem?.id === it.id;
+          const isHidden = hiddenSet.has(it.id);
           const findingN = ctx.findingNumbers.get(it.id);
           const decision = ctx.decisions?.[it.id];
           const hasActiveDecision = decision?.is_active === true;
+          const tierColor = tone(t);
           return (
             <div
               key={it.id ?? `f-${i}`}
@@ -559,10 +620,18 @@ function FindingsPanel({ ctx }: { ctx: LensPDFShellPluginContext }) {
                 display: "flex",
                 flexDirection: "column",
                 borderRadius: 6,
-                border: "1px solid transparent",
-                borderColor: isSelected ? "rgba(255,255,255,0.18)" : "transparent",
-                background: isSelected ? "rgba(255,255,255,0.05)" : "transparent",
-                opacity: hasActiveDecision ? 0.6 : 1,
+                // Selected → tier-tinted accent so the highlight is
+                // visible against the dark panel background. Previous
+                // 5%-white tint was nearly invisible.
+                border: isSelected
+                  ? `1px solid ${tierColor}`
+                  : "1px solid transparent",
+                background: isSelected
+                  ? `${tierColor.replace("0.85", "0.18").replace("0.75", "0.16")}`
+                  : "transparent",
+                boxShadow: isSelected ? `inset 3px 0 0 0 ${tierColor}` : "none",
+                opacity: hasActiveDecision || isHidden ? 0.55 : 1,
+                transition: "background 0.12s, border-color 0.12s, opacity 0.12s",
               }}
             >
               <div style={{ display: "flex", alignItems: "flex-start", gap: 4 }}>
@@ -650,6 +719,38 @@ function FindingsPanel({ ctx }: { ctx: LensPDFShellPluginContext }) {
                       ✓ {decision.decision_type}
                     </span>
                   )}
+                </button>
+                <button
+                  type="button"
+                  aria-label={isHidden ? `Show ${label}` : `Hide ${label}`}
+                  aria-pressed={isHidden}
+                  title={
+                    isHidden
+                      ? "Show this finding on the canvas"
+                      : "Hide this finding from the canvas"
+                  }
+                  onClick={() => toggleOne(it.id)}
+                  style={{
+                    flexShrink: 0,
+                    alignSelf: "center",
+                    margin: "0 6px 0 2px",
+                    padding: "3px 7px",
+                    borderRadius: 4,
+                    border: `1px solid ${ctx.tokens.border}`,
+                    background: isHidden
+                      ? "rgba(255,255,255,0.04)"
+                      : "transparent",
+                    color: isHidden
+                      ? "rgba(148,163,184,0.85)"
+                      : ctx.tokens.fg,
+                    fontSize: 10,
+                    fontWeight: 600,
+                    lineHeight: 1.4,
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {isHidden ? "Show" : "Hide"}
                 </button>
               </div>
               {ctx.onDecide && (

@@ -131,19 +131,13 @@ export function sidebarStyle(tokens: ThemeTokens): CSSProperties {
 export const stageStyle: CSSProperties = {
   flex: 1,
   overflow: "auto",
-  display: "flex",
-  flexDirection: "column",
-  // `safe center` falls back to `start` when the inner content
-  // overflows the cross axis — without it, iOS Safari clips both
-  // sides of an over-wide canvas and the user can't pan to either
-  // edge. Modern Chrome / Firefox handle this fine, but mobile
-  // Safari historically refuses to scroll past a centered child.
-  alignItems: "safe center",
+  // Block layout — the inner div uses `width: max-content; min-width:
+  // 100%; margin: 0 auto` so it centers within the section when the
+  // canvas fits, and lets the section scroll horizontally when the
+  // canvas is wider. A flex column with align-items:center (even
+  // `safe center`) refuses to scroll past an overflowing child on iOS
+  // Safari; the block-with-margin-auto pattern works everywhere.
   padding: 24,
-  gap: 12,
-  // iOS momentum scroll + explicit touch-action so the section is
-  // unambiguously the pan target (no parent should swallow the pan
-  // event when starting from inside the canvas region).
   WebkitOverflowScrolling: "touch",
   touchAction: "pan-x pan-y",
 };
@@ -270,10 +264,19 @@ export function pageNavBtnStyle(
 export const stageInnerStyle: CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  // Match `stageStyle` — `safe center` so an over-wide canvas
-  // doesn't clip off the left/right edges on mobile.
-  alignItems: "safe center",
+  alignItems: "center",
   gap: 12,
+  // Critical for horizontal scroll: the inner div sizes to its
+  // widest child (`max-content`) but always fills the section at
+  // a minimum. `margin: 0 auto` centers it when the section is
+  // wider than the canvas; when narrower the section overflows
+  // and the user can pan to either edge via overflow:auto on the
+  // section. `box-sizing: border-box` so `min-width: 100%` means
+  // the section's content box.
+  width: "max-content",
+  minWidth: "100%",
+  margin: "0 auto",
+  boxSizing: "border-box",
 };
 
 export function modeButtonGroupStyle(): CSSProperties {
