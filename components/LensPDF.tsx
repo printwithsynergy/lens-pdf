@@ -547,6 +547,8 @@ export function LensPDF({
   const [viewerMode, setViewerMode] = useState<ViewerMode>("page");
   const [activeTool, setActiveTool] = useState<PointerTool>("none");
   const [showHeatmap, setShowHeatmap] = useState(false);
+  const [showDieline, setShowDieline] = useState(false);
+  const [showFindings, setShowFindings] = useState(false);
   const [allLayerIndices, setAllLayerIndices] = useState<number[]>([]);
   const [enabledLayers, setEnabledLayers] = useState<Set<number>>(new Set());
   const [enabledChannels, setEnabledChannels] = useState<Set<string>>(
@@ -576,7 +578,10 @@ export function LensPDF({
   >([]);
   const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | null>(null);
 
-  // Selects a finding, opens the Notes panel at it, and queues a blank note.
+  // Selects a finding, opens the Notes panel at it, and queues a blank
+  // note. On mobile we also open the Tools drawer so the auto-focused
+  // textarea isn't offscreen — without this, the focus event happens
+  // behind the closed drawer and the user sees nothing.
   const handleFindingNoteRequest = useCallback(
     (id: string) => {
       const found = overlayItems.find((it) => it.id === id);
@@ -584,8 +589,9 @@ export function LensPDF({
       const noteId = `finding-${id}`;
       setSelectedAnnotationId(noteId);
       setPendingNoteTarget(noteId);
+      if (isMobile) setMobileSidebarOpen(true);
     },
-    [overlayItems, handleItemClick],
+    [overlayItems, handleItemClick, isMobile],
   );
   const handlePendingNoteConsumed = useCallback(() => setPendingNoteTarget(null), []);
 
@@ -926,6 +932,10 @@ export function LensPDF({
       setActiveTool,
       showHeatmap,
       setShowHeatmap,
+      showDieline,
+      setShowDieline,
+      showFindings,
+      setShowFindings,
       enabledChannels,
       setEnabledChannels,
       detectedInks: detectedInks.map((ink) => ({
@@ -973,6 +983,8 @@ export function LensPDF({
       viewerMode,
       activeTool,
       showHeatmap,
+      showDieline,
+      showFindings,
       enabledChannels,
       detectedInks,
       enabledLayers,
@@ -1111,11 +1123,16 @@ export function LensPDF({
               aria-expanded={mobileSidebarOpen}
               onClick={() => setMobileSidebarOpen((v) => !v)}
               style={{
-                position: "fixed",
+                // Anchored to the LensPDF region (parent is position:
+                // relative) so it can't collide with host page nav.
+                // safe-area-inset still respected for iPhone notch +
+                // landscape. z-index sits above the canvas but below
+                // the drawer (141) and dimmer (140).
+                position: "absolute",
                 top: "max(12px, env(safe-area-inset-top))",
                 right: "max(12px, env(safe-area-inset-right))",
                 left: "auto",
-                zIndex: 200,
+                zIndex: 100,
                 width: 44,
                 height: 44,
                 borderRadius: 8,
@@ -1403,18 +1420,28 @@ export function LensPDF({
                       jobId="lens-pdf-demo"
                       page={page}
                       zoom={zoom}
-                      items={canvasItems}
+                      // Only feed PageCanvas the finding overlays when
+                      // the user is on the Inspection tab or has
+                      // explicitly flipped the Findings toggle. Page
+                      // view defaults to a clean read.
+                      items={
+                        viewerMode === "findings" || showFindings
+                          ? canvasItems
+                          : []
+                      }
                       selectedItem={effectiveSelected}
                       onItemClick={handleItemClick}
+                      onFindingNoteRequest={handleFindingNoteRequest}
                       cropToTrim={cropToTrim}
                       findingNumbers={findingNumbers}
                       decisions={decisions}
                     />
                   )}
 
-                  {/* Trim / Bleed / Crop boxes — only for the Page mode
-                      so they don't fight the separation / layer canvases. */}
-                  {viewerMode === "page" && showBoxOverlays && (
+                  {/* Trim / Bleed / Crop boxes — auto-on in Inspection
+                      mode; otherwise require the host/user to opt in
+                      via showBoxOverlays so Page view stays clean. */}
+                  {(viewerMode === "findings" || showBoxOverlays) && (
                     <BoxOverlay
                       page={page}
                       canvasWidth={canvasW}
@@ -1422,17 +1449,19 @@ export function LensPDF({
                       dieline={effectiveDieline ?? null}
                     />
                   )}
-                  {/* Dieline region size chips — independent of BoxOverlay
-                      so hosts can flip on dieline-only without trim/bleed
-                      clutter. */}
-                  {viewerMode === "page" && effectiveDieline && !showBoxOverlays && (
-                    <DielineOverlay
-                      page={page}
-                      canvasWidth={canvasW}
-                      canvasHeight={canvasH}
-                      dieline={effectiveDieline}
-                    />
-                  )}
+                  {/* Dieline region size chips — auto-on in Inspection
+                      mode (when BoxOverlay isn't already drawing chips)
+                      or via the explicit showDieline toggle. */}
+                  {((viewerMode === "findings" && !showBoxOverlays) ||
+                    showDieline) &&
+                    effectiveDieline && (
+                      <DielineOverlay
+                        page={page}
+                        canvasWidth={canvasW}
+                        canvasHeight={canvasH}
+                        dieline={effectiveDieline}
+                      />
+                    )}
 
                   {services && showHeatmap && (
                     <TACHeatmapOverlay

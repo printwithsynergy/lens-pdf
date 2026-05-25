@@ -26,6 +26,11 @@ interface PageCanvasProps {
   selectedItem: OverlayItem | null;
   /** Fires when the user clicks an item's bbox on the canvas. */
   onItemClick: (item: OverlayItem) => void;
+  /** Optional handler — when wired, the bbox/badge tooltip surfaces a
+   *  "Leave a note" button that calls this with the finding id. Host
+   *  is expected to open its notes panel pre-targeted to that finding.
+   *  Hidden when undefined. */
+  onFindingNoteRequest?: (id: string) => void;
   onZoomChange?: (zoom: number) => void;
   onPageChange?: (delta: number) => void;
   tileDpi?: number;
@@ -160,6 +165,7 @@ export function PageCanvas({
   items,
   selectedItem,
   onItemClick,
+  onFindingNoteRequest,
   onZoomChange,
   onPageChange,
   tileDpi,
@@ -678,6 +684,20 @@ export function PageCanvas({
               {" — "}
               {decisions[tooltip.item.id].decided_by_email ??
                 decisions[tooltip.item.id].decided_by_user_id}
+            </div>
+          )}
+          {onFindingNoteRequest && (
+            <div className="mt-2 border-t border-white/20 pt-2">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onFindingNoteRequest(tooltip.item.id);
+                }}
+                className="pointer-events-auto inline-flex items-center gap-1 rounded bg-white/15 px-2 py-1 text-[11px] font-medium text-white hover:bg-white/25"
+              >
+                Leave a note
+              </button>
             </div>
           )}
         </div>
