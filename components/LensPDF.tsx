@@ -106,6 +106,8 @@ import { DielineOverlay } from "./DielineOverlay";
 import { LayerCanvas } from "./LayerCanvas";
 import { MeasureTool } from "./MeasureTool";
 import { PageCanvas } from "./PageCanvas";
+import { PdfSubstrate } from "./PdfSubstrate";
+import { FindingsOverlayDOM } from "./FindingsOverlayDOM";
 import { SeparationCanvas } from "./SeparationCanvas";
 import { TACHeatmapOverlay } from "./TACHeatmapOverlay";
 import { pluginsForPreset, type LensPDFPresetKind } from "./presets";
@@ -574,6 +576,18 @@ export function LensPDF({
   // PageCanvas, so unchecked findings disappear from the canvas while
   // staying in the panel list (greyed) for re-enable.
   const [hiddenFindings, setHiddenFindings] = useState<Set<string>>(new Set());
+
+  // Rendered page dimensions reported back by the react-pdf substrate
+  // after the page has actually painted. Drives overlay positioning
+  // (BoxOverlay, DielineOverlay, FindingsOverlayDOM) so they sit
+  // exactly on top of the rasterized page regardless of how react-pdf
+  // chose to size the canvas.
+  const [substratePage, setSubstratePage] = useState<{
+    width: number;
+    height: number;
+    widthPts: number;
+    heightPts: number;
+  } | null>(null);
   const [allLayerIndices, setAllLayerIndices] = useState<number[]>([]);
   const [enabledLayers, setEnabledLayers] = useState<Set<number>>(new Set());
   const [enabledChannels, setEnabledChannels] = useState<Set<string>>(
@@ -1388,6 +1402,81 @@ export function LensPDF({
               <div style={emptyStateStyle}>
                 <p style={{ margin: 0, opacity: 0.6 }}>Loading…</p>
               </div>
+            ) : viewerMode === "page" || viewerMode === "findings" ? (
+              // New react-pdf substrate handles primary page rendering
+              // + Acrobat-grade pan / pinch / double-tap zoom natively.
+              // SeparationCanvas + LayerCanvas modes still use the
+              // legacy tile-fetch path below.
+              <PdfSubstrate
+                file={pdfUrl}
+                pageNumber={currentPage}
+                zoom={zoom}
+                onZoomChange={setZoom}
+                onPageRender={(info) =>
+                  setSubstratePage({
+                    width: info.width,
+                    height: info.height,
+                    widthPts: info.widthPts,
+                    heightPts: info.heightPts,
+                  })
+                }
+                tokens={tokens}
+                panEnabled={activeTool === "none"}
+                pinchEnabled={activeTool === "none"}
+                overlay={
+                  substratePage ? (
+                    <>
+                      {(viewerMode === "findings" || showBoxOverlays) && (
+                        <BoxOverlay
+                          page={page}
+                          canvasWidth={substratePage.width}
+                          canvasHeight={substratePage.height}
+                          dieline={effectiveDieline ?? null}
+                        />
+                      )}
+                      {((viewerMode === "findings" && !showBoxOverlays) ||
+                        showDieline) &&
+                        effectiveDieline && (
+                          <DielineOverlay
+                            page={page}
+                            canvasWidth={substratePage.width}
+                            canvasHeight={substratePage.height}
+                            dieline={effectiveDieline}
+                          />
+                        )}
+                      {services && showHeatmap && (
+                        <TACHeatmapOverlay
+                          jobId="lens-pdf-demo"
+                          pageNum={page.page_num}
+                          width={substratePage.width}
+                          height={substratePage.height}
+                          pageWidthPts={substratePage.widthPts}
+                          pageHeightPts={substratePage.heightPts}
+                          tacLimit={tacLimit}
+                        />
+                      )}
+                      {(viewerMode === "findings" || showFindings) && (
+                        <FindingsOverlayDOM
+                          pageWidthPx={substratePage.width}
+                          pageHeightPx={substratePage.height}
+                          pageWidthPts={substratePage.widthPts}
+                          pageHeightPts={substratePage.heightPts}
+                          items={canvasItems.filter(
+                            (it) =>
+                              !hiddenFindings.has(it.id) &&
+                              it.page === page.page_num,
+                          )}
+                          selectedItem={effectiveSelected}
+                          onItemClick={handleItemClick}
+                          findingNumbers={findingNumbers}
+                          decisions={decisions}
+                          tokens={tokens}
+                        />
+                      )}
+                    </>
+                  ) : undefined
+                }
+              />
             ) : (
               <div style={stageInnerStyle}>
                 <div
@@ -1442,7 +1531,7 @@ export function LensPDF({
                       // further filters out items the user has toggled
                       // off via the per-row eye button in the panel.
                       items={
-                        viewerMode === "findings" || showFindings
+                        showFindings
                           ? canvasItems.filter(
                               (it) => !hiddenFindings.has(it.id),
                             )
@@ -1457,10 +1546,11 @@ export function LensPDF({
                     />
                   )}
 
-                  {/* Trim / Bleed / Crop boxes — auto-on in Inspection
-                      mode; otherwise require the host/user to opt in
-                      via showBoxOverlays so Page view stays clean. */}
-                  {(viewerMode === "findings" || showBoxOverlays) && (
+                  {/* Trim / Bleed / Crop boxes — require explicit
+                      showBoxOverlays toggle in legacy sep/layer
+                      modes. The new react-pdf substrate handles its
+                      own gating in the page/findings branch above. */}
+                  {showBoxOverlays && (
                     <BoxOverlay
                       page={page}
                       canvasWidth={canvasW}
@@ -1468,12 +1558,9 @@ export function LensPDF({
                       dieline={effectiveDieline ?? null}
                     />
                   )}
-                  {/* Dieline region size chips — auto-on in Inspection
-                      mode (when BoxOverlay isn't already drawing chips)
-                      or via the explicit showDieline toggle. */}
-                  {((viewerMode === "findings" && !showBoxOverlays) ||
-                    showDieline) &&
-                    effectiveDieline && (
+                  {/* Dieline region size chips — explicit showDieline
+                      toggle in legacy sep/layer modes. */}
+                  {showDieline && effectiveDieline && (
                       <DielineOverlay
                         page={page}
                         canvasWidth={canvasW}
@@ -1597,8 +1684,7 @@ export function LensPDF({
                     />
                   )}
 
-                  {preparing &&
-                    (viewerMode !== "page" || showHeatmap) && (
+                  {preparing && (
                       <div style={preparingOverlayStyle}>
                         Rasterising page &amp; computing CMYK…
                       </div>

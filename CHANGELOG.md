@@ -6,6 +6,48 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0-beta.0] — 2026-05-25
+
+### Changed (BREAKING substrate swap — page-mode rendering)
+- **New PDF render substrate**: page-mode rendering now runs through
+  `react-pdf` (Mozilla pdf.js wrapper) inside a `react-zoom-pan-pinch`
+  controller. This is the Acrobat-grade substrate — one-finger pan,
+  pinch-zoom, double-tap zoom, momentum scroll all handled natively
+  by the browser / pdf.js, no custom touch routing involved. Replaces
+  the homegrown tile-fetch + canvas + overflow:auto stack that the
+  previous dozen PRs had been fighting on iOS Safari.
+- New components: `PdfSubstrate` (the substrate itself) and
+  `FindingsOverlayDOM` (DOM-based finding bboxes + F-badges that
+  layer inside the substrate's overlay slot).
+- Affected modes: `page` and `findings`. The substrate renders the
+  primary PDF page; BoxOverlay, DielineOverlay, TACHeatmapOverlay,
+  and the new FindingsOverlayDOM all mount inside its overlay slot
+  and scale/pan with the page automatically.
+- Unaffected (legacy path): `separation` and `layer` modes still
+  use the existing SeparationCanvas / LayerCanvas tile renderers,
+  which will be migrated in a follow-up. Their built-in pan/zoom
+  remains on the legacy overflow:auto stack.
+
+### Added dependencies
+- `react-pdf@^10.4.1` — wraps `pdfjs-dist 5.x` (compatible with the
+  existing `pdfjs-dist@^5.7.284` direct dep).
+- `react-zoom-pan-pinch@^4.0.3` — the gesture controller.
+
+### Temporarily regressed (will be re-anchored in 0.4.0-beta.1)
+- Annotation drawing in page mode (AnnotationCanvas needs re-mount
+  inside the new substrate).
+- Measure / color picker / densitometer tools in page mode.
+- These still work in separation / layer modes via the legacy
+  canvas path.
+
+### Migration notes
+Hosts pass the same props as before — `pdfUrl`, `items`,
+`selectedItem`, `decisions` etc. all unchanged. The substrate swap
+is transparent at the API level. Major version bump because the
+underlying rendering stack is now Mozilla's pdf.js (not custom
+tile fetch) and a couple of tools are temporarily missing in page
+mode.
+
 ## [0.3.0-beta.101] — 2026-05-25
 
 ### Fixed
