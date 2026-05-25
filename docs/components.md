@@ -53,7 +53,9 @@ export function ProofPage() {
 | `initialPage` | `number` | `1` | Starting page (1-indexed). |
 | `tacLimit` | `number` | `300` | TAC limit (in percent) for the heatmap + densitometer. |
 | `tokens` | `Partial<ThemeTokens>` | `darkThemeTokens` | Theme override merged onto the dark palette. Add `logoUrl` / `logoText` / `logoMaxHeight` / `logoAlt` to bundle brand identity into the tokens object. |
-| `brand` / `brandLogoUrl` | `string` | _(none)_ | Optional brand label / logo. Falls back to `tokens.logoText` / `tokens.logoUrl` when the props are unset. |
+| `brand` / `brandLogoUrl` | `string` | _(none)_ | Optional brand label / logo. Rendered in the built-in [top bar](#built-in-top-bar) when `showTopBar` is on. Falls back to `tokens.logoText` / `tokens.logoUrl` when the props are unset. |
+| `showTopBar` | `boolean` | `true` | Renders the built-in `LensTopBar` (hamburger on mobile, brand block, host action buttons). Set `false` for hosts that already render their own chrome around the viewer. |
+| `topBarActions` | `ReadonlyArray<LensTopBarAction>` | `[]` | Declarative right-aligned action buttons in the top bar (Download, Back to demo, etc.). Each action: `{ id, label, href?/onClick?, download?, external?, order? }`. See [Built-in top bar](#built-in-top-bar) below. |
 | `items` | `OverlayItem[]` | `[]` | Preflight findings (error / warning / advisory bboxes). |
 | `selectedItem` | `OverlayItem \| null` | _(internal)_ | Controlled selection. |
 | `onItemSelect` | `(item) => void` | _(internal)_ | Selection callback. |
@@ -69,6 +71,69 @@ export function ProofPage() {
 | `plugins` | `ReadonlyArray<LensPDFShellPlugin>` | `[]` | Extra shell plugins; use `replaces` to override built-ins. |
 | `codex` | `MinimalCodexClient` | _(none)_ | Optional codex client; when set, the viewer silently upgrades separations / TAC / layers to Ghostscript-rendered plates as `extractStream` events arrive. |
 | `onPageChange` / `onZoomChange` / `onError` | callbacks | _(none)_ | Lifecycle hooks. |
+
+#### Built-in top bar
+
+`<LensPDF>` ships with a persistent `LensTopBar` at the top of the
+viewer region. It holds — left to right:
+
+1. A hamburger button (mobile only; toggles the tools drawer).
+2. The brand logo (`brandLogoUrl`) + brand text (`brand`).
+3. Nodes from any shell plugin targeting the `"topbar"` slot.
+4. Right-aligned host action buttons supplied via `topBarActions`.
+
+The bar uses `tokens.bg` + `tokens.border` so it inherits your theme.
+Pass `showTopBar={false}` to suppress it entirely — useful for hosts
+that already render their own chrome around `<LensPDF>`.
+
+##### Declarative buttons via `topBarActions`
+
+The easy 90% case — no plugin authoring required:
+
+```tsx
+import type { LensTopBarAction } from "@printwithsynergy/lens-pdf";
+
+const actions: LensTopBarAction[] = [
+  { id: "download", label: "Download PDF", href: fileUrl,
+    download: filename, order: 10 },
+  { id: "report", label: "JSON report",
+    href: `/api/report/${jobId}`, order: 20 },
+  { id: "back", label: "← Demo", href: "/demo", order: 30 },
+];
+
+<LensPDF
+  pdfUrl={fileUrl}
+  brand="LintPDF"
+  brandLogoUrl="/logo.svg"
+  topBarActions={actions}
+  /* … */
+/>
+```
+
+`LensTopBarAction` fields:
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `id` | `string` | Stable identifier (doubles as React key). |
+| `label` | `string` | Button text. |
+| `href` | `string` | When set, renders as `<a href>`. One of `href` / `onClick` is required. |
+| `onClick` | `() => void` | When set, renders as `<button>`. |
+| `download` | `string` | Combined with `href`, applies the HTML `download` attribute. |
+| `external` | `boolean` | Combined with `href`, opens in a new tab (`target="_blank"` + `rel="noopener noreferrer"`). |
+| `order` | `number` | Sort order — lower first. Default `100`. |
+
+Actions that the host can't satisfy (e.g., no JSON report endpoint in
+a non-demo context) are simply omitted from the array — the library
+makes no assumption about which buttons are "standard".
+
+##### Full control via the `"topbar"` plugin slot
+
+For stateful or rich-React buttons (save-status indicators, search
+inputs, etc.), target the `"topbar"` slot from a shell plugin —
+see [plugins.md](./plugins.md) for the manifest shape. Plugin nodes
+render between the brand block and the right-aligned action buttons.
+
+---
 
 CMYK / TAC are RGB-derived approximations when no backend is wired.
 For ICC-correct readings, deploy the [optional reference server](./server.md)

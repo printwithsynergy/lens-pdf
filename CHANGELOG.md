@@ -6,6 +6,59 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0-beta.97] — 2026-05-25
+
+### Added
+- **`LensTopBar` — persistent customizable top bar** inside `<LensPDF>`.
+  Layout left to right: mobile hamburger, brand logo + label, `"topbar"`
+  shell-plugin slot nodes, host-injected action buttons. Hosts whose own
+  page chrome currently wraps `<LensPDF>` (LintPDF logo + back-button
+  pattern) can now drop the wrapper — LensPDF owns the chrome.
+- **`topBarActions: LensTopBarAction[]`** prop on `<LensPDF>` for
+  declarative top-bar buttons. Each action is `{ id, label, href?,
+  onClick?, download?, external?, order? }`. The library renders
+  anchors when `href` is set and buttons otherwise. Hosts construct
+  the array conditionally, so any action they can't satisfy is
+  simply omitted — no built-in "Download / Report / Back" assumption.
+- **`"topbar"`** added to the `LensPDFShellSlot` union for full
+  React-control insertion into the top bar (save-status, search,
+  etc.). The declarative `topBarActions` route still covers the
+  90% case.
+- **`showTopBar?: boolean`** prop on `<LensPDF>` (default `true`).
+  Hosts that already render their own chrome can opt out.
+- `LensTopBarAction` is re-exported from the package root for type
+  consumption by hosts.
+
+### Changed
+- **Mobile drawer hamburger moved into `LensTopBar`** (was the
+  floating FAB at the canvas corner introduced in b95/b96). The new
+  hamburger has no `hasAnyTool` dependency — it stays visible while
+  `isMobile === true`, so the menu can no longer "disappear" during
+  the async window between page paint and findings load. The
+  `position: absolute` FAB block is removed.
+
+## [0.3.0-beta.96] — 2026-05-25
+
+### Added
+- **Finding-badge tooltip "Leave a note" action** — tapping (mobile)
+  or hovering (desktop) an F-number badge surfaces a tooltip with
+  the finding title + description + a Leave-a-note button. Tapping
+  the button auto-creates a blank annotation pre-tagged to that
+  finding and focuses its textarea. On mobile the tools drawer
+  auto-opens so the focus event is visible.
+- **Page-view overlay toggles** — new `showDieline` / `showFindings`
+  shell-context state with matching checkboxes in the Page / Sep /
+  Layer tabs of the Tools panel. Independent of Inspection-mode
+  auto-render.
+
+### Changed
+- **Inspection overlays now gate on Inspection mode by default.**
+  Fresh load on the Page tab shows only the PDF artwork — no
+  dieline outline, no finding bbox highlights, no F-number badges,
+  no TAC heatmap. Overlays auto-render when `viewerMode ===
+  "findings"` (Inspection tab) or when the host/user flips the
+  matching toggle.
+
 ## [0.3.0-beta.93] — 2026-05-23
 
 ### Fixed
