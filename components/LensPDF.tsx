@@ -1111,11 +1111,11 @@ export function LensPDF({
               aria-expanded={mobileSidebarOpen}
               onClick={() => setMobileSidebarOpen((v) => !v)}
               style={{
-                position: "absolute",
-                top: 12,
-                right: 12,
+                position: "fixed",
+                top: "max(12px, env(safe-area-inset-top))",
+                right: "max(12px, env(safe-area-inset-right))",
                 left: "auto",
-                zIndex: 60,
+                zIndex: 200,
                 width: 44,
                 height: 44,
                 borderRadius: 8,
