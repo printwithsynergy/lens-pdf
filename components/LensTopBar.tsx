@@ -30,10 +30,12 @@ function rootStyle(tokens: ThemeTokens): CSSProperties {
     borderBottom: `1px solid ${tokens.border}`,
     flexShrink: 0,
     minHeight: 48,
-    // Sticky inside the LensPDF flex column. zIndex clears sticky
-    // overlay toolbars (30) but stays below the mobile drawer (141).
-    position: "sticky",
-    top: 0,
+    // `position: relative` — the shell wrapper has `overflow:
+    // hidden` so sticky would degrade to relative anyway, and on
+    // iOS Safari a sticky element inside an overflow:hidden parent
+    // has been observed to misroute touch events away from sibling
+    // scroll containers. Keep it simple.
+    position: "relative",
     zIndex: 50,
   };
 }
