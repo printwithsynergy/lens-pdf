@@ -6,6 +6,25 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0-beta.2] — 2026-05-25
+
+### Fixed
+- **PDF still failed to load with "fake worker failed" error in b1.**
+  Root cause: react-pdf 10.x ships `pdfjs.GlobalWorkerOptions.workerSrc`
+  with a deliberately broken sentinel default of `"pdf.worker.mjs"`
+  (a bare module name with no URL base), intended to force consumers
+  to override. The b1 guard `!pdfjs.GlobalWorkerOptions.workerSrc`
+  was false against that truthy sentinel — so my CDN URL was never
+  applied and pdf.js fell back to its in-thread "fake worker" mode,
+  which then tried to dynamic-import `"pdf.worker.mjs"` relative to
+  the page and produced the famous "Module name … does not resolve
+  to a valid URL" error.
+- Replaced the conditional with a real-URL check: we now skip the
+  CDN override only if the existing `workerSrc` looks like an
+  actual URL (`http://`, `https://`, `blob:`, or `/`), so hosts
+  that want to ship a self-hosted worker still win when they set
+  it before importing lens-pdf.
+
 ## [0.4.0-beta.1] — 2026-05-25
 
 ### Fixed
