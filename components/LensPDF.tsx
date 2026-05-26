@@ -198,6 +198,17 @@ export interface LensPDFProps {
    * Default: `true`.
    */
   showTopBar?: boolean;
+  /**
+   * Override the loading screen shown while pdf.js fetches + parses
+   * the document, or while a page is rasterising. When unset,
+   * defaults to a branded page-shaped skeleton with a shimmer sweep.
+   *
+   * Pass a fully custom React node, or import `LensLoadingSkeleton`
+   * and pass it with extra props (e.g. `logo`, `accentColor`,
+   * `label`) to keep the default visual treatment with brand
+   * customisations on top.
+   */
+  loadingPlaceholder?: ReactNode;
   /** Optional className on the outermost div. */
   className?: string;
   /** Tools to show in the sidebar. Default: every tool. */
@@ -373,6 +384,7 @@ export function LensPDF({
   brandLogoUrl,
   menuActions,
   showTopBar = true,
+  loadingPlaceholder,
   className,
   tools = DEFAULT_TOOLS,
   initialZoom = 80,
@@ -1423,6 +1435,7 @@ export function LensPDF({
                 tokens={tokens}
                 panEnabled={activeTool === "none"}
                 pinchEnabled={activeTool === "none"}
+                loadingPlaceholder={loadingPlaceholder}
                 overlay={
                   substratePage ? (
                     <>

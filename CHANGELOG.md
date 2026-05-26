@@ -6,6 +6,29 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0-beta.4] — 2026-05-25
+
+### Added
+- **Branded loading skeleton**, customisable via props. Replaces the
+  bare "Loading PDF…" / "Loading page N…" text with a page-shaped
+  placeholder (US Letter aspect ratio) + shimmer sweep + token-
+  coloured spinner. Reads as active work instead of a frozen tab
+  during the first-paint window.
+- **`loadingPlaceholder?: ReactNode` prop on `<LensPDF>`** for full
+  override — pass any React node to replace the substrate's
+  loading screen entirely.
+- **`LensLoadingSkeleton` component exported from the package root**
+  with props `{ tokens, label?, logo?, accentColor? }`. Hosts can
+  mount it directly with a custom `logo` and `label` to keep the
+  default look with brand chrome on top, instead of writing the
+  whole loading state from scratch.
+- **`defaultPdfjsWorkerSrc` exported from the package root**. Hosts
+  can `<link rel="preload" as="script" href={defaultPdfjsWorkerSrc}>`
+  the worker alongside their HTML — the cold-start fetch (~500 KB
+  from unpkg CDN) was the biggest pre-paint delay. With preload,
+  the browser starts downloading the worker the moment the
+  document hits the wire, parallel with the JS bundle.
+
 ## [0.4.0-beta.3] — 2026-05-25
 
 ### Fixed

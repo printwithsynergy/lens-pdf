@@ -45,14 +45,24 @@ import type { ThemeTokens } from "../plugin/services";
 // /), so hosts that want to ship a self-hosted worker can set
 // `pdfjs.GlobalWorkerOptions.workerSrc` themselves before
 // importing lens-pdf and their value wins.
+
+/**
+ * Default pdf.js worker URL — unpkg CDN pinned to the exact
+ * `pdfjs-dist` version that `react-pdf` ships. Exported so hosts
+ * can `<link rel="preload" as="script" href={defaultPdfjsWorkerSrc}>`
+ * the worker alongside their HTML, removing the cold-start delay
+ * before the first page paint.
+ */
+export const defaultPdfjsWorkerSrc =
+  `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+
 if (typeof window !== "undefined") {
   const current = pdfjs.GlobalWorkerOptions.workerSrc;
   const isRealUrl =
     typeof current === "string" &&
     /^(https?:|blob:|\/)/.test(current);
   if (!isRealUrl) {
-    pdfjs.GlobalWorkerOptions.workerSrc =
-      `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+    pdfjs.GlobalWorkerOptions.workerSrc = defaultPdfjsWorkerSrc;
   }
 }
 
@@ -123,6 +133,17 @@ export interface PdfSubstrateProps {
   pinchEnabled?: boolean;
   /** Optional className on the wrapper div. */
   className?: string;
+  /**
+   * Host-provided loading state. Replaces the built-in
+   * `LensLoadingSkeleton` for both the document-fetch and the
+   * per-page render phases. When unset, defaults to a branded
+   * page-shaped skeleton with a shimmer sweep.
+   *
+   * Pass a static React node for a fully custom loading screen, or
+   * pass `<LensLoadingSkeleton tokens={tokens} logo={<…/>} />` to
+   * keep the default look with a brand logo on top.
+   */
+  loadingPlaceholder?: ReactNode;
 }
 
 interface RenderedPage {
@@ -153,6 +174,152 @@ function errorStyle(tokens: ThemeTokens): CSSProperties {
   };
 }
 
+export interface LensLoadingSkeletonProps {
+  /** Theme tokens for backgrounds + borders + text. */
+  tokens: ThemeTokens;
+  /** Bottom-row caption — e.g. "Loading PDF…", "Rendering page 3…",
+   *  or a host-branded "Crunching your file" string. */
+  label?: string;
+  /**
+   * Optional brand logo or icon rendered above the page-shaped
+   * placeholder. Pass an `<img>`, `<svg>`, or any React node.
+   * Sized to ~32px tall by default — wrap in a styled span for
+   * larger logos.
+   */
+  logo?: ReactNode;
+  /** Spinner accent colour. Defaults to `tokens.fg`. */
+  accentColor?: string;
+}
+
+/**
+ * Branded loading state — a page-shaped skeleton with a shimmer
+ * sweep + brand label. Much friendlier than the plain "Loading PDF…"
+ * text the bare react-pdf prop slot used to render. Uses a US Letter
+ * aspect ratio (8.5:11) since most demo PDFs are letter or close.
+ *
+ * Exported so hosts can mount it directly or wrap it. For a full
+ * custom loading state, pass `loadingPlaceholder` on `<LensPDF>`
+ * instead.
+ */
+export function LensLoadingSkeleton({
+  tokens,
+  label = "Loading PDF…",
+  logo,
+  accentColor,
+}: LensLoadingSkeletonProps) {
+  const spinnerColor = accentColor ?? tokens.fg;
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 14,
+        padding: 24,
+        width: "100%",
+        height: "100%",
+        color: tokens.fg,
+      }}
+    >
+      {logo && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            maxHeight: 48,
+          }}
+        >
+          {logo}
+        </div>
+      )}
+      <div
+        aria-hidden
+        style={{
+          position: "relative",
+          width: "min(70vw, 280px)",
+          aspectRatio: "8.5 / 11",
+          maxHeight: "60%",
+          borderRadius: 6,
+          background: "rgba(255,255,255,0.04)",
+          border: `1px solid ${tokens.border}`,
+          overflow: "hidden",
+          boxShadow:
+            "0 8px 24px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.25)",
+        }}
+      >
+        {/* Skeleton text-line decoration so the placeholder reads
+            as "a page" rather than a flat rectangle. */}
+        <div
+          style={{
+            position: "absolute",
+            inset: "12% 10% 12% 10%",
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+          }}
+        >
+          {[88, 64, 92, 50, 78, 70].map((w, i) => (
+            <div
+              key={i}
+              style={{
+                height: 8,
+                width: `${w}%`,
+                borderRadius: 3,
+                background: "rgba(255,255,255,0.06)",
+              }}
+            />
+          ))}
+        </div>
+        {/* Shimmer sweep — a translucent gradient slides across the
+            placeholder to signal active work. Inline-keyframed via
+            a <style> tag so we don't need a host CSS file. */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background:
+              "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.06) 50%, transparent 100%)",
+            animation: "lens-pdf-skel-sweep 1.6s ease-in-out infinite",
+          }}
+        />
+      </div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          opacity: 0.75,
+          fontSize: 12,
+        }}
+      >
+        <span
+          aria-hidden
+          style={{
+            width: 12,
+            height: 12,
+            borderRadius: "50%",
+            border: `2px solid ${tokens.border}`,
+            borderTopColor: spinnerColor,
+            animation: "lens-pdf-skel-spin 0.8s linear infinite",
+          }}
+        />
+        {label && <span>{label}</span>}
+      </div>
+      <style>{`
+        @keyframes lens-pdf-skel-sweep {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+        @keyframes lens-pdf-skel-spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 export function PdfSubstrate({
   file,
   pageNumber,
@@ -165,6 +332,7 @@ export function PdfSubstrate({
   panEnabled = true,
   pinchEnabled = true,
   className,
+  loadingPlaceholder,
 }: PdfSubstrateProps) {
   const transformRef = useRef<ReactZoomPanPinchRef | null>(null);
   const [rendered, setRendered] = useState<RenderedPage | null>(null);
@@ -238,8 +406,8 @@ export function PdfSubstrate({
     setLoadError(error.message || String(error));
   }, []);
 
-  const documentLoading = (
-    <div style={loadingStyle(tokens)}>Loading PDF…</div>
+  const documentLoading = loadingPlaceholder ?? (
+    <LensLoadingSkeleton tokens={tokens} label="Loading PDF…" />
   );
   const documentError = (
     <div style={{ ...errorStyle(tokens), padding: 16, textAlign: "center" }}>
@@ -259,8 +427,11 @@ export function PdfSubstrate({
       )}
     </div>
   );
-  const pageLoading = (
-    <div style={loadingStyle(tokens)}>Loading page {pageNumber}…</div>
+  const pageLoading = loadingPlaceholder ?? (
+    <LensLoadingSkeleton
+      tokens={tokens}
+      label={`Rendering page ${pageNumber}…`}
+    />
   );
 
   return (
