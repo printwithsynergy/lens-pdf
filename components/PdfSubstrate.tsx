@@ -48,15 +48,13 @@ import type { ThemeTokens } from "../plugin/services";
 // `pdfjs.GlobalWorkerOptions.workerSrc` themselves before
 // importing lens-pdf and their value wins.
 
-/**
- * Default pdf.js worker URL — unpkg CDN pinned to the exact
- * `pdfjs-dist` version that `react-pdf` ships. Exported so hosts
- * can `<link rel="preload" as="script" href={defaultPdfjsWorkerSrc}>`
- * the worker alongside their HTML, removing the cold-start delay
- * before the first page paint.
- */
-export const defaultPdfjsWorkerSrc =
-  `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+// `defaultPdfjsWorkerSrc` lives in a separate leaf module (no
+// imports) so hosts can use it from SSR contexts without dragging
+// `pdfjs-dist` (which references `DOMMatrix` at module-load) into
+// the server graph. Re-export here for backwards-compat with
+// consumers importing from `./PdfSubstrate` directly.
+import { defaultPdfjsWorkerSrc } from "./pdfjsWorker";
+export { defaultPdfjsWorkerSrc } from "./pdfjsWorker";
 
 if (typeof window !== "undefined") {
   const current = pdfjs.GlobalWorkerOptions.workerSrc;

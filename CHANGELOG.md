@@ -6,6 +6,21 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0-beta.6] — 2026-05-25
+
+### Fixed
+- **SSR boot crash, take 2: `ReferenceError: DOMMatrix is not
+  defined`** for hosts importing `defaultPdfjsWorkerSrc` into a
+  server module. The b4 + b5 implementation read `pdfjs.version`
+  via a re-export of `react-pdf`, which transitively imported
+  `pdfjs-dist` — and `pdfjs-dist`'s top-level module touches
+  `DOMMatrix`, a browser API Node doesn't have.
+- Moved `defaultPdfjsWorkerSrc` into a new leaf module
+  (`components/pdfjsWorker.ts`) with NO imports — just a string
+  constant pinned to the `pdfjs-dist` version `react-pdf@10.4.1`
+  bundles (`5.4.296`). Hand-pinned for now; bump in lockstep
+  when react-pdf updates.
+
 ## [0.4.0-beta.5] — 2026-05-25
 
 ### Fixed
