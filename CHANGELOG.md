@@ -6,6 +6,20 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0-beta.9] — 2026-05-25
+
+### Fixed
+- **PDF substrate no longer hangs on the loading skeleton when the
+  URL 404s** (or any non-2xx). react-pdf's `<Document>` fetches the
+  file internally via pdfjs and on a bad response sometimes sits on
+  the unparseable body without firing `onLoadError` — the user saw
+  the spinner indefinitely. Added a `HEAD` pre-check on string URL
+  `file` props; if the response is non-OK, the substrate
+  short-circuits with a clear error banner (`PDF unavailable
+  (HTTP 404)` / similar) instead of mounting `<Document>` at all.
+- Skipped for `File` / `ArrayBuffer` / `{url}` inputs since those
+  aren'\''t directly HEAD-able.
+
 ## [0.4.0-beta.8] — 2026-05-25
 
 ### Added
