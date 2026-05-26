@@ -30,6 +30,8 @@ import type { ReactZoomPanPinchRef } from "react-zoom-pan-pinch";
 // `defaultPdfjsWorkerSrc` for a preload tag) triggered the chain
 // and the server boot died with ERR_UNKNOWN_FILE_EXTENSION.
 import { ensureReactPdfCss } from "./reactPdfCss";
+import { defaultPdfjsWorkerSrc } from "./pdfjsWorker";
+export { defaultPdfjsWorkerSrc } from "./pdfjsWorker";
 import type { ThemeTokens } from "../plugin/services";
 
 // Required: react-pdf needs the pdf.js worker URL. react-pdf 10.x
@@ -47,16 +49,6 @@ import type { ThemeTokens } from "../plugin/services";
 // /), so hosts that want to ship a self-hosted worker can set
 // `pdfjs.GlobalWorkerOptions.workerSrc` themselves before
 // importing lens-pdf and their value wins.
-
-/**
- * Default pdf.js worker URL — unpkg CDN pinned to the exact
- * `pdfjs-dist` version that `react-pdf` ships. Exported so hosts
- * can `<link rel="preload" as="script" href={defaultPdfjsWorkerSrc}>`
- * the worker alongside their HTML, removing the cold-start delay
- * before the first page paint.
- */
-export const defaultPdfjsWorkerSrc =
-  `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 if (typeof window !== "undefined") {
   const current = pdfjs.GlobalWorkerOptions.workerSrc;
