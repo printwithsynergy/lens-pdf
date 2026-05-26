@@ -53,13 +53,14 @@ export { LensPDF } from "./components/LensPDF";
 export type { LensPDFProps, LensPDFTool } from "./components/LensPDF";
 
 // Default pdf.js worker URL — exposed so hosts can preload it
-// alongside their HTML. Removes the cold-start delay before the
-// first page paint (the worker is ~500 KB; without preload the
-// browser only starts fetching it after the JS bundle hydrates).
+// alongside their HTML. Imported from a leaf module with NO
+// transitive imports (no `pdfjs-dist`, no `react-pdf`) so hosts
+// can safely use this constant in SSR contexts like Astro
+// frontmatter without crashing on `DOMMatrix is not defined`.
 //
 // Astro example:
 //   <link rel="preload" as="script" href={defaultPdfjsWorkerSrc} crossorigin />
-export { defaultPdfjsWorkerSrc } from "./components/PdfSubstrate";
+export { defaultPdfjsWorkerSrc } from "./components/pdfjsWorker";
 
 // Default branded loading screen. Mount directly or wrap with
 // extra brand chrome. Pass via `<LensPDF loadingPlaceholder={...}>`
