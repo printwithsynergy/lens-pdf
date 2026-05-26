@@ -1,6 +1,6 @@
 {
   "name": "@printwithsynergy/lens-pdf",
-  "version": "0.4.0-beta.6",
+  "version": "0.4.0-beta.7",
   "type": "module",
   "description": "LensPDF — host-agnostic OSS PDF viewer core. Plugin-driven canvas viewer with overlay / panel / toolbar slots.",
   "license": "AGPL-3.0-or-later",
@@ -58,6 +58,10 @@
     "./swatch": {
       "types": "./dist/browser/pantone-gold.d.ts",
       "import": "./dist/browser/pantone-gold.js"
+    },
+    "./worker": {
+      "types": "./dist/components/pdfjsWorker.d.ts",
+      "import": "./dist/components/pdfjsWorker.js"
     },
     "./types": {
       "types": "./dist/types/index.d.ts",

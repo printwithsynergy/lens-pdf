@@ -6,6 +6,25 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0-beta.7] — 2026-05-25
+
+### Added
+- **`@printwithsynergy/lens-pdf/worker` subpath export** — a
+  zero-import entry point that re-exports `defaultPdfjsWorkerSrc`
+  and `REACT_PDF_BUNDLED_PDFJS_VERSION`. Hosts must use this
+  subpath when importing the constant from an SSR context (Astro
+  frontmatter, Next.js getServerSideProps).
+
+### Fixed
+- **SSR boot crash, take 3.** b6 split the worker URL into a
+  leaf module but importing `defaultPdfjsWorkerSrc` from the
+  package root (`@printwithsynergy/lens-pdf`) STILL crashed Node:
+  the barrel `index.ts` re-exports from `./browser` which imports
+  `pdfjs-dist` directly, so any consumer touching the barrel
+  in an SSR context loaded the whole graph (including pdfjs-dist'\''s
+  `DOMMatrix` reference) regardless of which export they actually
+  used. The new `./worker` subpath sidesteps the barrel entirely.
+
 ## [0.4.0-beta.6] — 2026-05-25
 
 ### Fixed
