@@ -30,19 +30,30 @@ import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 import type { ThemeTokens } from "../plugin/services";
 
-// Required: react-pdf needs the pdf.js worker URL. The
-// `new URL(..., import.meta.url)` recipe in the README only works
-// when the bundler can resolve the worker file relative to this
-// module — which fails the moment a host consumes lens-pdf as a
-// compiled npm package (the worker lives in lens-pdf's
-// node_modules, not the host's bundle output).
+// Required: react-pdf needs the pdf.js worker URL. react-pdf 10.x
+// ships with a SENTINEL default of `"pdf.worker.mjs"` (a bare module
+// name with no valid URL base), which is intentionally broken so
+// consumers can't accidentally rely on it. A previous version of
+// this file guarded with `!pdfjs.GlobalWorkerOptions.workerSrc`,
+// which is false against the truthy sentinel — leaving the bogus
+// value in place and producing the famous
+// "Setting up fake worker failed: Module name, 'pdf.worker.mjs'
+// does not resolve to a valid URL." error in every consumer build.
 //
-// Default to the unpkg CDN at the exact version `react-pdf` bundled.
-// Hosts can opt in to a local copy by setting
-// `pdfjs.GlobalWorkerOptions.workerSrc` before mounting LensPDF.
-if (typeof window !== "undefined" && !pdfjs.GlobalWorkerOptions.workerSrc) {
-  pdfjs.GlobalWorkerOptions.workerSrc =
-    `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+// Fix: replace the sentinel unconditionally. We only skip if the
+// current value looks like a real URL (http://, https://, blob:,
+// /), so hosts that want to ship a self-hosted worker can set
+// `pdfjs.GlobalWorkerOptions.workerSrc` themselves before
+// importing lens-pdf and their value wins.
+if (typeof window !== "undefined") {
+  const current = pdfjs.GlobalWorkerOptions.workerSrc;
+  const isRealUrl =
+    typeof current === "string" &&
+    /^(https?:|blob:|\/)/.test(current);
+  if (!isRealUrl) {
+    pdfjs.GlobalWorkerOptions.workerSrc =
+      `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+  }
 }
 
 /**
