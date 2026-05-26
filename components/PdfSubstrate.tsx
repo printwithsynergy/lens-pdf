@@ -133,6 +133,17 @@ export interface PdfSubstrateProps {
   pinchEnabled?: boolean;
   /** Optional className on the wrapper div. */
   className?: string;
+  /**
+   * Host-provided loading state. Replaces the built-in
+   * `LensLoadingSkeleton` for both the document-fetch and the
+   * per-page render phases. When unset, defaults to a branded
+   * page-shaped skeleton with a shimmer sweep.
+   *
+   * Pass a static React node for a fully custom loading screen, or
+   * pass `<LensLoadingSkeleton tokens={tokens} logo={<…/>} />` to
+   * keep the default look with a brand logo on top.
+   */
+  loadingPlaceholder?: ReactNode;
 }
 
 interface RenderedPage {
@@ -163,9 +174,21 @@ function errorStyle(tokens: ThemeTokens): CSSProperties {
   };
 }
 
-interface LoadingSkeletonProps {
+export interface LensLoadingSkeletonProps {
+  /** Theme tokens for backgrounds + borders + text. */
   tokens: ThemeTokens;
-  label: string;
+  /** Bottom-row caption — e.g. "Loading PDF…", "Rendering page 3…",
+   *  or a host-branded "Crunching your file" string. */
+  label?: string;
+  /**
+   * Optional brand logo or icon rendered above the page-shaped
+   * placeholder. Pass an `<img>`, `<svg>`, or any React node.
+   * Sized to ~32px tall by default — wrap in a styled span for
+   * larger logos.
+   */
+  logo?: ReactNode;
+  /** Spinner accent colour. Defaults to `tokens.fg`. */
+  accentColor?: string;
 }
 
 /**
@@ -173,8 +196,18 @@ interface LoadingSkeletonProps {
  * sweep + brand label. Much friendlier than the plain "Loading PDF…"
  * text the bare react-pdf prop slot used to render. Uses a US Letter
  * aspect ratio (8.5:11) since most demo PDFs are letter or close.
+ *
+ * Exported so hosts can mount it directly or wrap it. For a full
+ * custom loading state, pass `loadingPlaceholder` on `<LensPDF>`
+ * instead.
  */
-function LoadingSkeleton({ tokens, label }: LoadingSkeletonProps) {
+export function LensLoadingSkeleton({
+  tokens,
+  label = "Loading PDF…",
+  logo,
+  accentColor,
+}: LensLoadingSkeletonProps) {
+  const spinnerColor = accentColor ?? tokens.fg;
   return (
     <div
       style={{
@@ -189,6 +222,18 @@ function LoadingSkeleton({ tokens, label }: LoadingSkeletonProps) {
         color: tokens.fg,
       }}
     >
+      {logo && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            maxHeight: 48,
+          }}
+        >
+          {logo}
+        </div>
+      )}
       <div
         aria-hidden
         style={{
@@ -256,11 +301,11 @@ function LoadingSkeleton({ tokens, label }: LoadingSkeletonProps) {
             height: 12,
             borderRadius: "50%",
             border: `2px solid ${tokens.border}`,
-            borderTopColor: tokens.fg,
+            borderTopColor: spinnerColor,
             animation: "lens-pdf-skel-spin 0.8s linear infinite",
           }}
         />
-        <span>{label}</span>
+        {label && <span>{label}</span>}
       </div>
       <style>{`
         @keyframes lens-pdf-skel-sweep {
@@ -287,6 +332,7 @@ export function PdfSubstrate({
   panEnabled = true,
   pinchEnabled = true,
   className,
+  loadingPlaceholder,
 }: PdfSubstrateProps) {
   const transformRef = useRef<ReactZoomPanPinchRef | null>(null);
   const [rendered, setRendered] = useState<RenderedPage | null>(null);
@@ -360,8 +406,8 @@ export function PdfSubstrate({
     setLoadError(error.message || String(error));
   }, []);
 
-  const documentLoading = (
-    <LoadingSkeleton tokens={tokens} label="Loading PDF…" />
+  const documentLoading = loadingPlaceholder ?? (
+    <LensLoadingSkeleton tokens={tokens} label="Loading PDF…" />
   );
   const documentError = (
     <div style={{ ...errorStyle(tokens), padding: 16, textAlign: "center" }}>
@@ -381,8 +427,11 @@ export function PdfSubstrate({
       )}
     </div>
   );
-  const pageLoading = (
-    <LoadingSkeleton tokens={tokens} label={`Rendering page ${pageNumber}…`} />
+  const pageLoading = loadingPlaceholder ?? (
+    <LensLoadingSkeleton
+      tokens={tokens}
+      label={`Rendering page ${pageNumber}…`}
+    />
   );
 
   return (

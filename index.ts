@@ -61,6 +61,18 @@ export type { LensPDFProps, LensPDFTool } from "./components/LensPDF";
 //   <link rel="preload" as="script" href={defaultPdfjsWorkerSrc} crossorigin />
 export { defaultPdfjsWorkerSrc } from "./components/PdfSubstrate";
 
+// Default branded loading screen. Mount directly or wrap with
+// extra brand chrome. Pass via `<LensPDF loadingPlaceholder={...}>`
+// to override the substrate's loading slot, or use as a standalone
+// skeleton elsewhere in your app while a PDF metadata fetch is in
+// flight.
+export {
+  LensLoadingSkeleton,
+} from "./components/PdfSubstrate";
+export type {
+  LensLoadingSkeletonProps,
+} from "./components/PdfSubstrate";
+
 // Thin wrapper that adds upload chrome (URL bar, drag-drop, file
 // picker, empty state) on top of <LensPDF>. Powers the lenspdf.com
 // showcase; most hosts want <LensPDF> instead.
