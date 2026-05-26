@@ -30,14 +30,19 @@ import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 import type { ThemeTokens } from "../plugin/services";
 
-// Required: react-pdf needs the pdf.js worker URL. We use the same
-// pdfjs-dist version the host bundles. Worker module path is stable
-// across pdf.js 5.x.
+// Required: react-pdf needs the pdf.js worker URL. The
+// `new URL(..., import.meta.url)` recipe in the README only works
+// when the bundler can resolve the worker file relative to this
+// module — which fails the moment a host consumes lens-pdf as a
+// compiled npm package (the worker lives in lens-pdf's
+// node_modules, not the host's bundle output).
+//
+// Default to the unpkg CDN at the exact version `react-pdf` bundled.
+// Hosts can opt in to a local copy by setting
+// `pdfjs.GlobalWorkerOptions.workerSrc` before mounting LensPDF.
 if (typeof window !== "undefined" && !pdfjs.GlobalWorkerOptions.workerSrc) {
-  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-    "pdfjs-dist/build/pdf.worker.min.mjs",
-    import.meta.url,
-  ).toString();
+  pdfjs.GlobalWorkerOptions.workerSrc =
+    `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 }
 
 /**
@@ -197,11 +202,35 @@ export function PdfSubstrate({
     [],
   );
 
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const handleLoadError = useCallback((error: Error) => {
+    // Surface the underlying reason so we can debug worker /
+    // network / parse failures from a screenshot instead of having
+    // to attach a remote debugger.
+    setLoadError(error.message || String(error));
+  }, []);
+
   const documentLoading = (
     <div style={loadingStyle(tokens)}>Loading PDF…</div>
   );
   const documentError = (
-    <div style={errorStyle(tokens)}>Failed to load PDF.</div>
+    <div style={{ ...errorStyle(tokens), padding: 16, textAlign: "center" }}>
+      <div>Failed to load PDF.</div>
+      {loadError && (
+        <div
+          style={{
+            fontSize: 11,
+            opacity: 0.75,
+            marginTop: 8,
+            maxWidth: 360,
+            wordBreak: "break-word",
+          }}
+        >
+          {loadError}
+        </div>
+      )}
+    </div>
   );
   const pageLoading = (
     <div style={loadingStyle(tokens)}>Loading page {pageNumber}…</div>
@@ -262,6 +291,8 @@ export function PdfSubstrate({
               loading={documentLoading}
               error={documentError}
               onLoadSuccess={handleDocumentLoad}
+              onLoadError={handleLoadError}
+              onSourceError={handleLoadError}
               options={documentOptions}
             >
               <Page

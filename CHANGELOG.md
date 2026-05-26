@@ -6,6 +6,26 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0-beta.1] — 2026-05-25
+
+### Fixed
+- **"Failed to load PDF" on consumer builds.** `0.4.0-beta.0` set
+  `pdfjs.GlobalWorkerOptions.workerSrc` via the
+  `new URL(..., import.meta.url)` recipe from react-pdf'\''s README,
+  which only resolves when the bundler can see lens-pdf'\''s own
+  `node_modules`. The moment a host (Astro, Next.js, Vite app)
+  consumes lens-pdf as a compiled package, that URL resolves to
+  nothing and pdf.js fails to spawn its worker. Switched to the
+  same unpkg CDN pattern the rest of the library already uses
+  (matched to the version `react-pdf` actually bundles via
+  `pdfjs.version`). Hosts can still opt in to a local worker by
+  setting `pdfjs.GlobalWorkerOptions.workerSrc` themselves before
+  mounting `<LensPDF>`.
+- Document error banner now surfaces the underlying error message
+  (worker / network / parse failure detail) instead of just
+  "Failed to load PDF." — makes future debugging from a screenshot
+  possible without attaching a remote debugger.
+
 ## [0.4.0-beta.0] — 2026-05-25
 
 ### Changed (BREAKING substrate swap — page-mode rendering)
