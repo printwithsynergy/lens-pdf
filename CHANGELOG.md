@@ -6,6 +6,19 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0-beta.5] — 2026-05-25
+
+### Fixed
+- **SSR boot crash for hosts that import lens-pdf into a server
+  module** (e.g. Astro frontmatter pulling `defaultPdfjsWorkerSrc`
+  for a `<link rel="preload">` tag). The previous side-effect
+  imports of `react-pdf/dist/Page/AnnotationLayer.css` and
+  `TextLayer.css` broke Node ESM at load time with
+  `ERR_UNKNOWN_FILE_EXTENSION`. Inlined both stylesheets as a JS
+  string (`reactPdfCss.ts`) and inject them via `document.head`
+  on first mount instead. Client-only execution, no SSR
+  side effects.
+
 ## [0.4.0-beta.4] — 2026-05-25
 
 ### Added

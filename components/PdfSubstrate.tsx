@@ -22,12 +22,14 @@ import type { CSSProperties, ReactNode } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import type { ReactZoomPanPinchRef } from "react-zoom-pan-pinch";
-// CSS imports are side-effect-only — TS can't resolve type
-// declarations for them, so use @ts-expect-error to silence.
-// @ts-expect-error -- react-pdf ships CSS without .d.ts
-import "react-pdf/dist/Page/AnnotationLayer.css";
-// @ts-expect-error -- react-pdf ships CSS without .d.ts
-import "react-pdf/dist/Page/TextLayer.css";
+// CSS lives inline (see `reactPdfCss.ts`) and gets injected into
+// document.head on first mount. The previous side-effect imports
+// of `react-pdf/dist/Page/*.css` broke Node ESM during SSR — any
+// host that imported any symbol from lens-pdf into a server
+// module (e.g. an Astro frontmatter import of
+// `defaultPdfjsWorkerSrc` for a preload tag) triggered the chain
+// and the server boot died with ERR_UNKNOWN_FILE_EXTENSION.
+import { ensureReactPdfCss } from "./reactPdfCss";
 import type { ThemeTokens } from "../plugin/services";
 
 // Required: react-pdf needs the pdf.js worker URL. react-pdf 10.x
@@ -336,6 +338,13 @@ export function PdfSubstrate({
 }: PdfSubstrateProps) {
   const transformRef = useRef<ReactZoomPanPinchRef | null>(null);
   const [rendered, setRendered] = useState<RenderedPage | null>(null);
+
+  // Inject react-pdf's text + annotation layer CSS into the document
+  // head on first mount. We can't use `import "*.css"` because that
+  // breaks SSR; doing the injection in an effect is client-only.
+  useEffect(() => {
+    ensureReactPdfCss();
+  }, []);
 
   // Sync external zoom prop → TransformWrapper. Only fires when the
   // host (zoom slider, keyboard shortcut) changes the value; native
