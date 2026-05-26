@@ -66,6 +66,19 @@ export interface LensPDFDemoProps extends Omit<LensPDFProps, "pdfUrl"> {
   maxFileSize?: number;
   /** Pre-loaded PDF URL (e.g. from query params). Skips the empty state. */
   initialPdfUrl?: string;
+  /**
+   * When `false`, suppresses the upload chrome header (URL bar +
+   * file picker + brand) so the inner `<LensPDF>` top bar is the
+   * only visible chrome — no stacked "iframe"-style double chrome.
+   *
+   * Drag-and-drop on the wrapper still works as a swap path, so
+   * users can replace the loaded PDF without the header UI. The
+   * empty-state file picker still renders (only the upload header
+   * is hidden, not the empty state).
+   *
+   * Default: `true`.
+   */
+  showUploadHeader?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -91,6 +104,7 @@ function formatMaxSize(bytes: number): string {
 export function LensPDFDemo({
   maxFileSize = DEFAULT_MAX_BYTES,
   initialPdfUrl,
+  showUploadHeader = true,
   className,
   ...lensProps
 }: LensPDFDemoProps) {
@@ -246,7 +260,10 @@ export function LensPDFDemo({
       {dragging && <div style={dropOverlayStyle}>Drop your PDF here</div>}
 
       {/* Upload chrome. On narrow viewports the URL row stacks
-          full-width with 44px touch targets. */}
+          full-width with 44px touch targets. Hosts can suppress via
+          `showUploadHeader={false}` to let the inner LensPDF top bar
+          own the chrome — drag-drop continues to work as a swap path. */}
+      {showUploadHeader && (
       <header
         style={{
           ...topbarStyle,
@@ -472,6 +489,7 @@ export function LensPDFDemo({
           onChange={onFileChange}
         />
       </header>
+      )}
 
       {error && (
         <div style={errorStyle()}>
