@@ -413,6 +413,48 @@ export function PdfSubstrate({
     setLoadError(error.message || String(error));
   }, []);
 
+  // Pre-check URL reachability via HEAD. react-pdf's <Document>
+  // fetches the file internally via pdfjs, and on a 4xx/5xx (e.g.
+  // expired demo cache returning 404) pdfjs sometimes hangs on the
+  // unparseable response body without firing onLoadError — the user
+  // sees the loading skeleton forever. Doing a HEAD ourselves lets
+  // us short-circuit with a clear error before the substrate even
+  // mounts <Document>. Skips for non-string `file` props (File,
+  // ArrayBuffer, {url}) since the URL isn't directly fetchable.
+  useEffect(() => {
+    if (typeof file !== "string") return;
+    if (!/^(https?:|\/)/.test(file)) return;
+    const controller = new AbortController();
+    let cancelled = false;
+    setLoadError(null);
+    (async () => {
+      try {
+        const resp = await fetch(file, {
+          method: "HEAD",
+          signal: controller.signal,
+        });
+        if (cancelled) return;
+        if (!resp.ok) {
+          setLoadError(
+            `PDF unavailable (HTTP ${resp.status}${resp.statusText ? ` ${resp.statusText}` : ""})`,
+          );
+        }
+      } catch (err) {
+        if (cancelled) return;
+        if ((err as { name?: string } | null)?.name === "AbortError") return;
+        setLoadError(
+          `Couldn't reach the PDF: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
+    })();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [file]);
+
   const documentLoading = loadingPlaceholder ?? (
     <LensLoadingSkeleton tokens={tokens} label="Loading PDF…" />
   );
@@ -491,6 +533,14 @@ export function PdfSubstrate({
               borderRadius: 4,
             }}
           >
+            {loadError ? (
+              // Short-circuit: skip mounting <Document> when the
+              // pre-check already told us the URL is unreachable.
+              // Avoids the indefinite hang where pdfjs sits on an
+              // unparseable 4xx/5xx response without firing
+              // onLoadError.
+              documentError
+            ) : (
             <Document
               file={file}
               loading={documentLoading}
@@ -510,6 +560,7 @@ export function PdfSubstrate({
                 renderAnnotationLayer
               />
             </Document>
+            )}
             {rendered && (
               <div
                 style={{
