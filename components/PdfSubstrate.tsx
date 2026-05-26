@@ -57,12 +57,28 @@ if (typeof window !== "undefined") {
 }
 
 /**
- * Fixed render scale for react-pdf. Higher = sharper when the user
- * zooms in via the TransformWrapper, at the cost of more memory.
- * 2× covers up to 200% display zoom without visible pixelation;
- * beyond that the user sees gentle blur (acceptable for a viewer).
+ * Render scale for react-pdf — the multiplier from PDF points to
+ * CSS pixels on the underlying canvas. Combined with the explicit
+ * `devicePixelRatio = 1` below, a US Letter page renders to ~1.4
+ * megapixels (~5.5 MB RGBA), well under iOS Safari's canvas
+ * memory cap. Visual zoom beyond this is handled by the
+ * TransformWrapper's CSS transform — pixellated past ~150% but
+ * never crashes the tab, which is the right tradeoff for mobile.
+ *
+ * Hosts on desktop can raise this if they want crisper zoom; it's
+ * a single edit when we wire it to a prop.
  */
-const RENDER_SCALE = 2;
+const RENDER_SCALE = 1.5;
+
+/**
+ * Force `devicePixelRatio = 1` on react-pdf's canvas. Retina
+ * devices default to DPR 2-3, which multiplies the raster size by
+ * 4-9× and trips iOS Safari's per-canvas memory cap (~16 MP) on
+ * even modest PDFs. We accept the slight blur in exchange for not
+ * crashing the tab; visual sharpness during pinch-zoom is the
+ * TransformWrapper's job.
+ */
+const DEVICE_PIXEL_RATIO = 1;
 
 export interface PdfSubstrateProps {
   /** Source PDF — URL string, File, or { url, ... } object. Mirrors
@@ -309,6 +325,7 @@ export function PdfSubstrate({
               <Page
                 pageNumber={pageNumber}
                 scale={RENDER_SCALE}
+                devicePixelRatio={DEVICE_PIXEL_RATIO}
                 onLoadSuccess={handlePageLoadSuccess}
                 loading={pageLoading}
                 renderTextLayer

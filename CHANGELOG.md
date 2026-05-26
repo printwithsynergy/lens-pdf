@@ -6,6 +6,22 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0-beta.3] — 2026-05-25
+
+### Fixed
+- **iOS Safari tab crash ("A problem repeatedly occurred")** in the
+  new react-pdf substrate. Root cause: `RENDER_SCALE = 2` combined
+  with the default `window.devicePixelRatio` (2-3 on Retina) meant
+  react-pdf was producing a ~17 megapixel canvas per page, ~70 MB
+  RGBA — well over iOS Safari's per-canvas memory cap (~16 MP).
+  pdf.js silently OOM'd and the tab crashed.
+- Fix: explicit `devicePixelRatio={1}` on `<Page>` so the canvas
+  matches the CSS pixel grid 1:1, plus dropped `RENDER_SCALE` from
+  2 → 1.5. Same US Letter page now renders to ~1.4 megapixels
+  (~5.5 MB RGBA). Visual sharpness during pinch-zoom is handled by
+  the TransformWrapper's CSS transform, so we don't need oversized
+  source pixels.
+
 ## [0.4.0-beta.2] — 2026-05-25
 
 ### Fixed
