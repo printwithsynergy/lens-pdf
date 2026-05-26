@@ -6,6 +6,17 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0-beta.8] — 2026-05-25
+
+### Added
+- **`showUploadHeader?: boolean` prop on `<LensPDFDemo>`** (default
+  `true`). When `false`, the upload chrome header (URL bar + file
+  picker + brand row) is suppressed so the inner `<LensPDF>` top bar
+  is the only visible chrome. Drag-and-drop on the wrapper still
+  works as a swap path. Solves the "two stacked chromes" look the
+  lens demo had on mobile — LensPDFDemo's outer header sat above
+  LensPDF's own LensTopBar.
+
 ## [0.4.0-beta.7] — 2026-05-25
 
 ### Added
