@@ -25,14 +25,20 @@ export const REACT_PDF_BUNDLED_PDFJS_VERSION = "5.4.296";
 
 /**
  * Default pdf.js worker URL — unpkg CDN pinned to the exact
- * `pdfjs-dist` version `react-pdf` ships. SSR-safe: no imports,
- * no browser-API references — just a plain string at the top of
- * the module.
+ * `pdfjs-dist` version `react-pdf` ships. Points at the **legacy**
+ * build (`legacy/build/pdf.worker.min.mjs`) which avoids the
+ * newest ES module + WebAssembly features that some browsers
+ * (older Safari / specific iOS versions) can't spin a worker for.
+ * The standard build assumes a very recent JS engine and fails
+ * silently on older mobile Safari — the canvas paints blank and
+ * the loading skeleton hangs forever.
+ *
+ * SSR-safe: no imports, no browser-API references — just a plain
+ * string at the top of the module.
  *
  * Hosts can `<link rel="preload" as="script" href={defaultPdfjsWorkerSrc}>`
  * the worker alongside their HTML to start the ~500 KB download
- * in parallel with the JS bundle. Without preload the browser
- * doesn't fetch the worker until react-pdf hydrates.
+ * in parallel with the JS bundle.
  */
 export const defaultPdfjsWorkerSrc =
-  `https://unpkg.com/pdfjs-dist@${REACT_PDF_BUNDLED_PDFJS_VERSION}/build/pdf.worker.min.mjs`;
+  `https://unpkg.com/pdfjs-dist@${REACT_PDF_BUNDLED_PDFJS_VERSION}/legacy/build/pdf.worker.min.mjs`;

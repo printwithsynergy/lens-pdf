@@ -6,6 +6,35 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0-beta.10] — 2026-05-25
+
+### Fixed
+- **PDF never rendered on mobile Safari.** User reported the
+  loading skeleton hung indefinitely on iOS even with a valid
+  PDF URL. Headless playwright test against the same URL on
+  desktop Chromium showed the page loading fine BUT with two
+  `net::ERR_ABORTED` on the HEAD pre-check that b9 introduced —
+  the cleanup function tore down the HEAD on every component
+  re-render, and on mobile Safari the request churn cascaded
+  into pdfjs's own internal fetch.
+- **Removed** the b9 HEAD pre-check entirely. Replaced with a
+  passive **30-second safety timer** that surfaces a clear error
+  banner if `Document.onLoadSuccess` hasn't fired by then. No
+  request abort cascade; healthy loads complete in <2s and
+  never trigger the timer.
+- **Switched the default worker URL** to the `legacy/build/`
+  variant. Same pdf.js, broader browser compat — the standard
+  build assumes newer JS engine features that some Safari
+  versions can't spin a module worker for, producing a silent
+  hang. The legacy build sidesteps that.
+
+### Changed
+- **Simplified `LensLoadingSkeleton`.** Dropped the page-shaped
+  placeholder + shimmer sweep — for the brief load window it
+  was overdesigned and read as "broken" to at least one user.
+  Now just a small centered spinner + label + optional logo.
+  All props (`logo`, `label`, `accentColor`) unchanged.
+
 ## [0.4.0-beta.9] — 2026-05-25
 
 ### Fixed
