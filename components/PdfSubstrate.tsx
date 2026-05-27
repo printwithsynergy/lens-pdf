@@ -203,7 +203,7 @@ export interface LensLoadingSkeletonProps {
  */
 export function LensLoadingSkeleton({
   tokens,
-  label = "Loading PDF…",
+  label = "Loading…",
   logo,
   accentColor,
 }: LensLoadingSkeletonProps) {
@@ -215,11 +215,12 @@ export function LensLoadingSkeleton({
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        gap: 14,
+        gap: 10,
         padding: 24,
         width: "100%",
         height: "100%",
         color: tokens.fg,
+        background: "transparent",
       }}
     >
       {logo && (
@@ -228,90 +229,28 @@ export function LensLoadingSkeleton({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            maxHeight: 48,
+            maxHeight: 32,
+            opacity: 0.85,
           }}
         >
           {logo}
         </div>
       )}
-      <div
+      <span
         aria-hidden
         style={{
-          position: "relative",
-          width: "min(70vw, 280px)",
-          aspectRatio: "8.5 / 11",
-          maxHeight: "60%",
-          borderRadius: 6,
-          background: "rgba(255,255,255,0.04)",
-          border: `1px solid ${tokens.border}`,
-          overflow: "hidden",
-          boxShadow:
-            "0 8px 24px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.25)",
+          width: 22,
+          height: 22,
+          borderRadius: "50%",
+          border: `2px solid ${tokens.border}`,
+          borderTopColor: spinnerColor,
+          animation: "lens-pdf-skel-spin 0.8s linear infinite",
         }}
-      >
-        {/* Skeleton text-line decoration so the placeholder reads
-            as "a page" rather than a flat rectangle. */}
-        <div
-          style={{
-            position: "absolute",
-            inset: "12% 10% 12% 10%",
-            display: "flex",
-            flexDirection: "column",
-            gap: 8,
-          }}
-        >
-          {[88, 64, 92, 50, 78, 70].map((w, i) => (
-            <div
-              key={i}
-              style={{
-                height: 8,
-                width: `${w}%`,
-                borderRadius: 3,
-                background: "rgba(255,255,255,0.06)",
-              }}
-            />
-          ))}
-        </div>
-        {/* Shimmer sweep — a translucent gradient slides across the
-            placeholder to signal active work. Inline-keyframed via
-            a <style> tag so we don't need a host CSS file. */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background:
-              "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.06) 50%, transparent 100%)",
-            animation: "lens-pdf-skel-sweep 1.6s ease-in-out infinite",
-          }}
-        />
-      </div>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          opacity: 0.75,
-          fontSize: 12,
-        }}
-      >
-        <span
-          aria-hidden
-          style={{
-            width: 12,
-            height: 12,
-            borderRadius: "50%",
-            border: `2px solid ${tokens.border}`,
-            borderTopColor: spinnerColor,
-            animation: "lens-pdf-skel-spin 0.8s linear infinite",
-          }}
-        />
-        {label && <span>{label}</span>}
-      </div>
+      />
+      {label && (
+        <span style={{ opacity: 0.65, fontSize: 12 }}>{label}</span>
+      )}
       <style>{`
-        @keyframes lens-pdf-skel-sweep {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
         @keyframes lens-pdf-skel-spin {
           to { transform: rotate(360deg); }
         }
@@ -356,8 +295,11 @@ export function PdfSubstrate({
     ref.setTransform(ref.state.positionX, ref.state.positionY, targetScale, 0);
   }, [zoom]);
 
+  const loadedRef = useRef(false);
+
   const handleDocumentLoad = useCallback(
     (pdf: { numPages: number }) => {
+      loadedRef.current = true;
       onDocumentLoad?.({ numPages: pdf.numPages });
     },
     [onDocumentLoad],
@@ -413,46 +355,26 @@ export function PdfSubstrate({
     setLoadError(error.message || String(error));
   }, []);
 
-  // Pre-check URL reachability via HEAD. react-pdf's <Document>
-  // fetches the file internally via pdfjs, and on a 4xx/5xx (e.g.
-  // expired demo cache returning 404) pdfjs sometimes hangs on the
-  // unparseable response body without firing onLoadError — the user
-  // sees the loading skeleton forever. Doing a HEAD ourselves lets
-  // us short-circuit with a clear error before the substrate even
-  // mounts <Document>. Skips for non-string `file` props (File,
-  // ArrayBuffer, {url}) since the URL isn't directly fetchable.
+  // 30s safety timeout: if Document.onLoadSuccess hasn't fired by
+  // then, surface a "load taking too long" error instead of
+  // hanging on the loading skeleton forever. Most healthy loads
+  // complete in <2s; 30s leaves room for slow networks but bounds
+  // the worst-case hang for the user.
+  //
+  // (The previous b9 HEAD pre-check was removed — it created
+  // request-abort churn on every component re-render which
+  // cascaded into pdfjs's own fetch on iOS Safari.)
   useEffect(() => {
     if (typeof file !== "string") return;
-    if (!/^(https?:|\/)/.test(file)) return;
-    const controller = new AbortController();
-    let cancelled = false;
     setLoadError(null);
-    (async () => {
-      try {
-        const resp = await fetch(file, {
-          method: "HEAD",
-          signal: controller.signal,
-        });
-        if (cancelled) return;
-        if (!resp.ok) {
-          setLoadError(
-            `PDF unavailable (HTTP ${resp.status}${resp.statusText ? ` ${resp.statusText}` : ""})`,
-          );
-        }
-      } catch (err) {
-        if (cancelled) return;
-        if ((err as { name?: string } | null)?.name === "AbortError") return;
-        setLoadError(
-          `Couldn't reach the PDF: ${
-            err instanceof Error ? err.message : String(err)
-          }`,
-        );
-      }
-    })();
-    return () => {
-      cancelled = true;
-      controller.abort();
-    };
+    loadedRef.current = false;
+    const timer = setTimeout(() => {
+      if (loadedRef.current) return;
+      setLoadError(
+        "PDF didn't load within 30 seconds. Try refreshing or uploading a smaller file.",
+      );
+    }, 30_000);
+    return () => clearTimeout(timer);
   }, [file]);
 
   const documentLoading = loadingPlaceholder ?? (
@@ -534,11 +456,10 @@ export function PdfSubstrate({
             }}
           >
             {loadError ? (
-              // Short-circuit: skip mounting <Document> when the
-              // pre-check already told us the URL is unreachable.
-              // Avoids the indefinite hang where pdfjs sits on an
-              // unparseable 4xx/5xx response without firing
-              // onLoadError.
+              // Short-circuit: when react-pdf has reported a load
+              // error OR the 30s safety timer fired, render the
+              // error banner directly instead of leaving <Document>
+              // mounted in a hung state.
               documentError
             ) : (
             <Document
