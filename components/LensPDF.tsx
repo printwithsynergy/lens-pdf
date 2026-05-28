@@ -685,8 +685,14 @@ export function LensPDF({
     return () => next.dispose();
   }, [pdfUrl, workerSrc, tacLimit, tokens, serviceOverrides]);
 
-  // Codex background extraction — fires extractStream in parallel with pdfjs.
-  // As SSE events arrive the viewer silently upgrades ink list + renders.
+  // Codex background extraction — enriches separations / TAC / layers
+  // with lens-server-accurate data once it streams in. This is a
+  // BACKGROUND backfill: pdfjs renders the page immediately, and we
+  // deliberately hold this off until the browser is idle so the
+  // extraction fetch (a full PDF download) never contends with
+  // react-pdf's own fetch + first paint. The PDF response is served
+  // from the browser HTTP cache on this second fetch when the host
+  // sets sane cache headers, so it's typically free.
   useEffect(() => {
     if (!pdfUrl || !codex) {
       setCodexOverlay(null);
@@ -696,7 +702,7 @@ export function LensPDF({
     let overlay: CodexOverlayServices | null = null;
     let layerData: Array<{ name: string; ocg_index: number; default_on: boolean }> = [];
 
-    (async () => {
+    const run = async () => {
       const res = await fetch(pdfUrl);
       if (!res.ok || cancelled) return;
       const bytes = new Uint8Array(await res.arrayBuffer());
@@ -726,13 +732,33 @@ export function LensPDF({
           }
         },
       });
-    })().catch((err) => {
-      // eslint-disable-next-line no-console
-      console.warn("[lens-pdf] codex overlay extraction failed", err);
-    });
+    };
+
+    // Defer to browser idle so first paint isn't slowed by the
+    // extraction fetch. Falls back to a short timeout where
+    // requestIdleCallback is unavailable (Safari < 17 / older iOS).
+    const ric = (
+      globalThis as {
+        requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+      }
+    ).requestIdleCallback;
+    let idleHandle: number | null = null;
+    let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+    const kick = () => {
+      run().catch((err) => {
+        // eslint-disable-next-line no-console
+        console.warn("[lens-pdf] codex overlay extraction failed", err);
+      });
+    };
+    if (ric) idleHandle = ric(kick, { timeout: 4000 });
+    else timeoutHandle = setTimeout(kick, 1200);
 
     return () => {
       cancelled = true;
+      const cic = (globalThis as { cancelIdleCallback?: (h: number) => void })
+        .cancelIdleCallback;
+      if (idleHandle != null && cic) cic(idleHandle);
+      if (timeoutHandle != null) clearTimeout(timeoutHandle);
       if (overlay) {
         overlay.dispose();
         overlay = null;
