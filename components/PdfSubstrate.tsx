@@ -296,10 +296,12 @@ export function PdfSubstrate({
   }, [zoom]);
 
   const loadedRef = useRef(false);
+  const [loaded, setLoaded] = useState(false);
 
   const handleDocumentLoad = useCallback(
     (pdf: { numPages: number }) => {
       loadedRef.current = true;
+      setLoaded(true);
       onDocumentLoad?.({ numPages: pdf.numPages });
     },
     [onDocumentLoad],
@@ -367,6 +369,7 @@ export function PdfSubstrate({
   useEffect(() => {
     if (typeof file !== "string") return;
     setLoadError(null);
+    setLoaded(false);
     loadedRef.current = false;
     const timer = setTimeout(() => {
       if (loadedRef.current) return;
@@ -449,10 +452,16 @@ export function PdfSubstrate({
           <div
             style={{
               position: "relative",
-              background: "#fff",
-              boxShadow:
-                "0 24px 60px rgba(0,0,0,0.55), 0 6px 18px rgba(0,0,0,0.3)",
+              // Transparent + no shadow until the page has actually
+              // rendered, so the user doesn't see a flash of empty
+              // white box around the spinner while pdfjs is parsing.
+              // Snaps to the normal white+shadow once `loaded` flips.
+              background: loaded ? "#fff" : "transparent",
+              boxShadow: loaded
+                ? "0 24px 60px rgba(0,0,0,0.55), 0 6px 18px rgba(0,0,0,0.3)"
+                : "none",
               borderRadius: 4,
+              transition: "background 0.18s ease-out, box-shadow 0.18s ease-out",
             }}
           >
             {loadError ? (
