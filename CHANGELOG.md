@@ -6,6 +6,18 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0-beta.11] — 2026-05-25
+
+### Fixed
+- **Loading state no longer shows a flash of white box.** The
+  substrate's page wrapper had a permanent `background: #fff` +
+  shadow, so while pdfjs was parsing the user saw a small white
+  rectangle with the spinner sitting in the middle — read as
+  "broken / oversized loading placeholder". The wrapper now
+  defaults to transparent + shadowless and snaps to white+shadow
+  the moment `Document.onLoadSuccess` fires. 180ms transition
+  smooths the swap.
+
 ## [0.4.0-beta.10] — 2026-05-25
 
 ### Fixed
