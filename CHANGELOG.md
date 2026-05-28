@@ -6,6 +6,20 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0-beta.12] — 2026-05-25
+
+### Changed
+- **Codex overlay extraction now defers to browser idle** instead of
+  firing in parallel with pdfjs on mount. The `codex` prop triggers
+  a full-PDF fetch + `extractStream()` to enrich separations / TAC /
+  layers; running it eagerly contended with react-pdf's own fetch
+  and slowed first paint (especially on mobile bandwidth). It now
+  waits for `requestIdleCallback` (1.2s `setTimeout` fallback on
+  Safari < 17 / older iOS) so the page paints from pdfjs first, then
+  the richer codex data backfills the separation / TAC / layer
+  panels when it streams in. Pure timing change — same end result,
+  off the critical render path.
+
 ## [0.4.0-beta.11] — 2026-05-25
 
 ### Fixed
