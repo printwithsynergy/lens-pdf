@@ -144,6 +144,12 @@ export interface PdfSubstrateProps {
    * keep the default look with a brand logo on top.
    */
   loadingPlaceholder?: ReactNode;
+  /**
+   * Milliseconds before the "load taking too long" error fires.
+   * Only applies when `file` is a URL string (blob: or http(s):).
+   * Default: 30 000.
+   */
+  loadTimeoutMs?: number;
 }
 
 interface RenderedPage {
@@ -272,6 +278,7 @@ export function PdfSubstrate({
   pinchEnabled = true,
   className,
   loadingPlaceholder,
+  loadTimeoutMs = 30_000,
 }: PdfSubstrateProps) {
   const transformRef = useRef<ReactZoomPanPinchRef | null>(null);
   const [rendered, setRendered] = useState<RenderedPage | null>(null);
@@ -374,11 +381,11 @@ export function PdfSubstrate({
     const timer = setTimeout(() => {
       if (loadedRef.current) return;
       setLoadError(
-        "PDF didn't load within 30 seconds. Try refreshing or uploading a smaller file.",
+        `PDF didn't load within ${Math.round(loadTimeoutMs / 1000)} seconds. Try refreshing or uploading a smaller file.`,
       );
-    }, 30_000);
+    }, loadTimeoutMs);
     return () => clearTimeout(timer);
-  }, [file]);
+  }, [file, loadTimeoutMs]);
 
   const documentLoading = loadingPlaceholder ?? (
     <LensLoadingSkeleton tokens={tokens} label="Loading PDF…" />

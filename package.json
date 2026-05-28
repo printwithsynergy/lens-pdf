@@ -1,6 +1,6 @@
 {
   "name": "@printwithsynergy/lens-pdf",
-  "version": "0.4.0-beta.12",
+  "version": "0.4.0-beta.13",
   "type": "module",
   "description": "LensPDF — host-agnostic OSS PDF viewer core. Plugin-driven canvas viewer with overlay / panel / toolbar slots.",
   "license": "AGPL-3.0-or-later",

@@ -350,6 +350,42 @@ export interface LensPDFProps {
    * including `HttpClient` from `@printwithsynergy/codex-client`.
    */
   codex?: MinimalCodexClient;
+  /**
+   * Signals whether viewer data is provisional (server analysis
+   * still in-flight) or authoritative. When `"provisional"`, a
+   * dismissible notice is shown to the user. The notice auto-hides
+   * when `dataStatus` flips to `"ready"`.
+   *
+   * If omitted, no notice is shown.
+   */
+  dataStatus?: "provisional" | "ready";
+  /**
+   * Content of the provisional-data notice. Defaults to
+   * "Quick preview — full analysis loading…". Accepts any React
+   * node so hosts can localise or brand the string.
+   */
+  provisionalNotice?: ReactNode;
+  /**
+   * PDF load timeout forwarded to the substrate. Default: 30 000 ms.
+   * Large-file or slow-network embedders can raise this to avoid the
+   * "PDF didn't load within N seconds" error on the permalink path.
+   */
+  loadTimeoutMs?: number;
+  /**
+   * Fires once pdf.js has parsed the document and basic metadata is
+   * available from in-browser analysis. Use this to populate a
+   * provisional facts panel before authoritative server data arrives.
+   *
+   * Hot-swap: replace with authoritative codex/lint data when it lands.
+   */
+  onPdfMetadata?: (meta: {
+    /** Total page count from pdf.js. */
+    numPages: number;
+    /** Dimensions of the first page in PDF points. */
+    firstPageSize: { widthPts: number; heightPts: number };
+    /** Inks detected by pdfjs colour-world analysis. */
+    inks: ReadonlyArray<{ name: string; type: string }>;
+  }) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -411,9 +447,26 @@ export function LensPDF({
   dataConfig,
   decisions,
   onDecide,
+  dataStatus,
+  provisionalNotice,
+  loadTimeoutMs,
+  onPdfMetadata,
 }: LensPDFProps) {
   // Spelling toggle state — lives here so both canvas and sidebar stay in sync
   const [spellingHidden, setSpellingHidden] = useState(false);
+
+  // Provisional-notice dismiss state. Resets when a new PDF loads so
+  // the notice re-appears for each fresh document.
+  const [noticeDismissed, setNoticeDismissed] = useState(false);
+  useEffect(() => {
+    setNoticeDismissed(false);
+  }, [pdfUrl]);
+
+  // Stable ref so onPdfMetadata callers don't need to memoize.
+  const onPdfMetadataRef = useRef(onPdfMetadata);
+  useEffect(() => {
+    onPdfMetadataRef.current = onPdfMetadata;
+  });
   // Resolve dataConfig into derived items, dieline, and spot palette.
   // Explicit props win over dataConfig-derived values.
   const dataConfigResolved = useMemo(() => {
@@ -805,6 +858,11 @@ export function LensPDF({
         if (cancelled) return;
         setDetectedInks(inks);
         setEnabledChannels(new Set(inks.map((i) => i.name)));
+        onPdfMetadataRef.current?.({
+          numPages: total,
+          firstPageSize: { widthPts: dims.widthPts, heightPts: dims.heightPts },
+          inks: inks.map((i) => ({ name: i.name, type: i.type })),
+        });
         setError(null);
       } catch (err) {
         if (!cancelled) {
@@ -1424,6 +1482,48 @@ export function LensPDF({
               </div>
             )}
 
+          {/* Provisional-data notice — shown when dataStatus is "provisional"
+              and the user hasn't dismissed it. Disappears automatically
+              when the host flips dataStatus to "ready". */}
+          {dataStatus === "provisional" && !noticeDismissed && (
+            <div
+              style={{
+                flexShrink: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 8,
+                padding: "6px 14px",
+                background: "rgba(251,191,36,0.12)",
+                borderBottom: "1px solid rgba(251,191,36,0.28)",
+                color: "rgba(253,224,132,0.95)",
+                fontSize: 12,
+              }}
+            >
+              <span>
+                {provisionalNotice ?? "Quick preview — full analysis loading…"}
+              </span>
+              <button
+                type="button"
+                onClick={() => setNoticeDismissed(true)}
+                aria-label="Dismiss notice"
+                style={{
+                  flexShrink: 0,
+                  background: "transparent",
+                  border: "none",
+                  color: "inherit",
+                  cursor: "pointer",
+                  fontSize: 16,
+                  lineHeight: 1,
+                  opacity: 0.75,
+                  padding: "2px 4px",
+                }}
+              >
+                &times;
+              </button>
+            </div>
+          )}
+
           {/* Stage */}
           <section
             style={{
@@ -1462,6 +1562,7 @@ export function LensPDF({
                 panEnabled={activeTool === "none"}
                 pinchEnabled={activeTool === "none"}
                 loadingPlaceholder={loadingPlaceholder}
+                loadTimeoutMs={loadTimeoutMs}
                 overlay={
                   substratePage ? (
                     <>
