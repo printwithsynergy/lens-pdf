@@ -51,13 +51,14 @@ export function ProofPage() {
 | `tools` | `ReadonlyArray<LensPDFDemoTool>` | all | Subset of tools to show in the sidebar. |
 | `initialZoom` | `number` | `80` | Starting zoom percentage. |
 | `initialPage` | `number` | `1` | Starting page (1-indexed). |
+| `initialShowFindings` | `boolean` | `false` | Mount with the finding overlay layer already on (boxes + F-number badges drawn). Default off — the user reveals overlays via the "Finding overlays" toggle or the Inspection tab. |
 | `tacLimit` | `number` | `300` | TAC limit (in percent) for the heatmap + densitometer. |
 | `tokens` | `Partial<ThemeTokens>` | `darkThemeTokens` | Theme override merged onto the dark palette. Add `logoUrl` / `logoText` / `logoMaxHeight` / `logoAlt` to bundle brand identity into the tokens object. |
 | `brand` / `brandLogoUrl` | `string` | _(none)_ | Optional brand label / logo. Rendered in the built-in [top bar](#built-in-top-bar) when `showTopBar` is on. Falls back to `tokens.logoText` / `tokens.logoUrl` when the props are unset. |
 | `showTopBar` | `boolean` | `true` | Renders the built-in `LensTopBar` (hamburger on mobile, brand block). Set `false` for hosts that already render their own chrome around the viewer. |
 | `menuActions` | `ReadonlyArray<LensMenuAction>` | `[]` | Declarative action buttons pinned to the top of the tools menu (hamburger drawer on mobile, persistent left sidebar on desktop). Use for Download / Back / deep-link buttons. Each action: `{ id, label, href?/onClick?, download?, external?, order? }`. See [Tools menu](#tools-menu-menuactions) below. |
-| `items` | `OverlayItem[]` | `[]` | Preflight findings (error / warning / advisory bboxes). |
-| `selectedItem` | `OverlayItem \| null` | _(internal)_ | Controlled selection. |
+| `items` | `OverlayItem[]` | `[]` | Preflight findings. Each item carries an optional `bbox` and/or `regions` (multi-rect); see [OverlayItem in plugins.md](./plugins.md#overlayitem) for the located vs. loc-less contract. |
+| `selectedItem` | `OverlayItem \| null` | _(internal)_ | Controlled selection. When set, the viewer navigates to the finding's page and zooms to fit the union of its `bbox` + `regions` (padded, clamped to `[0.25, 4]×`). Loc-less findings navigate without zooming. |
 | `onItemSelect` | `(item) => void` | _(internal)_ | Selection callback. |
 | `forceInspectionPanel` | `boolean` | `false` | Force the Inspection / Findings side panel visible even when `items` is empty (renders a "no findings yet" empty state). Useful for demos that always advertise the panel slot, or for hosts with an in-flight preflight call. When false (default), the panel auto-shows when `items.length > 0` and hides otherwise. |
 | `spotPalette` | `Record<string, string>` | `undefined` | Host-provided spot-colour palette (keyed by spot name). Takes priority over the built-in Pantone Gold library and the PDF's `altRgb` fallback in the separations-panel swatch render. Typical source: codex's `summary.spot_colors.colors[].swatch_hex` or another preflight's swatch hex. |

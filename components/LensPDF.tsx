@@ -232,6 +232,15 @@ export interface LensPDFProps {
   fullscreen?: boolean;
   /** Initial page number (1-indexed). Default: 1. */
   initialPage?: number;
+  /**
+   * When ``true``, the viewer mounts with the finding overlay layer
+   * already enabled (boxes + F-number badges drawn on the page).
+   * Default: ``false`` — the user reveals overlays via the "Finding
+   * overlays" toggle or the Inspection tab. Useful for hosts that want
+   * findings visible the moment the viewer paints (review tools,
+   * embedded previews, demos).
+   */
+  initialShowFindings?: boolean;
   // ── Optional preflight integration ─────────────────────────────────────
   /**
    * Findings to flag on the page raster. Hosts convert their domain
@@ -431,6 +440,7 @@ export function LensPDF({
   footer,
   fullscreen: initialFullscreen = false,
   initialPage = 1,
+  initialShowFindings = false,
   items,
   forceInspectionPanel,
   spotPalette,
@@ -643,7 +653,7 @@ export function LensPDF({
   const [activeTool, setActiveTool] = useState<PointerTool>("none");
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [showDieline, setShowDieline] = useState(false);
-  const [showFindings, setShowFindings] = useState(false);
+  const [showFindings, setShowFindings] = useState(initialShowFindings);
   // Per-finding visibility toggle state. The Inspection panel writes
   // here; canvasItems are filtered against this set before they reach
   // PageCanvas, so unchecked findings disappear from the canvas while

@@ -64,6 +64,27 @@ function asBbox(v: unknown): [number, number, number, number] | undefined {
   return undefined;
 }
 
+/**
+ * Parse a source-finding ``regions`` field into a list of bboxes.
+ *
+ * Accepts an array of 4-tuples and silently drops entries that don't
+ * type-check as a bbox. Returns ``undefined`` when the input isn't an
+ * array or every entry is malformed — so adapters can spread the
+ * result conditionally without emitting an empty ``regions: []`` that
+ * would round-trip differently from the absent case.
+ */
+function asRegions(
+  v: unknown,
+): ReadonlyArray<readonly [number, number, number, number]> | undefined {
+  if (!Array.isArray(v) || v.length === 0) return undefined;
+  const out: Array<readonly [number, number, number, number]> = [];
+  for (const r of v) {
+    const b = asBbox(r);
+    if (b) out.push(b);
+  }
+  return out.length > 0 ? out : undefined;
+}
+
 // ---------------------------------------------------------------------------
 // fromCodexSummary
 // ---------------------------------------------------------------------------
@@ -183,6 +204,7 @@ export function fromCodexFindings(
     const tier = pickTier(f.severity);
     const page = typeof f.page === "number" && f.page > 0 ? f.page : 1;
     const bbox = asBbox(f.bbox);
+    const regions = asRegions(f.regions);
     const message =
       typeof f.message === "string" && f.message
         ? f.message
@@ -197,6 +219,7 @@ export function fromCodexFindings(
       label: truncate(message, 80),
       description: message,
       data: f,
+      ...(regions ? { regions } : {}),
     };
   });
 }
@@ -253,6 +276,7 @@ export function fromLintFindings(
         ? (f.page as number)
         : 1;
     const bbox = asBbox(f.bbox);
+    const regions = asRegions(f.regions);
     // Spell-check findings get a squiggly rendering hint so PageCanvas
     // draws a wavy underline instead of the standard filled rectangle.
     const type =
@@ -269,6 +293,7 @@ export function fromLintFindings(
       description: message,
       data: f,
       ...(type ? { type } : {}),
+      ...(regions ? { regions } : {}),
     };
   });
 }
@@ -304,6 +329,7 @@ export function fromCallasFindings(
     const id =
       typeof f.id === "string" && f.id ? f.id : `callas-${code ?? i}-${i}`;
     const bbox = asBbox(f.bbox ?? f.rect);
+    const regions = asRegions(f.regions);
     return {
       id,
       page,
@@ -313,6 +339,7 @@ export function fromCallasFindings(
       label: truncate(message, 80),
       description: message,
       data: f,
+      ...(regions ? { regions } : {}),
     };
   });
 }
@@ -350,6 +377,7 @@ export function fromPitstopFindings(
         ? f.id
         : `pitstop-${code ?? i}-${i}`;
     const bbox = asBbox(f.bbox ?? f.rect);
+    const regions = asRegions(f.regions);
     return {
       id,
       page,
@@ -359,6 +387,7 @@ export function fromPitstopFindings(
       label: truncate(message, 80),
       description: message,
       data: f,
+      ...(regions ? { regions } : {}),
     };
   });
 }
@@ -389,6 +418,7 @@ export function fromArtworkFindings(
               : "advisory") as OverlayItem["tier"];
     const page = typeof f.page === "number" && f.page > 0 ? f.page : 1;
     const bbox = asBbox(f.bbox);
+    const regions = asRegions(f.regions);
     const message =
       (typeof f.message === "string" && f.message) ||
       (typeof f.checkName === "string" && f.checkName) ||
@@ -411,6 +441,7 @@ export function fromArtworkFindings(
         label: truncate(message, 80),
         description: message,
         data: f,
+        ...(regions ? { regions } : {}),
       },
     ];
   });

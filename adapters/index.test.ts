@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { fromLintFindings } from "./index";
+import {
+  fromArtworkFindings,
+  fromCallasFindings,
+  fromCodexFindings,
+  fromLintFindings,
+  fromPitstopFindings,
+} from "./index";
 
 describe("fromLintFindings", () => {
   it("converts 0-indexed page_num to 1-indexed page", () => {
@@ -69,5 +75,93 @@ describe("page clamp invariant (host-side defense)", () => {
 
   it("returns 1 when pageCount is not yet known (0 or NaN)", () => {
     expect(clampPage(3, 0)).toBe(1);
+  });
+});
+
+describe("regions passthrough", () => {
+  // Source formats that emit a `regions` array (multi-rect findings —
+  // e.g. the same low-res image placed in N corners) should round-trip
+  // through every built-in adapter into OverlayItem.regions, so the
+  // viewer can highlight every rect and frame their union.
+
+  const validRegions = [
+    [10, 10, 20, 20],
+    [100, 100, 140, 140],
+  ];
+
+  it("fromCodexFindings passes regions through", () => {
+    const items = fromCodexFindings([
+      { id: "c1", page: 2, bbox: [0, 0, 5, 5], regions: validRegions, message: "m" },
+    ]);
+    expect(items[0].regions).toEqual(validRegions);
+  });
+
+  it("fromLintFindings passes regions through", () => {
+    const items = fromLintFindings([
+      { id: "l1", page_num: 0, regions: validRegions, message: "m" },
+    ]);
+    expect(items[0].regions).toEqual(validRegions);
+  });
+
+  it("fromCallasFindings passes regions through", () => {
+    const items = fromCallasFindings([
+      { id: "ca1", page: 1, regions: validRegions, message: "m" },
+    ]);
+    expect(items[0].regions).toEqual(validRegions);
+  });
+
+  it("fromPitstopFindings passes regions through", () => {
+    const items = fromPitstopFindings([
+      { id: "ps1", pageNumber: 1, regions: validRegions, description: "m" },
+    ]);
+    expect(items[0].regions).toEqual(validRegions);
+  });
+
+  it("fromArtworkFindings passes regions through", () => {
+    const items = fromArtworkFindings([
+      { id: "a1", page: 1, regions: validRegions, message: "m" },
+    ]);
+    expect(items[0].regions).toEqual(validRegions);
+  });
+
+  it("omits regions when absent (not an empty array, so the field round-trips)", () => {
+    const items = fromCodexFindings([
+      { id: "c1", page: 1, bbox: [0, 0, 5, 5], message: "m" },
+    ]);
+    expect(items[0]).not.toHaveProperty("regions");
+  });
+
+  it("drops malformed entries and omits regions when none survive", () => {
+    const items = fromLintFindings([
+      {
+        id: "l1",
+        page_num: 0,
+        // first is too short, second is non-numeric, third valid
+        regions: [[1, 2, 3], ["a", 2, 3, 4], [10, 10, 20, 20]],
+        message: "m",
+      },
+    ]);
+    expect(items[0].regions).toEqual([[10, 10, 20, 20]]);
+
+    const empty = fromLintFindings([
+      {
+        id: "l2",
+        page_num: 0,
+        regions: [[1, 2, 3], "nope", null],
+        message: "m",
+      },
+    ]);
+    expect(empty[0]).not.toHaveProperty("regions");
+  });
+
+  it("treats a finding with only regions (no bbox) as locatable input", () => {
+    // Smoke-test the full round-trip from raw source → OverlayItem with
+    // only regions set, the case where regions alone makes the item
+    // locatable (see plugin/findings-location.hasViewerLocation).
+    const items = fromCodexFindings([
+      { id: "c1", page: 1, regions: validRegions, message: "m" },
+    ]);
+    expect(items[0].bbox).toBeUndefined();
+    expect(items[0].regions).toEqual(validRegions);
   });
 });
