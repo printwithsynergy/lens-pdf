@@ -6,6 +6,38 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0-beta.16] — 2026-05-29
+
+### Added
+- **Built-in adapters now honor `OverlayItem.regions`.**
+  `fromCodexFindings`, `fromLintFindings`, `fromCallasFindings`,
+  `fromPitstopFindings`, and `fromArtworkFindings` pick up a
+  `source.regions` array (validated as an array of `[x0, y0, x1, y1]`
+  bboxes) and pass it through to the resulting `OverlayItem`. Existing
+  single-`bbox` findings are unaffected. Source data with multi-rect
+  findings (the same low-res image placed in N corners, every run of a
+  misspelled word, etc.) now light up every spot on selection and frame
+  as one group, without per-host adapter rewrites.
+- **`initialShowFindings` prop on `LensPDF` / `LensPDFDemo`.** When
+  `true`, the viewer mounts with the finding overlay layer already
+  enabled (boxes + F-number badges drawn on the page) instead of
+  waiting for the user to toggle "Finding overlays" or open the
+  Inspection tab. Default `false` preserves existing behavior. Useful
+  for review tools, embedded previews, and the showcase demo.
+- **Demo `findings showcase` mode.** The Vite app under `demo/` now has
+  two top-level tabs: a `LensPDFDemo`-driven findings showcase (the
+  new default) against a sample PDF with curated `bbox` / multi-region
+  / cross-page / loc-less findings, and the original PR #3 / #4 hide-
+  on-unwired smoke test preserved as a secondary tab. Documents the
+  full selection → navigate → zoom-to-fit flow visually.
+
+### Changed
+- **Docs** — `OverlayItem.regions` documented in `docs/plugins.md`
+  (new "Located vs. loc-less findings" contract table); `docs/components.md`
+  props table gained `initialShowFindings` and clarified that
+  `selectedItem` drives navigate-and-frame; `docs/architecture.md`
+  notes `regions` alongside `bbox`.
+
 ## [0.4.0-beta.15] — 2026-05-29
 
 ### Fixed
