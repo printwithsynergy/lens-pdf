@@ -348,9 +348,16 @@ export function PdfSubstrate({
       minScale: 0.25,
       maxScale: 4,
     });
-    ref.zoomToElement(focusEl, scale, 350);
+    const animMs = 350;
+    ref.zoomToElement(focusEl, scale, animMs);
     lastFocusKeyRef.current = focusKey;
-  }, [focusKey, focusRect, rendered, pageNumber]);
+    // zoomToElement doesn't emit onZoom, so the host zoom readout/slider
+    // would go stale. Sync it once the animation settles — by then the
+    // live scale matches `scale`, so the zoom-prop round-trip hits the
+    // sync effect's no-op guard instead of fighting the animation.
+    const t = setTimeout(() => onZoomChange?.(Math.round(scale * 100)), animMs + 40);
+    return () => clearTimeout(t);
+  }, [focusKey, focusRect, rendered, pageNumber, onZoomChange]);
 
   const loadedRef = useRef(false);
   const [loaded, setLoaded] = useState(false);
