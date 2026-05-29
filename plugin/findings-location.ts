@@ -32,12 +32,10 @@ import type { OverlayItem } from "./types";
  */
 export function hasViewerLocation(item: OverlayItem): boolean {
   if (Array.isArray(item.bbox) && item.bbox.length === 4) return true;
-  // Future overlay shapes — polygons / regions — are still under
-  // the same predicate. Adapter authors that emit ``regions`` on
-  // an OverlayItem don't need to also set ``bbox`` for the canvas
-  // to consider the item located.
-  const maybe = item as unknown as { regions?: unknown };
-  if (Array.isArray(maybe.regions) && maybe.regions.length > 0) return true;
+  // A multi-rect finding is located by its ``regions`` alone — adapter
+  // authors that emit ``regions`` don't need to also set ``bbox`` for
+  // the canvas to highlight + frame the item.
+  if (Array.isArray(item.regions) && item.regions.length > 0) return true;
   return false;
 }
 

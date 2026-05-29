@@ -14,6 +14,7 @@
 import { useMemo } from "react";
 import type { CSSProperties } from "react";
 import type { DecisionRecord, OverlayItem } from "../plugin/types";
+import { collectItemRects } from "../plugin/fit";
 import { SEVERITY_COLORS } from "../types";
 import type { ThemeTokens } from "../plugin/services";
 
@@ -55,13 +56,19 @@ function tierColor(tier: string | undefined): string {
   return TIER_STROKE[tier ?? "info"] ?? TIER_STROKE.info!;
 }
 
-interface PositionedItem {
-  item: OverlayItem;
+interface PositionedRect {
   /** CSS px positions, origin top-left of the page. */
   left: number;
   top: number;
   width: number;
   height: number;
+}
+
+interface PositionedItem {
+  item: OverlayItem;
+  /** bbox + every region, in render order. The first rect anchors the
+   *  F-number badge; loc-less items never make it into this list. */
+  rects: PositionedRect[];
 }
 
 function positionItems(
@@ -75,22 +82,24 @@ function positionItems(
   const sy = pageHeightPx / pageHeightPts;
   const out: PositionedItem[] = [];
   for (const item of items) {
-    if (!item.bbox) continue;
-    const [x0, y0, x1, y1] = item.bbox;
-    out.push({
-      item,
+    // bbox + regions; empty for page-level / loc-less findings, which
+    // are surfaced in the sidebar but never drawn on the canvas.
+    const ptsRects = collectItemRects(item);
+    if (ptsRects.length === 0) continue;
+    const rects = ptsRects.map(([x0, y0, x1, y1]) => ({
       left: x0 * sx,
       // PDF Y origin is lower-left; flip to top-left for CSS.
       top: (pageHeightPts - y1) * sy,
       width: (x1 - x0) * sx,
       height: (y1 - y0) * sy,
-    });
+    }));
+    out.push({ item, rects });
   }
   return out;
 }
 
 function bboxStyle(
-  pos: PositionedItem,
+  pos: PositionedRect,
   color: string,
   isSelected: boolean,
   isDimmed: boolean,
@@ -113,7 +122,7 @@ function bboxStyle(
 }
 
 function badgeStyle(
-  pos: PositionedItem,
+  pos: PositionedRect,
   color: string,
   isSelected: boolean,
 ): CSSProperties {
@@ -177,28 +186,36 @@ export function FindingsOverlayDOM({
         pointerEvents: "none",
       }}
     >
-      {positioned.map(({ item, ...pos }) => {
+      {positioned.map(({ item, rects }) => {
         const color = tierColor(item.tier);
         const isSelected = selectedItem?.id === item.id;
         const decision = decisions?.[item.id];
         const isDimmed = decision?.is_active === true;
         const findingN = findingNumbers.get(item.id);
+        const primary = rects[0];
         return (
           <div key={item.id}>
-            <button
-              type="button"
-              aria-label={`Finding: ${item.label ?? item.id}`}
-              aria-pressed={isSelected}
-              onClick={(e) => {
-                e.stopPropagation();
-                onItemClick(item);
-              }}
-              style={{
-                ...bboxStyle({ item, ...pos }, color, isSelected, isDimmed),
-                padding: 0,
-              }}
-            />
-            {findingN != null && (
+            {rects.map((rect, ri) => (
+              <button
+                key={ri}
+                type="button"
+                aria-label={
+                  rects.length > 1
+                    ? `Finding: ${item.label ?? item.id} (region ${ri + 1} of ${rects.length})`
+                    : `Finding: ${item.label ?? item.id}`
+                }
+                aria-pressed={isSelected}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onItemClick(item);
+                }}
+                style={{
+                  ...bboxStyle(rect, color, isSelected, isDimmed),
+                  padding: 0,
+                }}
+              />
+            ))}
+            {findingN != null && primary && (
               <button
                 type="button"
                 aria-label={`Finding F${findingN}`}
@@ -206,7 +223,7 @@ export function FindingsOverlayDOM({
                   e.stopPropagation();
                   onItemClick(item);
                 }}
-                style={badgeStyle({ item, ...pos }, color, isSelected)}
+                style={badgeStyle(primary, color, isSelected)}
               >
                 F{findingN}
               </button>

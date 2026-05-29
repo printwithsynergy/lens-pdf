@@ -198,6 +198,18 @@ export interface OverlayItem {
    */
   readonly bbox?: readonly [number, number, number, number];
   /**
+   * Optional additional bounding boxes (PDF points, ``[x0, y0, x1, y1]``)
+   * for a finding that spans several disjoint spots on the page — e.g.
+   * the same low-res image placed in four corners, or every run of a
+   * misspelled word. The viewer highlights every rect and frames their
+   * union (together with ``bbox``) when the finding is selected.
+   *
+   * A finding is "locatable" (see ``hasViewerLocation``) when it has a
+   * ``bbox`` OR a non-empty ``regions`` array; one with neither is
+   * page-level / informational and is never drawn on the canvas.
+   */
+  readonly regions?: ReadonlyArray<readonly [number, number, number, number]>;
+  /**
    * Severity-like tier the renderer maps to a colour. Hosts can
    * supply their own palette via ``ViewerServices.tokens``; the
    * default mapping treats ``"error"`` as red, ``"warning"`` as
