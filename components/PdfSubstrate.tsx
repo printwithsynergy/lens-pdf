@@ -348,16 +348,13 @@ export function PdfSubstrate({
       minScale: 0.25,
       maxScale: 4,
     });
-    const animMs = 350;
-    ref.zoomToElement(focusEl, scale, animMs);
+    ref.zoomToElement(focusEl, scale, 350);
     lastFocusKeyRef.current = focusKey;
-    // zoomToElement doesn't emit onZoom, so the host zoom readout/slider
-    // would go stale. Sync it once the animation settles — by then the
-    // live scale matches `scale`, so the zoom-prop round-trip hits the
-    // sync effect's no-op guard instead of fighting the animation.
-    const t = setTimeout(() => onZoomChange?.(Math.round(scale * 100)), animMs + 40);
-    return () => clearTimeout(t);
-  }, [focusKey, focusRect, rendered, pageNumber, onZoomChange]);
+    // The TransformWrapper's `onTransform` handler (wired below) emits
+    // each animation tick of zoomToElement back through handleZoomChange,
+    // so the host zoom readout/slider stays in sync without a fragile
+    // post-animation timer.
+  }, [focusKey, focusRect, rendered, pageNumber]);
 
   const loadedRef = useRef(false);
   const [loaded, setLoaded] = useState(false);
@@ -511,6 +508,7 @@ export function PdfSubstrate({
         doubleClick={{ step: 0.7, mode: "toggle" }}
         onZoom={handleZoomChange}
         onPanningStop={handleZoomChange}
+        onTransform={handleZoomChange}
         limitToBounds={false}
       >
         <TransformComponent

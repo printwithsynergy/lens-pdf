@@ -6,6 +6,18 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0-beta.15] — 2026-05-29
+
+### Fixed
+- Zoom readout / slider sync after zoom-to-fit is now robust across
+  cross-page jumps. The beta.14 fix used a post-animation `setTimeout`
+  inside the focus effect; when `rendered` updated again as the new
+  page settled, the effect's cleanup cancelled the pending sync and the
+  `focusKey` dedup prevented rescheduling, so the host zoom stayed
+  stale. Driven now by the TransformWrapper's `onTransform` callback so
+  every animation tick (gesture or programmatic) feeds the resulting
+  scale back to the host without a timer.
+
 ## [0.4.0-beta.14] — 2026-05-29
 
 ### Added
