@@ -2,7 +2,7 @@
   "name": "lens-pdf-demo",
   "version": "0.0.0",
   "private": true,
-  "description": "Smoke-test demo for @printwithsynergy/lens-pdf — flips between empty / fallback / fully-mocked host contexts.",
+  "description": "Demo for @printwithsynergy/lens-pdf — a findings showcase (zoom-to-fit, multi-region, cross-page) plus the empty / fallback / mock hide-on-unwired smoke modes.",
   "type": "module",
   "scripts": {
     "dev": "vite",

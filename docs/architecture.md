@@ -80,7 +80,11 @@ space:
 - `PageInfo.width_pts` / `height_pts` describe the page in PDF points.
 - `PageInfo.media_box` / `crop_box` / `trim_box` / `bleed_box` are
   lower-left + upper-right corners in PDF points.
-- `OverlayItem.bbox` is `[x0, y0, x1, y1]` in PDF points.
+- `OverlayItem.bbox` is `[x0, y0, x1, y1]` in PDF points. `OverlayItem.regions`
+  is an optional array of the same shape for multi-rect findings; the viewer
+  highlights every entry and frames their union on selection. See
+  [OverlayItem in plugins.md](./plugins.md#overlayitem) for the located vs.
+  loc-less contract.
 - Sampling services (`colorSample.sampleAt`, `densitometer.sampleAt`)
   receive `pdfX` / `pdfY` in PDF points with origin at the lower-left of
   the page — the components handle the canvas-pixel-to-PDF-point flip

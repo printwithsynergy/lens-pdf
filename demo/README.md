@@ -1,22 +1,46 @@
 # LensPDF demo
 
-A small Vite app that mounts a handful of LensPDF components against three host
-contexts so you can verify the hide-on-unwired behaviour from PR #3 / #4 by hand.
+A small Vite app with two top-level views:
+
+1. **Findings showcase** (default) — mounts the full `LensPDFDemo` against a
+   sample PDF and a curated set of `OverlayItem`s that exercise every new
+   finding behavior shipped in the 0.4.0-beta.14+ line: zoom-to-fit on select,
+   multi-region highlighting, cross-page jumps, and the loc-less
+   annotation-only contract.
+2. **Hide-on-unwired smoke** — the original PR #3 / #4 smoke test: flips
+   between empty / pdf.js fallback / fully-mocked host contexts to verify
+   every component hides silently when its services aren't wired.
 
 ## Run
 
 ```sh
 cd demo
-npm install
-npm run dev
+pnpm install      # or npm install
+pnpm dev          # or npm run dev
 # open http://localhost:5173
 ```
 
 The demo declares the parent package as `"file:.."` so any local change to the
-library is picked up after a rebuild (`npm run build` from the repo root) — no
+library is picked up after a rebuild (`pnpm build` from the repo root) — no
 need to publish or symlink.
 
-## Modes
+## Findings showcase
+
+The showcase mounts `<LensPDFDemo>` with `initialShowFindings` on, the sample
+PDF served from `public/sample.pdf`, and four curated findings:
+
+| Finding | Page | Shape | What to click for |
+| --- | --- | --- | --- |
+| `bbox1` — Low-res raster image | 1 | single `bbox` | zoom-to-fit clamps to the substrate's max (~400%), framing tightly. |
+| `multi1` — Duplicate image (4 instances) | 1 | `regions` array (no `bbox`) | every region highlighted; the framed view is the union of all four. |
+| `page3` — Barcode quiet zone | 3 | cross-page `bbox` | viewer navigates to page 3, waits for it to render, then frames. |
+| `locless` — PDF version advisory | 1 | neither `bbox` nor `regions` | shown in the sidebar; selecting navigates but draws nothing on the canvas (annotation-only). |
+
+Click the rows in the built-in Findings sidebar (or the F-number badges on
+the page) to drive selection — the zoom slider should track the actual
+framed scale on every selection.
+
+## Hide-on-unwired smoke modes
 
 | Mode | What it wires | What you should see |
 | --- | --- | --- |

@@ -253,6 +253,7 @@ interface OverlayItem {
   readonly id: string;
   readonly page: number;                                              // 1-indexed
   readonly bbox?: readonly [number, number, number, number];          // PDF points
+  readonly regions?: ReadonlyArray<readonly [number, number, number, number]>;
   readonly tier?: "error" | "warning" | "advisory" | "info" | "neutral";
   readonly color?: string;                                            // CSS hex, optional override
   readonly label?: string;
@@ -266,3 +267,24 @@ interface OverlayItem {
 default tier→colour map is `error` red, `warning` amber, `advisory` blue,
 `info` / `neutral` slate (see `SEVERITY_COLORS` in `/types`); set `color`
 on an item to override per-item.
+
+### Located vs. loc-less findings
+
+An `OverlayItem` is **locatable** when it carries a `bbox`, a non-empty
+`regions` array, or both. Use the `hasViewerLocation` / `splitFindingsByLocation`
+helpers from `@printwithsynergy/lens-pdf/plugin` rather than rolling
+your own check — they're the single source of truth the viewer uses.
+
+| Shape | Drawn on canvas | Sidebar | Selection behavior |
+| --- | --- | --- | --- |
+| `bbox` only | one box + F-number badge | yes | navigate to page + zoom-to-fit the box |
+| `regions` only | **every** rect highlighted; one F-number badge on the first rect | yes | navigate + zoom-to-fit the **union** of all rects |
+| `bbox` **and** `regions` | the bbox plus every region | yes | navigate + fit the union of bbox + regions |
+| neither (loc-less) | nothing on canvas — annotation only | yes | navigate to the page; the viewer never frames a loc-less finding |
+
+Adapter authors mapping multi-rect findings (e.g. "the same low-res
+image placed in 4 corners", every run of a misspelled word) should
+populate `regions` so each instance highlights and the viewer can
+frame them as one group. The built-in adapters in
+`@printwithsynergy/lens-pdf/adapters` (`fromCodex/Lint/Callas/Pitstop/Artwork`)
+pass `regions` through verbatim when the source carries them.
