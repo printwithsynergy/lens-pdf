@@ -30,6 +30,7 @@ import type { ReactZoomPanPinchRef } from "react-zoom-pan-pinch";
 // `defaultPdfjsWorkerSrc` for a preload tag) triggered the chain
 // and the server boot died with ERR_UNKNOWN_FILE_EXTENSION.
 import { ensureReactPdfCss } from "./reactPdfCss";
+import { computeFitScale } from "../plugin/fit";
 import type { ThemeTokens } from "../plugin/services";
 
 // Required: react-pdf needs the pdf.js worker URL. react-pdf 10.x
@@ -150,9 +151,25 @@ export interface PdfSubstrateProps {
    * Default: 30 000.
    */
   loadTimeoutMs?: number;
+  /**
+   * Bounding box (PDF points, ``[x0, y0, x1, y1]``, origin lower-left)
+   * to frame on screen — typically the union of a selected finding's
+   * bbox + regions. ``null`` leaves the current pan/zoom untouched.
+   */
+  focusRect?: readonly [number, number, number, number] | null;
+  /**
+   * Identity of the focus request (e.g. the selected finding id). The
+   * substrate re-frames only when this value changes, so unrelated
+   * re-renders — or the user manually panning/zooming — don't yank the
+   * view back to the finding.
+   */
+  focusKey?: string | number | null;
 }
 
 interface RenderedPage {
+  /** 1-indexed page these dims describe — used to gate framing on a
+   *  cross-page jump until the target page has actually rendered. */
+  page: number;
   width: number;
   height: number;
   widthPts: number;
@@ -279,8 +296,13 @@ export function PdfSubstrate({
   className,
   loadingPlaceholder,
   loadTimeoutMs = 30_000,
+  focusRect = null,
+  focusKey = null,
 }: PdfSubstrateProps) {
   const transformRef = useRef<ReactZoomPanPinchRef | null>(null);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const focusElRef = useRef<HTMLDivElement | null>(null);
+  const lastFocusKeyRef = useRef<string | number | null>(null);
   const [rendered, setRendered] = useState<RenderedPage | null>(null);
 
   // Inject react-pdf's text + annotation layer CSS into the document
@@ -302,6 +324,41 @@ export function PdfSubstrate({
     ref.setTransform(ref.state.positionX, ref.state.positionY, targetScale, 0);
   }, [zoom]);
 
+  // Frame a requested rect (e.g. a selected finding's union bbox) by
+  // centering it and zooming to fit. Gated on `focusKey` so manual
+  // pan/zoom and unrelated re-renders never pull the view back, and on
+  // `rendered.page === pageNumber` so a cross-page jump waits for the
+  // target page to render before measuring the focus element.
+  useEffect(() => {
+    if (!focusRect || focusKey == null) return;
+    if (focusKey === lastFocusKeyRef.current) return;
+    const ref = transformRef.current;
+    const focusEl = focusElRef.current;
+    const wrap = wrapperRef.current;
+    if (!ref || !focusEl || !wrap || !rendered) return;
+    if (rendered.page !== pageNumber) return;
+    const [x0, y0, x1, y1] = focusRect;
+    const sx = rendered.width / rendered.widthPts;
+    const sy = rendered.height / rendered.heightPts;
+    const rectW = Math.max(1, (x1 - x0) * sx);
+    const rectH = Math.max(1, (y1 - y0) * sy);
+    const vp = wrap.getBoundingClientRect();
+    const scale = computeFitScale(rectW, rectH, vp.width, vp.height, {
+      padding: 48,
+      minScale: 0.25,
+      maxScale: 4,
+    });
+    const animMs = 350;
+    ref.zoomToElement(focusEl, scale, animMs);
+    lastFocusKeyRef.current = focusKey;
+    // zoomToElement doesn't emit onZoom, so the host zoom readout/slider
+    // would go stale. Sync it once the animation settles — by then the
+    // live scale matches `scale`, so the zoom-prop round-trip hits the
+    // sync effect's no-op guard instead of fighting the animation.
+    const t = setTimeout(() => onZoomChange?.(Math.round(scale * 100)), animMs + 40);
+    return () => clearTimeout(t);
+  }, [focusKey, focusRect, rendered, pageNumber, onZoomChange]);
+
   const loadedRef = useRef(false);
   const [loaded, setLoaded] = useState(false);
 
@@ -322,13 +379,20 @@ export function PdfSubstrate({
       originalHeight: number;
     }) => {
       const info: RenderedPage = {
+        page: pageNumber,
         width: page.width,
         height: page.height,
         widthPts: page.originalWidth,
         heightPts: page.originalHeight,
       };
       setRendered(info);
-      onPageRender?.({ pageNumber, ...info });
+      onPageRender?.({
+        pageNumber,
+        width: info.width,
+        height: info.height,
+        widthPts: info.widthPts,
+        heightPts: info.heightPts,
+      });
     },
     [onPageRender, pageNumber],
   );
@@ -417,6 +481,7 @@ export function PdfSubstrate({
 
   return (
     <div
+      ref={wrapperRef}
       className={className}
       style={{
         width: "100%",
@@ -506,6 +571,34 @@ export function PdfSubstrate({
                   pointerEvents: "none",
                 }}
               >
+                {/* Invisible target the framing effect measures +
+                    centers on. Lives in the page's coordinate space so
+                    zoomToElement maps it correctly through the
+                    TransformWrapper. */}
+                {focusRect && (
+                  <div
+                    ref={focusElRef}
+                    aria-hidden
+                    style={{
+                      position: "absolute",
+                      left: focusRect[0] * (rendered.width / rendered.widthPts),
+                      top:
+                        (rendered.heightPts - focusRect[3]) *
+                        (rendered.height / rendered.heightPts),
+                      width: Math.max(
+                        1,
+                        (focusRect[2] - focusRect[0]) *
+                          (rendered.width / rendered.widthPts),
+                      ),
+                      height: Math.max(
+                        1,
+                        (focusRect[3] - focusRect[1]) *
+                          (rendered.height / rendered.heightPts),
+                      ),
+                      pointerEvents: "none",
+                    }}
+                  />
+                )}
                 {/* Overlays render inside the TransformComponent so
                     they pan/zoom with the page. pointer-events:none
                     on the wrapper lets the page's text layer keep

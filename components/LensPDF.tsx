@@ -78,6 +78,7 @@ import type { ThemeTokens, ViewerServices } from "../plugin/services";
 import { darkThemeTokens } from "../plugin/services";
 import type { DecisionRecord, DecisionType, OverlayItem } from "../plugin/types";
 import { buildFindingNumberMap } from "../plugin/findings-location";
+import { itemFocusBbox } from "../plugin/fit";
 import type { DielineResult, PageInfo } from "../types";
 import { DEFAULT_DPI, pageInfoFromDimensions } from "../types";
 import { isUnwired, ViewerHostContext, ViewerServicesContext } from "../host";
@@ -533,6 +534,13 @@ export function LensPDF({
       else setInternalSelected(item);
     },
     [onItemSelect],
+  );
+  // Union bbox (bbox + regions) of the selected finding, in PDF points,
+  // used to frame it in the substrate on selection. null for loc-less
+  // findings — they navigate to the page but get no zoom-to-fit.
+  const focusBbox = useMemo(
+    () => (effectiveSelected ? itemFocusBbox(effectiveSelected) : null),
+    [effectiveSelected],
   );
   // The selection→currentPage jump effect lives further down, right
   // after `pageCount` / `currentPage` state is declared, so the
@@ -1550,6 +1558,8 @@ export function LensPDF({
                 pageNumber={currentPage}
                 zoom={zoom}
                 onZoomChange={setZoom}
+                focusRect={focusBbox}
+                focusKey={effectiveSelected?.id ?? null}
                 onPageRender={(info) =>
                   setSubstratePage({
                     width: info.width,
