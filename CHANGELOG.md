@@ -6,6 +6,38 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0-beta.14] — 2026-05-29
+
+### Added
+- **`OverlayItem.regions`** — optional array of extra `[x0, y0, x1, y1]`
+  PDF-point rects for a finding that spans several disjoint spots on a
+  page. `FindingsOverlayDOM` draws the `bbox` plus every region (one
+  F-number badge per finding), and selecting the finding frames the
+  union of all rects. `hasViewerLocation` already treated a non-empty
+  `regions` array as locating; the field is now first-class on the
+  public `OverlayItem` contract.
+- **Zoom-to-fit on finding selection.** Selecting a located finding now
+  centers it and zooms to fit (in addition to the existing page jump),
+  via new `PdfSubstrate` `focusRect` / `focusKey` props that drive
+  react-zoom-pan-pinch's `zoomToElement`. Framing waits for the target
+  page to render on a cross-page jump and de-dupes by `focusKey`, so
+  manual pan/zoom is never yanked back. The geometry lives in a new
+  pure `plugin/fit` module (`computeFitScale` / `unionBbox` /
+  `collectItemRects` / `itemFocusBbox`), unit-tested.
+
+### Changed
+- **Loc-less findings are annotation-only.** The legacy `PageCanvas` no
+  longer draws a page-level border for a selected finding that has
+  neither `bbox` nor `regions`; such findings are surfaced in the
+  sidebar and navigate to their page but never produce a canvas
+  highlight. (The live `FindingsOverlayDOM` path already behaved this
+  way.)
+
+### Fixed
+- The zoom readout / slider no longer goes stale after a zoom-to-fit:
+  `zoomToElement` doesn't emit `onZoom`, so the framed scale is now
+  synced back to the host once the fit animation settles.
+
 ## [0.4.0-beta.12] — 2026-05-25
 
 ### Changed
