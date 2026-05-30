@@ -252,20 +252,58 @@ export async function renderHtml(ctx: RenderContext, jobId?: string): Promise<Bu
   return Buffer.from(html, "utf-8");
 }
 
+/**
+ * Process-wide Puppeteer browser singleton. Launching Chromium is
+ * the slow part (~1-2s); reusing a long-lived browser across calls is
+ * the common pattern and keeps memory bounded (one Chromium per process,
+ * not one per request). Each request gets a fresh `Page` that's closed
+ * in finally so per-request state doesn't accumulate.
+ *
+ * Cached as a Promise so concurrent first callers share the same launch.
+ * On launch failure the cache is cleared so a retry can try again.
+ *
+ * `closeBrowser()` is exported for the graceful-shutdown path in
+ * `index.ts`.
+ */
+let _browserPromise: Promise<import("puppeteer").Browser> | null = null;
+
+async function getBrowser(): Promise<import("puppeteer").Browser> {
+  if (_browserPromise) return _browserPromise;
+  _browserPromise = (async () => {
+    const puppeteer = await import("puppeteer");
+    return puppeteer.default.launch({
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
+  })();
+  _browserPromise.catch(() => {
+    _browserPromise = null;
+  });
+  return _browserPromise;
+}
+
+export async function closeBrowser(): Promise<void> {
+  if (!_browserPromise) return;
+  const browserPromise = _browserPromise;
+  _browserPromise = null;
+  try {
+    const b = await browserPromise;
+    await b.close();
+  } catch {
+    // Browser may have crashed; nothing to do.
+  }
+}
+
 export async function renderPdf(ctx: RenderContext, jobId?: string): Promise<Buffer> {
   const htmlBuf = await renderHtml(ctx, jobId);
   const html = htmlBuf.toString("utf-8");
 
-  const puppeteer = await import("puppeteer");
-  const browser = await puppeteer.default.launch({
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  });
+  const browser = await getBrowser();
+  const page = await browser.newPage();
   try {
-    const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "networkidle0" });
     const pdfBuf = await page.pdf({ format: "A4", printBackground: true });
     return Buffer.from(pdfBuf);
   } finally {
-    await browser.close();
+    await page.close();
   }
 }

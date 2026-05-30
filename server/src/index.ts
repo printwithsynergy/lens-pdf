@@ -38,7 +38,7 @@ import {
   sampleDensitometer,
 } from "./sampling.js";
 import type { RenderContext } from "./renderTypes.js";
-import { renderHtml, renderPdf } from "./reportRenderer.js";
+import { closeBrowser, renderHtml, renderPdf } from "./reportRenderer.js";
 import { generateAnnotatedPdf } from "./annotatedPdfRenderer.js";
 import { generateMarkupPdf } from "./markupPdfRenderer.js";
 
@@ -46,6 +46,24 @@ const app = express();
 app.disable("x-powered-by");
 app.use(morgan("tiny"));
 app.use(express.json({ limit: "1mb" }));
+
+// Per-request timeout — Express has no built-in. A hung Ghostscript /
+// Puppeteer would otherwise stall the handler indefinitely. Override
+// via LENS_REQUEST_TIMEOUT_MS.
+const REQUEST_TIMEOUT_MS = Number.parseInt(
+  process.env.LENS_REQUEST_TIMEOUT_MS ?? "60000",
+  10,
+);
+app.use((req, res, next) => {
+  req.setTimeout(REQUEST_TIMEOUT_MS, () => {
+    if (!res.headersSent) {
+      res
+        .status(504)
+        .json({ error: `Request timed out after ${REQUEST_TIMEOUT_MS} ms.` });
+    }
+  });
+  next();
+});
 
 if (config.bearerToken) {
   app.use((req, res, next) => {
@@ -436,9 +454,58 @@ const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
 };
 app.use(errorHandler);
 
+let httpServer: ReturnType<typeof app.listen> | null = null;
+
 ensureJobsDir().then(() => {
-  app.listen(config.port, () => {
+  httpServer = app.listen(config.port, () => {
     // eslint-disable-next-line no-console
     console.log(`lens-pdf-server listening on :${config.port}`);
   });
 });
+
+// Graceful shutdown — stop accepting new connections, drain in-flight
+// requests, close the Puppeteer browser singleton, then exit. Hard
+// timeout at SHUTDOWN_DEADLINE_MS so a stuck handler can't keep the
+// process alive forever.
+const SHUTDOWN_DEADLINE_MS = Number.parseInt(
+  process.env.LENS_SHUTDOWN_DEADLINE_MS ?? "10000",
+  10,
+);
+let shuttingDown = false;
+function shutdown(signal: string): void {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  // eslint-disable-next-line no-console
+  console.log(`Received ${signal}, shutting down lens-pdf-server.`);
+
+  const force = setTimeout(() => {
+    // eslint-disable-next-line no-console
+    console.error("Shutdown deadline exceeded; forcing exit.");
+    process.exit(1);
+  }, SHUTDOWN_DEADLINE_MS);
+  force.unref();
+
+  const finish = async (): Promise<void> => {
+    try {
+      await closeBrowser();
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error("Error closing Puppeteer browser:", err);
+    }
+    process.exit(0);
+  };
+
+  if (httpServer) {
+    httpServer.close((err) => {
+      if (err) {
+        // eslint-disable-next-line no-console
+        console.error("Error closing http server:", err);
+      }
+      void finish();
+    });
+  } else {
+    void finish();
+  }
+}
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));

@@ -39,6 +39,7 @@ export interface RenderArgs {
 }
 
 const GS_TIMEOUT_MS = 60_000;
+const GS_HARD_KILL_AFTER_MS = 2_000;
 
 async function runGs(args: string[], cwd: string): Promise<void> {
   await new Promise<void>((resolve, reject) => {
@@ -47,28 +48,60 @@ async function runGs(args: string[], cwd: string): Promise<void> {
       stdio: ["ignore", "pipe", "pipe"],
     });
     let stderr = "";
+    let timedOut = false;
+    let settled = false;
+    let hardTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const settle = (fn: () => void): void => {
+      if (settled) return;
+      settled = true;
+      fn();
+    };
+
     child.stderr.on("data", (b) => {
-      stderr += b.toString("utf8");
+      if (!settled) stderr += b.toString("utf8");
     });
+
     const timer = setTimeout(() => {
-      child.kill("SIGKILL");
-      reject(new Error(`Ghostscript timed out after ${GS_TIMEOUT_MS} ms.`));
+      timedOut = true;
+      // Try graceful first, then SIGKILL if it doesn't take.
+      child.kill("SIGTERM");
+      hardTimer = setTimeout(() => {
+        try {
+          child.kill("SIGKILL");
+        } catch {
+          // Process may already be gone; ignore.
+        }
+      }, GS_HARD_KILL_AFTER_MS);
     }, GS_TIMEOUT_MS);
+
     child.on("error", (err) => {
       clearTimeout(timer);
-      reject(err);
+      if (hardTimer) clearTimeout(hardTimer);
+      settle(() => reject(err));
     });
+
+    // Single exit handler decides outcome based on `timedOut` flag —
+    // this way SIGTERM/SIGKILL still funnel through one resolve path
+    // and the promise can only settle once.
     child.on("exit", (code) => {
       clearTimeout(timer);
-      if (code === 0) {
-        resolve();
-      } else {
-        reject(
-          new Error(
-            `Ghostscript exited ${code}.\n--- stderr ---\n${stderr.slice(0, 4000)}`,
-          ),
-        );
-      }
+      if (hardTimer) clearTimeout(hardTimer);
+      settle(() => {
+        if (timedOut) {
+          reject(
+            new Error(`Ghostscript timed out after ${GS_TIMEOUT_MS} ms.`),
+          );
+        } else if (code === 0) {
+          resolve();
+        } else {
+          reject(
+            new Error(
+              `Ghostscript exited ${code}.\n--- stderr ---\n${stderr.slice(0, 4000)}`,
+            ),
+          );
+        }
+      });
     });
   });
 }

@@ -13,6 +13,8 @@
 
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { createWriteStream } from "node:fs";
+import { lookup } from "node:dns/promises";
+import { isIPv4, isIPv6 } from "node:net";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import path from "node:path";
@@ -76,15 +78,24 @@ export async function saveSourceFromStream(
 }
 
 /**
- * Fetch a PDF from a host-supplied URL into the job dir. The host is
- * responsible for the URL itself being safe to fetch — we don't second-
- * guess private IP addresses, redirects, or signed-URL handling.
+ * Fetch a PDF from a host-supplied URL into the job dir.
+ *
+ * SSRF prevention: resolve the hostname to an IP before fetching and
+ * reject any address in loopback / private / link-local / cloud-metadata
+ * ranges. Redirects are followed manually so each hop's hostname is
+ * re-validated, not blindly trusted.
  */
 export async function saveSourceFromUrl(
   jobId: string,
   url: string,
 ): Promise<JobMeta> {
-  const res = await fetch(url);
+  const finalUrl = await resolveSafeUrl(url);
+  const res = await fetch(finalUrl, { redirect: "manual" });
+  if (res.status >= 300 && res.status < 400) {
+    throw new ValidationError(
+      "Redirect responses are not followed; provide the resolved URL.",
+    );
+  }
   if (!res.ok) {
     throw new ValidationError(
       `Source fetch failed: ${res.status} ${res.statusText}`,
@@ -97,6 +108,80 @@ export async function saveSourceFromUrl(
     Readable.fromWeb(res.body as never),
     cl ? Number(cl) : null,
   );
+}
+
+/** Resolve hostname → IP and reject private/loopback/link-local ranges. */
+async function resolveSafeUrl(url: string): Promise<string> {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new ValidationError("URL is not parseable.");
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new ValidationError("URL must be http(s).");
+  }
+  const host = parsed.hostname;
+  // If host is already an IP literal, validate directly.
+  if (isIPv4(host) || isIPv6(host)) {
+    assertPublicAddress(host);
+    return url;
+  }
+  // Otherwise look it up.
+  const addrs = await lookup(host, { all: true });
+  if (addrs.length === 0) {
+    throw new ValidationError(`Host ${host} did not resolve.`);
+  }
+  for (const a of addrs) {
+    assertPublicAddress(a.address);
+  }
+  return url;
+}
+
+/** Throws ValidationError for any address we won't fetch over. */
+function assertPublicAddress(ip: string): void {
+  if (isIPv4(ip)) {
+    const parts = ip.split(".").map(Number);
+    if (parts.length !== 4 || parts.some((n) => !Number.isInteger(n))) {
+      throw new ValidationError(`Malformed IPv4 ${ip}.`);
+    }
+    const [a, b] = parts as [number, number, number, number];
+    // 0.0.0.0/8, 10/8, 127/8, 169.254/16, 172.16/12, 192.168/16,
+    // 100.64/10 (CGNAT), 224/4 (multicast), 240/4 (reserved + 255.255.255.255).
+    if (
+      a === 0 ||
+      a === 10 ||
+      a === 127 ||
+      (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) ||
+      (a === 100 && b >= 64 && b <= 127) ||
+      a >= 224
+    ) {
+      throw new ValidationError(`Refusing to fetch private/loopback IPv4 ${ip}.`);
+    }
+    return;
+  }
+  if (isIPv6(ip)) {
+    const lower = ip.toLowerCase();
+    // ::1 loopback, fc00::/7 unique-local, fe80::/10 link-local,
+    // ::ffff:x.x.x.x IPv4-mapped (validate the IPv4 inside).
+    if (lower === "::1" || lower === "::") {
+      throw new ValidationError(`Refusing to fetch IPv6 loopback ${ip}.`);
+    }
+    if (/^f[cd][0-9a-f]{2}:/.test(lower)) {
+      throw new ValidationError(`Refusing to fetch unique-local IPv6 ${ip}.`);
+    }
+    if (/^fe[89ab][0-9a-f]:/.test(lower)) {
+      throw new ValidationError(`Refusing to fetch link-local IPv6 ${ip}.`);
+    }
+    const mapped = lower.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
+    if (mapped?.[1]) {
+      assertPublicAddress(mapped[1]);
+    }
+    return;
+  }
+  throw new ValidationError(`Unparseable address ${ip}.`);
 }
 
 export async function jobExists(jobId: string): Promise<boolean> {
