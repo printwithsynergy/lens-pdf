@@ -1,5 +1,7 @@
 # lens-pdf — agent notes
 
+ > **Cross-stack context**: see [`lint-pdf/STACK.md`](https://github.com/printwithsynergy/lint-pdf/blob/main/STACK.md) for the org-level overview of the 6-repo stack — who-calls-whom, where shared things live (codex), cross-stack conventions (RFC 7807 Problem Details + `/healthz`+`/readyz`+`/v1/contract` + the service-skip pattern + service-ownership tripwires), and the explicit "no monorepo" rationale.
+
 ## Scope
 
 Lens-pdf is the **host-agnostic OSS PDF viewer core** for the Print
