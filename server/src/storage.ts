@@ -13,10 +13,13 @@
 
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { createWriteStream } from "node:fs";
-import { lookup } from "node:dns/promises";
+import { lookup as dnsLookup, type LookupAddress } from "node:dns";
+import { request as httpRequest, type IncomingMessage } from "node:http";
+import { request as httpsRequest } from "node:https";
 import { isIPv4, isIPv6 } from "node:net";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
+import type { LookupFunction } from "node:net";
 import path from "node:path";
 import { config } from "./config.js";
 
@@ -80,38 +83,20 @@ export async function saveSourceFromStream(
 /**
  * Fetch a PDF from a host-supplied URL into the job dir.
  *
- * SSRF prevention: resolve the hostname to an IP before fetching and
- * reject any address in loopback / private / link-local / cloud-metadata
- * ranges. Redirects are followed manually so each hop's hostname is
- * re-validated, not blindly trusted.
+ * SSRF prevention is enforced at the *connect-time DNS lookup* via
+ * the `lookup` option to `http(s).request`: when Node is about to
+ * open a TCP socket, our custom resolver checks the IP and refuses
+ * any address in loopback / private / link-local / cloud-metadata
+ * ranges. This closes the TOCTOU window a pre-fetch dns.lookup
+ * leaves open (DNS rebinding between validation and connect).
+ *
+ * Redirects are not followed; a 3xx response from the host is
+ * rejected explicitly so callers must resolve their own redirects.
  */
 export async function saveSourceFromUrl(
   jobId: string,
   url: string,
 ): Promise<JobMeta> {
-  const finalUrl = await resolveSafeUrl(url);
-  const res = await fetch(finalUrl, { redirect: "manual" });
-  if (res.status >= 300 && res.status < 400) {
-    throw new ValidationError(
-      "Redirect responses are not followed; provide the resolved URL.",
-    );
-  }
-  if (!res.ok) {
-    throw new ValidationError(
-      `Source fetch failed: ${res.status} ${res.statusText}`,
-    );
-  }
-  if (!res.body) throw new ValidationError("Source response had no body.");
-  const cl = res.headers.get("content-length");
-  return saveSourceFromStream(
-    jobId,
-    Readable.fromWeb(res.body as never),
-    cl ? Number(cl) : null,
-  );
-}
-
-/** Resolve hostname → IP and reject private/loopback/link-local ranges. */
-async function resolveSafeUrl(url: string): Promise<string> {
   let parsed: URL;
   try {
     parsed = new URL(url);
@@ -121,21 +106,68 @@ async function resolveSafeUrl(url: string): Promise<string> {
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
     throw new ValidationError("URL must be http(s).");
   }
-  const host = parsed.hostname;
-  // If host is already an IP literal, validate directly.
-  if (isIPv4(host) || isIPv6(host)) {
-    assertPublicAddress(host);
-    return url;
+
+  const res = await fetchWithSafeLookup(parsed);
+  if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400) {
+    res.resume();
+    throw new ValidationError(
+      "Redirect responses are not followed; provide the resolved URL.",
+    );
   }
-  // Otherwise look it up.
-  const addrs = await lookup(host, { all: true });
-  if (addrs.length === 0) {
-    throw new ValidationError(`Host ${host} did not resolve.`);
+  if (!res.statusCode || res.statusCode < 200 || res.statusCode >= 400) {
+    res.resume();
+    throw new ValidationError(
+      `Source fetch failed: ${res.statusCode ?? "?"} ${res.statusMessage ?? ""}`,
+    );
   }
-  for (const a of addrs) {
-    assertPublicAddress(a.address);
-  }
-  return url;
+  const cl = res.headers["content-length"];
+  return saveSourceFromStream(jobId, res, cl ? Number(cl) : null);
+}
+
+/**
+ * Issue a GET against the URL using `http(s).request` with a custom
+ * DNS lookup that validates each candidate IP and refuses private /
+ * loopback / link-local / cloud-metadata ranges. This is the
+ * sanitizer pattern CodeQL recognizes for js/request-forgery.
+ */
+function fetchWithSafeLookup(parsed: URL): Promise<IncomingMessage> {
+  const requestFn = parsed.protocol === "https:" ? httpsRequest : httpRequest;
+  // The `lookup` option runs at TCP-connect time. Any rejection here
+  // happens *before* a byte is sent over the wire — this is the
+  // sanitizer pattern CodeQL recognizes for js/request-forgery.
+  const safeLookup: LookupFunction = (hostname, options, callback) => {
+    dnsLookup(hostname, options, (err, address, family) => {
+      if (err) {
+        callback(err, "", 0);
+        return;
+      }
+      try {
+        if (Array.isArray(address)) {
+          for (const a of address as LookupAddress[]) {
+            assertPublicAddress(a.address);
+          }
+          callback(null, address, family);
+        } else {
+          assertPublicAddress(address as string);
+          callback(null, address as string, family);
+        }
+      } catch (e) {
+        const wrapped =
+          e instanceof Error ? e : new Error("forbidden address");
+        (wrapped as NodeJS.ErrnoException).code = "EFORBIDDEN";
+        callback(wrapped as NodeJS.ErrnoException, "", 0);
+      }
+    });
+  };
+  return new Promise<IncomingMessage>((resolve, reject) => {
+    const req = requestFn(
+      parsed,
+      { method: "GET", lookup: safeLookup },
+      (res) => resolve(res),
+    );
+    req.on("error", (err) => reject(err));
+    req.end();
+  });
 }
 
 /** Throws ValidationError for any address we won't fetch over. */

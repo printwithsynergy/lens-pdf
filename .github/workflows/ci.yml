@@ -38,6 +38,8 @@ jobs:
   lens-server:
     name: lens-server — typecheck + build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: server
