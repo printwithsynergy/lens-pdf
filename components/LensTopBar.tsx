@@ -111,9 +111,7 @@ export function LensTopBar({
 
       {hasBrand && (
         <div style={brandBlockStyle(tokens)}>
-          {brandLogoUrl && (
-            <img src={brandLogoUrl} alt="" style={logoStyle()} />
-          )}
+          {brandLogoUrl && <img src={brandLogoUrl} alt="" style={logoStyle()} />}
           {brand && <span>{brand}</span>}
         </div>
       )}

@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { AnnotationTool } from "./AnnotationToolbar";
 import { isUnwired, logUnwiredHide, useViewerHost, useViewerServices } from "../host";
+import type { AnnotationTool } from "./AnnotationToolbar";
 
 interface AnnotationCanvasProps {
   jobId: string;
@@ -74,7 +74,6 @@ export function AnnotationCanvas({
   // ── Helpers ──────────────────────────────────────────────────
 
   const saveToApi = useCallback(
-
     async (canvas: any) => {
       if (readOnly) return;
       onSavingChange?.(true);
@@ -88,7 +87,6 @@ export function AnnotationCanvas({
   );
 
   const debouncedSave = useCallback(
-  
     (canvas: any) => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => saveToApi(canvas), 2000);
@@ -98,9 +96,7 @@ export function AnnotationCanvas({
 
   const syncAnnotationIndex = useCallback(
     (canvas: any) => {
-      const objects = canvas
-        .getObjects()
-        .filter((obj: any) => obj.excludeFromExport !== true);
+      const objects = canvas.getObjects().filter((obj: any) => obj.excludeFromExport !== true);
       let maxNumber = 0;
       for (const obj of objects) {
         const n = Number((obj as Record<string, unknown>)[ANNOTATION_NUMBER_KEY]);
@@ -119,9 +115,7 @@ export function AnnotationCanvas({
         .map((obj: any) => {
           const rect = obj.getBoundingRect();
           return {
-            number: Number(
-              (obj as Record<string, unknown>)[ANNOTATION_NUMBER_KEY] ?? 0,
-            ),
+            number: Number((obj as Record<string, unknown>)[ANNOTATION_NUMBER_KEY] ?? 0),
             pageNum,
             objectType: String(obj.type ?? "object"),
             centerX: rect.left + rect.width / 2,
@@ -137,7 +131,6 @@ export function AnnotationCanvas({
   );
 
   const pushHistory = useCallback(
-  
     (canvas: any) => {
       const json = JSON.stringify(canvas.toJSON());
       const h = historyRef.current;
@@ -180,9 +173,9 @@ export function AnnotationCanvas({
   useEffect(() => {
     const el = canvasElRef.current;
     if (!el) return;
-  
+
     (el as any).__annotationUndo = undo;
-  
+
     (el as any).__annotationRedo = redo;
   }, [undo, redo]);
 
@@ -243,9 +236,7 @@ export function AnnotationCanvas({
       const getSelectedNumber = () => {
         const active = canvas.getActiveObject();
         if (!active) return null;
-        const n = Number(
-          ((active as unknown as Record<string, unknown>)[ANNOTATION_NUMBER_KEY]),
-        );
+        const n = Number((active as unknown as Record<string, unknown>)[ANNOTATION_NUMBER_KEY]);
         return Number.isFinite(n) && n > 0 ? n : null;
       };
       const onSelection = () => {
@@ -275,16 +266,23 @@ export function AnnotationCanvas({
     // parent state update (tool toggles, side-panel changes) can tear
     // down the canvas mid-interaction and crash the viewer.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pageNum]);
+  }, [
+    pageNum,
+    width, // Seed history
+    pushHistory,
+    debouncedSave,
+    syncAnnotationIndex,
+    onSelectedAnnotationNumberChange,
+    height,
+    annotations.getForPage,
+  ]);
 
   // Keep canvas selection in sync when the panel picks an annotation by number.
   useEffect(() => {
     const canvas = fabricRef.current;
     if (!canvas || selectedAnnotationNumber == null) return;
     const match = canvas.getObjects().find((obj: any) => {
-      const n = Number(
-        ((obj as unknown as Record<string, unknown>)[ANNOTATION_NUMBER_KEY]),
-      );
+      const n = Number((obj as unknown as Record<string, unknown>)[ANNOTATION_NUMBER_KEY]);
       return Number.isFinite(n) && n === selectedAnnotationNumber;
     });
     if (!match) return;
@@ -332,19 +330,14 @@ export function AnnotationCanvas({
   useEffect(() => {
     const canvas = fabricRef.current;
     if (!canvas || !loaded) return;
-    if (
-      activeTool === "pointer" ||
-      activeTool === "pen"
-    )
-      return;
+    if (activeTool === "pointer" || activeTool === "pen") return;
 
     let isDrawing = false;
     let startX = 0;
     let startY = 0;
-  
+
     let activeShape: any = null;
 
-  
     const onMouseDown = async (opt: any) => {
       const pointer = canvas.getPointer(opt.e);
       startX = pointer.x;
@@ -410,7 +403,6 @@ export function AnnotationCanvas({
       }
     };
 
-  
     const onMouseMove = (opt: any) => {
       if (!isDrawing || !activeShape) return;
       const pointer = canvas.getPointer(opt.e);

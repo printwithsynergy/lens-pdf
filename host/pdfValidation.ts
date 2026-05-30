@@ -56,7 +56,10 @@ export async function validatePdfFile(
   try {
     const header = new Uint8Array(await file.slice(0, 5).arrayBuffer());
     if (header.length < 5 || !PDF_MAGIC.every((b, i) => header[i] === b)) {
-      return { valid: false, error: "File does not appear to be a valid PDF (missing %PDF- header)." };
+      return {
+        valid: false,
+        error: "File does not appear to be a valid PDF (missing %PDF- header).",
+      };
     }
   } catch {
     return { valid: false, error: "Could not read file header." };

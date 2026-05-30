@@ -54,34 +54,46 @@
  * @public
  */
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
 import type { ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { LensPDFDataConfig } from "../adapters";
 import {
+  fromArtworkFindings,
+  fromCallasFindings,
+  fromCodexFindings,
+  fromCodexSummary,
+  fromLintFindings,
+  fromPitstopFindings,
+} from "../adapters";
+import {
+  type BrowserViewerServices,
+  type CodexOverlayServices,
   createBrowserViewerServices,
-  useBrowserViewerServicesVersion,
   createCodexOverlayServices,
+  type DetectedInk,
   extractInksFromColorWorld,
   extractLayersFromOcgs,
-  PROCESS_CHANNELS,
-  type BrowserViewerServices,
-  type DetectedInk,
   type MinimalCodexClient,
-  type CodexOverlayServices,
+  PROCESS_CHANNELS,
+  useBrowserViewerServicesVersion,
 } from "../browser";
+import { isUnwired, ViewerHostContext, ViewerServicesContext } from "../host";
+import { buildFindingNumberMap } from "../plugin/findings-location";
+import { itemFocusBbox } from "../plugin/fit";
 import type { ThemeTokens, ViewerServices } from "../plugin/services";
 import { darkThemeTokens } from "../plugin/services";
 import type { DecisionRecord, DecisionType, OverlayItem } from "../plugin/types";
-import { buildFindingNumberMap } from "../plugin/findings-location";
-import { itemFocusBbox } from "../plugin/fit";
 import type { DielineResult, PageInfo } from "../types";
 import { DEFAULT_DPI, pageInfoFromDimensions } from "../types";
-import { isUnwired, ViewerHostContext, ViewerServicesContext } from "../host";
+import { AnnotationCanvas } from "./AnnotationCanvas";
+import type { AnnotationTool } from "./AnnotationToolbar";
+import { BoxOverlay } from "./BoxOverlay";
+import { ColorPickerTool } from "./ColorPickerTool";
+import { DensitometerTool } from "./DensitometerTool";
+import { DielineOverlay } from "./DielineOverlay";
+import { FindingsOverlayDOM } from "./FindingsOverlayDOM";
+import { LayerCanvas } from "./LayerCanvas";
+import { LensMenuActions } from "./LensMenuActions";
 import {
   emptyStateStyle,
   errorStyle,
@@ -97,41 +109,23 @@ import {
   stageInnerStyle,
   stageStyle,
 } from "./LensPDFDemo.styles";
-import { AnnotationCanvas } from "./AnnotationCanvas";
-import { useIsMobile } from "./useIsMobile";
-import type { AnnotationTool } from "./AnnotationToolbar";
-import { BoxOverlay } from "./BoxOverlay";
-import { ColorPickerTool } from "./ColorPickerTool";
-import { DensitometerTool } from "./DensitometerTool";
-import { DielineOverlay } from "./DielineOverlay";
-import { LayerCanvas } from "./LayerCanvas";
+import { LensTopBar } from "./LensTopBar";
 import { MeasureTool } from "./MeasureTool";
 import { PageCanvas } from "./PageCanvas";
 import { PdfSubstrate } from "./PdfSubstrate";
-import { FindingsOverlayDOM } from "./FindingsOverlayDOM";
+import { type LensPDFPresetKind, pluginsForPreset } from "./presets";
 import { SeparationCanvas } from "./SeparationCanvas";
-import { TACHeatmapOverlay } from "./TACHeatmapOverlay";
-import { pluginsForPreset, type LensPDFPresetKind } from "./presets";
 import {
   computeFeatureAvailability,
+  type LensMenuAction,
+  type LensPDFShellPlugin,
+  type PointerTool,
   pluginsForSlot,
   resolveShellPlugins,
-  type LensPDFShellPlugin,
-  type LensMenuAction,
-  type PointerTool,
   type ViewerMode,
 } from "./shellPlugins";
-import { LensTopBar } from "./LensTopBar";
-import { LensMenuActions } from "./LensMenuActions";
-import {
-  fromArtworkFindings,
-  fromCallasFindings,
-  fromCodexFindings,
-  fromCodexSummary,
-  fromLintFindings,
-  fromPitstopFindings,
-} from "../adapters";
-import type { LensPDFDataConfig } from "../adapters";
+import { TACHeatmapOverlay } from "./TACHeatmapOverlay";
+import { useIsMobile } from "./useIsMobile";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -482,7 +476,7 @@ export function LensPDF({
   const [noticeDismissed, setNoticeDismissed] = useState(false);
   useEffect(() => {
     setNoticeDismissed(false);
-  }, [pdfUrl]);
+  }, []);
 
   // Stable ref so onPdfMetadata callers don't need to memoize.
   const onPdfMetadataRef = useRef(onPdfMetadata);
@@ -502,18 +496,16 @@ export function LensPDF({
     const derived: OverlayItem[] = [];
     if (dataConfig.codexFindings?.length)
       derived.push(...fromCodexFindings(dataConfig.codexFindings));
-    if (dataConfig.lintFindings?.length)
-      derived.push(...fromLintFindings(dataConfig.lintFindings));
+    if (dataConfig.lintFindings?.length) derived.push(...fromLintFindings(dataConfig.lintFindings));
     if (dataConfig.callasFindings?.length)
       derived.push(...fromCallasFindings(dataConfig.callasFindings));
     if (dataConfig.pitstopFindings?.length)
       derived.push(...fromPitstopFindings(dataConfig.pitstopFindings));
     if (dataConfig.artworkFindings?.length)
       derived.push(...fromArtworkFindings(dataConfig.artworkFindings));
-    const { dieline: derivedDieline, spotPalette: derivedSpot } =
-      dataConfig.codexSummary
-        ? fromCodexSummary(dataConfig.codexSummary)
-        : { dieline: null, spotPalette: undefined };
+    const { dieline: derivedDieline, spotPalette: derivedSpot } = dataConfig.codexSummary
+      ? fromCodexSummary(dataConfig.codexSummary)
+      : { dieline: null, spotPalette: undefined };
     return {
       items: derived,
       dieline: derivedDieline,
@@ -528,27 +520,18 @@ export function LensPDF({
     () => [...dataConfigResolved.items, ...(items ?? [])],
     [items, dataConfigResolved],
   );
-  const effectiveDieline =
-    dieline !== undefined ? dieline : dataConfigResolved.dieline;
+  const effectiveDieline = dieline !== undefined ? dieline : dataConfigResolved.dieline;
   const effectiveSpotPalette = spotPalette ?? dataConfigResolved.spotPalette;
-  const findingNumbers = useMemo(
-    () => buildFindingNumberMap(overlayItems),
-    [overlayItems],
-  );
+  const findingNumbers = useMemo(() => buildFindingNumberMap(overlayItems), [overlayItems]);
 
   // When spelling is toggled off, filter squiggles from the canvas too.
   const canvasItems = useMemo(
-    () =>
-      spellingHidden
-        ? overlayItems.filter((it) => it.type !== "spell_check")
-        : overlayItems,
+    () => (spellingHidden ? overlayItems.filter((it) => it.type !== "spell_check") : overlayItems),
     [overlayItems, spellingHidden],
   );
   // Selection: controlled when onItemSelect is supplied, uncontrolled otherwise.
-  const [internalSelected, setInternalSelected] =
-    useState<OverlayItem | null>(null);
-  const effectiveSelected =
-    onItemSelect !== undefined ? (selectedItem ?? null) : internalSelected;
+  const [internalSelected, setInternalSelected] = useState<OverlayItem | null>(null);
+  const effectiveSelected = onItemSelect !== undefined ? (selectedItem ?? null) : internalSelected;
   const handleItemClick = useCallback(
     (item: OverlayItem | null) => {
       if (onItemSelect) onItemSelect(item);
@@ -575,7 +558,7 @@ export function LensPDF({
   const tokens: ThemeTokens = useMemo(
     () => ({ ...darkThemeTokens, ...tokenOverrides }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [JSON.stringify(tokenOverrides)],
+    [tokenOverrides],
   );
   // Brand resolution: explicit prop > tokens.logo* > built-in default.
   // Lets a host bundle its identity (colors + logo + label) into one
@@ -610,16 +593,14 @@ export function LensPDF({
     // initialPage intentionally read once via closure; the reset
     // belongs to URL change only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pdfUrl]);
+  }, [pdfUrl, initialPage]);
 
   // -----------------------------------------------------------------------
   // Page / zoom state
   // -----------------------------------------------------------------------
   const [zoom, setZoom] = useState(initialZoom);
   const [page, setPage] = useState<PageInfo>(
-    initialPage !== 1
-      ? { ...DEFAULT_PAGE, page_num: initialPage }
-      : DEFAULT_PAGE,
+    initialPage !== 1 ? { ...DEFAULT_PAGE, page_num: initialPage } : DEFAULT_PAGE,
   );
   const [pageCount, setPageCount] = useState(1);
   const [currentPage, setCurrentPage] = useState(initialPage);
@@ -635,12 +616,9 @@ export function LensPDF({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (effectiveSelected?.page == null) return;
-    const target = Math.min(
-      Math.max(1, pageCount),
-      Math.max(1, effectiveSelected.page),
-    );
+    const target = Math.min(Math.max(1, pageCount), Math.max(1, effectiveSelected.page));
     if (target !== currentPage) setCurrentPage(target);
-  }, [effectiveSelected, pageCount]);
+  }, [effectiveSelected, pageCount, currentPage]);
 
   // Lifecycle callbacks: fire host listeners whenever core state moves.
   // Wrapped in effects rather than threading through every setter
@@ -684,9 +662,7 @@ export function LensPDF({
   } | null>(null);
   const [allLayerIndices, setAllLayerIndices] = useState<number[]>([]);
   const [enabledLayers, setEnabledLayers] = useState<Set<number>>(new Set());
-  const [enabledChannels, setEnabledChannels] = useState<Set<string>>(
-    new Set(PROCESS_CHANNELS),
-  );
+  const [enabledChannels, setEnabledChannels] = useState<Set<string>>(new Set(PROCESS_CHANNELS));
   const [detectedInks, setDetectedInks] = useState<DetectedInk[]>([]);
 
   // -----------------------------------------------------------------------
@@ -731,8 +707,7 @@ export function LensPDF({
   // -----------------------------------------------------------------------
   // Services
   // -----------------------------------------------------------------------
-  const [browserServices, setBrowserServices] =
-    useState<BrowserViewerServices | null>(null);
+  const [browserServices, setBrowserServices] = useState<BrowserViewerServices | null>(null);
   const [codexOverlay, setCodexOverlay] = useState<CodexOverlayServices | null>(null);
   const [preparing, setPreparing] = useState(false);
   const [toolsLoading, setToolsLoading] = useState(false);
@@ -745,7 +720,7 @@ export function LensPDF({
   const servicesVersion = useBrowserViewerServicesVersion(browserServices);
 
   // Subscribe to codex overlay notifications (blob URLs for Ghostscript renders).
-  const [codexVersion, setCodexVersion] = useState(0);
+  const [_codexVersion, setCodexVersion] = useState(0);
   useEffect(() => {
     if (!codexOverlay) return;
     return codexOverlay.subscribe(() => setCodexVersion((v) => v + 1));
@@ -765,7 +740,7 @@ export function LensPDF({
     });
     setBrowserServices(next);
     return () => next.dispose();
-  }, [pdfUrl, workerSrc, tacLimit, tokens, serviceOverrides]);
+  }, [pdfUrl, workerSrc, tacLimit, tokens]);
 
   // Codex background extraction — enriches separations / TAC / layers
   // with lens-server-accurate data once it streams in. This is a
@@ -837,8 +812,7 @@ export function LensPDF({
 
     return () => {
       cancelled = true;
-      const cic = (globalThis as { cancelIdleCallback?: (h: number) => void })
-        .cancelIdleCallback;
+      const cic = (globalThis as { cancelIdleCallback?: (h: number) => void }).cancelIdleCallback;
       if (idleHandle != null && cic) cic(idleHandle);
       if (timeoutHandle != null) clearTimeout(timeoutHandle);
       if (overlay) {
@@ -873,9 +847,7 @@ export function LensPDF({
         const layers = await svc.layers.listLayers();
         if (cancelled) return;
         const indices =
-          layers.length > 0
-            ? layers.map((l) => l.ocg_index)
-            : [FLATTENED_LAYER_INDEX];
+          layers.length > 0 ? layers.map((l) => l.ocg_index) : [FLATTENED_LAYER_INDEX];
         setAllLayerIndices(indices);
         // Default all detected layers ON, matching the lint-pdf
         // viewer's "Layers mode" default.
@@ -906,7 +878,7 @@ export function LensPDF({
     };
     // currentPage intentionally omitted — handled below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [browserServices]);
+  }, [browserServices, currentPage]);
 
   // Re-read page dimensions on page navigation.
   useEffect(() => {
@@ -989,9 +961,7 @@ export function LensPDF({
           telemetry: isUnwired(serviceOverrides.telemetry)
             ? browserServices.telemetry
             : serviceOverrides.telemetry,
-          i18n: isUnwired(serviceOverrides.i18n)
-            ? browserServices.i18n
-            : serviceOverrides.i18n,
+          i18n: isUnwired(serviceOverrides.i18n) ? browserServices.i18n : serviceOverrides.i18n,
           tokens: serviceOverrides.tokens ?? browserServices.tokens,
         }
       : browserServices;
@@ -1009,7 +979,7 @@ export function LensPDF({
     // codexVersion + servicesVersion are intentionally in deps to force a
     // re-render when lazy blob URLs land inside the overlay or pdfjs caches.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serviceOverrides, browserServices, codexOverlay, codexVersion, servicesVersion]);
+  }, [serviceOverrides, browserServices, codexOverlay]);
 
   // -----------------------------------------------------------------------
   // Derived
@@ -1041,25 +1011,28 @@ export function LensPDF({
     if (activeTool !== "annotate") return;
     const wrap = annotationWrapRef.current;
     if (!wrap) return;
-    annotationCanvasRef.current =
-      (wrap.querySelector("canvas") as HTMLCanvasElement) ?? null;
-  }, [activeTool, currentPage, canvasW, canvasH]);
+    annotationCanvasRef.current = (wrap.querySelector("canvas") as HTMLCanvasElement) ?? null;
+  }, [activeTool]);
 
   useEffect(() => {
     setIndexedAnnotations([]);
     setSelectedAnnotationId(null);
-  }, [currentPage]);
+  }, []);
 
   const triggerUndo = useCallback(() => {
-    const fn = (annotationCanvasRef.current as unknown as {
-      __annotationUndo?: () => void;
-    } | null)?.__annotationUndo;
+    const fn = (
+      annotationCanvasRef.current as unknown as {
+        __annotationUndo?: () => void;
+      } | null
+    )?.__annotationUndo;
     fn?.();
   }, []);
   const triggerRedo = useCallback(() => {
-    const fn = (annotationCanvasRef.current as unknown as {
-      __annotationRedo?: () => void;
-    } | null)?.__annotationRedo;
+    const fn = (
+      annotationCanvasRef.current as unknown as {
+        __annotationRedo?: () => void;
+      } | null
+    )?.__annotationRedo;
     fn?.();
   }, []);
   const handleAnnotationHistoryChange = useCallback((canU: boolean, canR: boolean) => {
@@ -1175,6 +1148,10 @@ export function LensPDF({
       decisions,
       onDecide,
       spellingHidden,
+      forceInspectionPanel,
+      overlayItems,
+      onItemSelect,
+      effectiveSpotPalette,
     ],
   );
 
@@ -1196,14 +1173,13 @@ export function LensPDF({
     [resolvedPlugins, shellPluginContext],
   );
 
-  const showColorPicker = availability.colorPicker;
-  const showDensitometer = availability.densitometer;
-  const showMeasure = availability.measure;
+  const _showColorPicker = availability.colorPicker;
+  const _showDensitometer = availability.densitometer;
+  const _showMeasure = availability.measure;
   const showAnnotate = availability.annotate;
-  const showSeparations = availability.separations;
-  const showLayersControl = availability.layers;
-  const hasAnyTool =
-    leftPanelPlugins.length > 0 || (menuActions?.length ?? 0) > 0;
+  const _showSeparations = availability.separations;
+  const _showLayersControl = availability.layers;
+  const hasAnyTool = leftPanelPlugins.length > 0 || (menuActions?.length ?? 0) > 0;
 
   useEffect(() => {
     if (viewerMode === "separation" && !availability.separations) setViewerMode("page");
@@ -1254,11 +1230,7 @@ export function LensPDF({
     return (
       <div className={className} style={shellStyle(tokens, fullscreen)}>
         {fullscreen && (
-          <button
-            type="button"
-            style={exitFsStyle}
-            onClick={() => setFullscreen(false)}
-          >
+          <button type="button" style={exitFsStyle} onClick={() => setFullscreen(false)}>
             Exit fullscreen
           </button>
         )}
@@ -1289,9 +1261,7 @@ export function LensPDF({
             isMobile={isMobile}
             brand={brand}
             brandLogoUrl={brandLogoUrl}
-            pluginNodes={topBarPlugins.map((plugin) =>
-              plugin.render(shellPluginContext),
-            )}
+            pluginNodes={topBarPlugins.map((plugin) => plugin.render(shellPluginContext))}
             mobileSidebarOpen={mobileSidebarOpen}
             onToggleMobileSidebar={() => setMobileSidebarOpen((v) => !v)}
           />
@@ -1331,14 +1301,10 @@ export function LensPDF({
                       width: "min(85vw, 320px)",
                       maxWidth: "100%",
                       zIndex: 141,
-                      transform: mobileSidebarOpen
-                        ? "translateX(0)"
-                        : "translateX(-100%)",
+                      transform: mobileSidebarOpen ? "translateX(0)" : "translateX(-100%)",
                       transition: "transform 0.22s ease-out",
                       borderRight: `1px solid ${tokens.border}`,
-                      boxShadow: mobileSidebarOpen
-                        ? "8px 0 24px rgba(0, 0, 0, 0.45)"
-                        : "none",
+                      boxShadow: mobileSidebarOpen ? "8px 0 24px rgba(0, 0, 0, 0.45)" : "none",
                       WebkitOverflowScrolling: "touch",
                       overscrollBehavior: "contain",
                       paddingTop: "max(12px, env(safe-area-inset-top))",
@@ -1476,7 +1442,6 @@ export function LensPDF({
                   <div key={plugin.id}>{plugin.render(shellPluginContext)}</div>
                 ))
               )}
-
             </aside>
           )}
 
@@ -1511,229 +1476,219 @@ export function LensPDF({
               </div>
             )}
 
-          {/* Provisional-data notice — shown when dataStatus is "provisional"
+            {/* Provisional-data notice — shown when dataStatus is "provisional"
               and the user hasn't dismissed it. Disappears automatically
               when the host flips dataStatus to "ready". */}
-          {dataStatus === "provisional" && !noticeDismissed && (
-            <div
-              style={{
-                flexShrink: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 8,
-                padding: "6px 14px",
-                background: "rgba(251,191,36,0.12)",
-                borderBottom: "1px solid rgba(251,191,36,0.28)",
-                color: "rgba(253,224,132,0.95)",
-                fontSize: 12,
-              }}
-            >
-              <span>
-                {provisionalNotice ?? "Quick preview — full analysis loading…"}
-              </span>
-              <button
-                type="button"
-                onClick={() => setNoticeDismissed(true)}
-                aria-label="Dismiss notice"
+            {dataStatus === "provisional" && !noticeDismissed && (
+              <div
                 style={{
                   flexShrink: 0,
-                  background: "transparent",
-                  border: "none",
-                  color: "inherit",
-                  cursor: "pointer",
-                  fontSize: 16,
-                  lineHeight: 1,
-                  opacity: 0.75,
-                  padding: "2px 4px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 8,
+                  padding: "6px 14px",
+                  background: "rgba(251,191,36,0.12)",
+                  borderBottom: "1px solid rgba(251,191,36,0.28)",
+                  color: "rgba(253,224,132,0.95)",
+                  fontSize: 12,
                 }}
               >
-                &times;
-              </button>
-            </div>
-          )}
-
-          {/* Stage */}
-          <section
-            style={{
-              ...stageStyle,
-              ...(isMobile
-                ? {
-                    padding: "12px 8px",
-                    paddingBottom: "max(12px, env(safe-area-inset-bottom))",
-                  }
-                : {}),
-            }}
-          >
-            {!pdfUrl ? (
-              <div style={emptyStateStyle}>
-                <p style={{ margin: 0, opacity: 0.6 }}>Loading…</p>
+                <span>{provisionalNotice ?? "Quick preview — full analysis loading…"}</span>
+                <button
+                  type="button"
+                  onClick={() => setNoticeDismissed(true)}
+                  aria-label="Dismiss notice"
+                  style={{
+                    flexShrink: 0,
+                    background: "transparent",
+                    border: "none",
+                    color: "inherit",
+                    cursor: "pointer",
+                    fontSize: 16,
+                    lineHeight: 1,
+                    opacity: 0.75,
+                    padding: "2px 4px",
+                  }}
+                >
+                  &times;
+                </button>
               </div>
-            ) : viewerMode === "page" || viewerMode === "findings" ? (
-              // New react-pdf substrate handles primary page rendering
-              // + Acrobat-grade pan / pinch / double-tap zoom natively.
-              // SeparationCanvas + LayerCanvas modes still use the
-              // legacy tile-fetch path below.
-              <PdfSubstrate
-                file={pdfUrl}
-                pageNumber={currentPage}
-                zoom={zoom}
-                onZoomChange={setZoom}
-                focusRect={focusBbox}
-                focusKey={effectiveSelected?.id ?? null}
-                minScale={minScale}
-                maxScale={maxScale}
-                onPageRender={(info) =>
-                  setSubstratePage({
-                    width: info.width,
-                    height: info.height,
-                    widthPts: info.widthPts,
-                    heightPts: info.heightPts,
-                  })
-                }
-                tokens={tokens}
-                panEnabled={activeTool === "none"}
-                pinchEnabled={activeTool === "none"}
-                loadingPlaceholder={loadingPlaceholder}
-                loadTimeoutMs={loadTimeoutMs}
-                overlay={
-                  substratePage ? (
-                    <>
-                      {(viewerMode === "findings" || showBoxOverlays) && (
-                        <BoxOverlay
-                          page={page}
-                          canvasWidth={substratePage.width}
-                          canvasHeight={substratePage.height}
-                          dieline={effectiveDieline ?? null}
-                        />
-                      )}
-                      {((viewerMode === "findings" && !showBoxOverlays) ||
-                        showDieline) &&
-                        effectiveDieline && (
-                          <DielineOverlay
+            )}
+
+            {/* Stage */}
+            <section
+              style={{
+                ...stageStyle,
+                ...(isMobile
+                  ? {
+                      padding: "12px 8px",
+                      paddingBottom: "max(12px, env(safe-area-inset-bottom))",
+                    }
+                  : {}),
+              }}
+            >
+              {!pdfUrl ? (
+                <div style={emptyStateStyle}>
+                  <p style={{ margin: 0, opacity: 0.6 }}>Loading…</p>
+                </div>
+              ) : viewerMode === "page" || viewerMode === "findings" ? (
+                // New react-pdf substrate handles primary page rendering
+                // + Acrobat-grade pan / pinch / double-tap zoom natively.
+                // SeparationCanvas + LayerCanvas modes still use the
+                // legacy tile-fetch path below.
+                <PdfSubstrate
+                  file={pdfUrl}
+                  pageNumber={currentPage}
+                  zoom={zoom}
+                  onZoomChange={setZoom}
+                  focusRect={focusBbox}
+                  focusKey={effectiveSelected?.id ?? null}
+                  minScale={minScale}
+                  maxScale={maxScale}
+                  onPageRender={(info) =>
+                    setSubstratePage({
+                      width: info.width,
+                      height: info.height,
+                      widthPts: info.widthPts,
+                      heightPts: info.heightPts,
+                    })
+                  }
+                  tokens={tokens}
+                  panEnabled={activeTool === "none"}
+                  pinchEnabled={activeTool === "none"}
+                  loadingPlaceholder={loadingPlaceholder}
+                  loadTimeoutMs={loadTimeoutMs}
+                  overlay={
+                    substratePage ? (
+                      <>
+                        {(viewerMode === "findings" || showBoxOverlays) && (
+                          <BoxOverlay
                             page={page}
                             canvasWidth={substratePage.width}
                             canvasHeight={substratePage.height}
-                            dieline={effectiveDieline}
+                            dieline={effectiveDieline ?? null}
                           />
                         )}
-                      {services && showHeatmap && (
-                        <TACHeatmapOverlay
-                          jobId="lens-pdf-demo"
-                          pageNum={page.page_num}
-                          width={substratePage.width}
-                          height={substratePage.height}
-                          pageWidthPts={substratePage.widthPts}
-                          pageHeightPts={substratePage.heightPts}
-                          tacLimit={tacLimit}
-                        />
-                      )}
-                      {(viewerMode === "findings" || showFindings) && (
-                        <FindingsOverlayDOM
-                          pageWidthPx={substratePage.width}
-                          pageHeightPx={substratePage.height}
-                          pageWidthPts={substratePage.widthPts}
-                          pageHeightPts={substratePage.heightPts}
-                          items={canvasItems.filter(
-                            (it) =>
-                              !hiddenFindings.has(it.id) &&
-                              it.page === page.page_num,
+                        {((viewerMode === "findings" && !showBoxOverlays) || showDieline) &&
+                          effectiveDieline && (
+                            <DielineOverlay
+                              page={page}
+                              canvasWidth={substratePage.width}
+                              canvasHeight={substratePage.height}
+                              dieline={effectiveDieline}
+                            />
                           )}
-                          selectedItem={effectiveSelected}
-                          onItemClick={handleItemClick}
-                          findingNumbers={findingNumbers}
-                          decisions={decisions}
-                          tokens={tokens}
-                        />
-                      )}
-                    </>
-                  ) : undefined
-                }
-              />
-            ) : (
-              <div style={stageInnerStyle}>
-                <div
-                  style={{
-                    width: canvasW,
-                    height: canvasH,
-                    position: "relative",
-                    background: "#fff",
-                    boxShadow:
-                      "0 24px 60px rgba(0,0,0,0.55), 0 6px 18px rgba(0,0,0,0.3)",
-                    borderRadius: 4,
-                  }}
-                >
-                  {/* Primary canvas — exactly one of Page / Separation /
+                        {services && showHeatmap && (
+                          <TACHeatmapOverlay
+                            jobId="lens-pdf-demo"
+                            pageNum={page.page_num}
+                            width={substratePage.width}
+                            height={substratePage.height}
+                            pageWidthPts={substratePage.widthPts}
+                            pageHeightPts={substratePage.heightPts}
+                            tacLimit={tacLimit}
+                          />
+                        )}
+                        {(viewerMode === "findings" || showFindings) && (
+                          <FindingsOverlayDOM
+                            pageWidthPx={substratePage.width}
+                            pageHeightPx={substratePage.height}
+                            pageWidthPts={substratePage.widthPts}
+                            pageHeightPts={substratePage.heightPts}
+                            items={canvasItems.filter(
+                              (it) => !hiddenFindings.has(it.id) && it.page === page.page_num,
+                            )}
+                            selectedItem={effectiveSelected}
+                            onItemClick={handleItemClick}
+                            findingNumbers={findingNumbers}
+                            decisions={decisions}
+                            tokens={tokens}
+                          />
+                        )}
+                      </>
+                    ) : undefined
+                  }
+                />
+              ) : (
+                <div style={stageInnerStyle}>
+                  <div
+                    style={{
+                      width: canvasW,
+                      height: canvasH,
+                      position: "relative",
+                      background: "#fff",
+                      boxShadow: "0 24px 60px rgba(0,0,0,0.55), 0 6px 18px rgba(0,0,0,0.3)",
+                      borderRadius: 4,
+                    }}
+                  >
+                    {/* Primary canvas — exactly one of Page / Separation /
                       Layer is mounted at a time. */}
-                  {viewerMode === "separation" && services ? (
-                    <SeparationCanvas
-                      jobId="lens-pdf-demo"
-                      pageNum={page.page_num}
-                      enabledChannels={enabledChannels}
-                      allChannels={
-                        detectedInks.length > 0
-                          ? detectedInks.map((i) => i.name)
-                          : [...PROCESS_CHANNELS]
-                      }
-                      width={canvasW}
-                      height={canvasH}
-                    />
-                  ) : viewerMode === "layer" &&
-                    services &&
-                    allLayerIndices.length > 0 &&
-                    allLayerIndices.every(
-                      (layerIndex) => layerIndex !== FLATTENED_LAYER_INDEX,
-                    ) ? (
-                    <LayerCanvas
-                      jobId="lens-pdf-demo"
-                      pageNum={page.page_num}
-                      enabledLayers={enabledLayers}
-                      allLayers={allLayerIndices}
-                      width={canvasW}
-                      height={canvasH}
-                    />
-                  ) : (
-                    <PageCanvas
-                      jobId="lens-pdf-demo"
-                      page={page}
-                      zoom={zoom}
-                      // Only feed PageCanvas the finding overlays when
-                      // the user is on the Inspection tab or has
-                      // explicitly flipped the Findings toggle. Page
-                      // view defaults to a clean read. `hiddenFindings`
-                      // further filters out items the user has toggled
-                      // off via the per-row eye button in the panel.
-                      items={
-                        showFindings
-                          ? canvasItems.filter(
-                              (it) => !hiddenFindings.has(it.id),
-                            )
-                          : []
-                      }
-                      selectedItem={effectiveSelected}
-                      onItemClick={handleItemClick}
-                      onFindingNoteRequest={handleFindingNoteRequest}
-                      cropToTrim={cropToTrim}
-                      findingNumbers={findingNumbers}
-                      decisions={decisions}
-                    />
-                  )}
+                    {viewerMode === "separation" && services ? (
+                      <SeparationCanvas
+                        jobId="lens-pdf-demo"
+                        pageNum={page.page_num}
+                        enabledChannels={enabledChannels}
+                        allChannels={
+                          detectedInks.length > 0
+                            ? detectedInks.map((i) => i.name)
+                            : [...PROCESS_CHANNELS]
+                        }
+                        width={canvasW}
+                        height={canvasH}
+                      />
+                    ) : viewerMode === "layer" &&
+                      services &&
+                      allLayerIndices.length > 0 &&
+                      allLayerIndices.every(
+                        (layerIndex) => layerIndex !== FLATTENED_LAYER_INDEX,
+                      ) ? (
+                      <LayerCanvas
+                        jobId="lens-pdf-demo"
+                        pageNum={page.page_num}
+                        enabledLayers={enabledLayers}
+                        allLayers={allLayerIndices}
+                        width={canvasW}
+                        height={canvasH}
+                      />
+                    ) : (
+                      <PageCanvas
+                        jobId="lens-pdf-demo"
+                        page={page}
+                        zoom={zoom}
+                        // Only feed PageCanvas the finding overlays when
+                        // the user is on the Inspection tab or has
+                        // explicitly flipped the Findings toggle. Page
+                        // view defaults to a clean read. `hiddenFindings`
+                        // further filters out items the user has toggled
+                        // off via the per-row eye button in the panel.
+                        items={
+                          showFindings ? canvasItems.filter((it) => !hiddenFindings.has(it.id)) : []
+                        }
+                        selectedItem={effectiveSelected}
+                        onItemClick={handleItemClick}
+                        onFindingNoteRequest={handleFindingNoteRequest}
+                        cropToTrim={cropToTrim}
+                        findingNumbers={findingNumbers}
+                        decisions={decisions}
+                      />
+                    )}
 
-                  {/* Trim / Bleed / Crop boxes — require explicit
+                    {/* Trim / Bleed / Crop boxes — require explicit
                       showBoxOverlays toggle in legacy sep/layer
                       modes. The new react-pdf substrate handles its
                       own gating in the page/findings branch above. */}
-                  {showBoxOverlays && (
-                    <BoxOverlay
-                      page={page}
-                      canvasWidth={canvasW}
-                      canvasHeight={canvasH}
-                      dieline={effectiveDieline ?? null}
-                    />
-                  )}
-                  {/* Dieline region size chips — explicit showDieline
+                    {showBoxOverlays && (
+                      <BoxOverlay
+                        page={page}
+                        canvasWidth={canvasW}
+                        canvasHeight={canvasH}
+                        dieline={effectiveDieline ?? null}
+                      />
+                    )}
+                    {/* Dieline region size chips — explicit showDieline
                       toggle in legacy sep/layer modes. */}
-                  {showDieline && effectiveDieline && (
+                    {showDieline && effectiveDieline && (
                       <DielineOverlay
                         page={page}
                         canvasWidth={canvasW}
@@ -1742,130 +1697,127 @@ export function LensPDF({
                       />
                     )}
 
-                  {services && showHeatmap && (
-                    <TACHeatmapOverlay
-                      jobId="lens-pdf-demo"
-                      pageNum={page.page_num}
-                      width={canvasW}
-                      height={canvasH}
-                      pageWidthPts={page.width_pts}
-                      pageHeightPts={page.height_pts}
-                      tacLimit={tacLimit}
-                    />
-                  )}
-                  {services && showAnnotate && (
-                    <div
-                      ref={annotationWrapRef}
-                      style={{
-                        position: "absolute",
-                        inset: 0,
-                        pointerEvents:
-                          activeTool === "annotate" ? "auto" : "none",
-                      }}
-                    >
-                      <AnnotationCanvas
+                    {services && showHeatmap && (
+                      <TACHeatmapOverlay
                         jobId="lens-pdf-demo"
                         pageNum={page.page_num}
                         width={canvasW}
                         height={canvasH}
-                        activeTool={annotationTool}
-                        strokeColor={strokeColor}
-                        onSavingChange={setSavingAnnotation}
-                        onHistoryChange={handleAnnotationHistoryChange}
-                        onIndexedAnnotationsChange={setIndexedAnnotations}
-                        selectedAnnotationNumber={
-                          selectedAnnotationId?.startsWith("obj-")
-                            ? Number(selectedAnnotationId.slice(4))
-                            : null
-                        }
-                        onSelectedAnnotationNumberChange={(annotationNumber) => {
-                          setSelectedAnnotationId(
-                            annotationNumber != null ? `obj-${annotationNumber}` : null,
-                          );
-                        }}
+                        pageWidthPts={page.width_pts}
+                        pageHeightPts={page.height_pts}
+                        tacLimit={tacLimit}
                       />
-                    </div>
-                  )}
-                  {showAnnotate &&
-                    indexedAnnotations.map((row) => {
-                      const id = `obj-${row.number}`;
-                      const selected = selectedAnnotationId === id;
-                      return (
-                        <button
-                          key={id}
-                          type="button"
-                          onClick={() => {
-                            setSelectedAnnotationId(id);
-                            setActiveTool("annotate");
+                    )}
+                    {services && showAnnotate && (
+                      <div
+                        ref={annotationWrapRef}
+                        style={{
+                          position: "absolute",
+                          inset: 0,
+                          pointerEvents: activeTool === "annotate" ? "auto" : "none",
+                        }}
+                      >
+                        <AnnotationCanvas
+                          jobId="lens-pdf-demo"
+                          pageNum={page.page_num}
+                          width={canvasW}
+                          height={canvasH}
+                          activeTool={annotationTool}
+                          strokeColor={strokeColor}
+                          onSavingChange={setSavingAnnotation}
+                          onHistoryChange={handleAnnotationHistoryChange}
+                          onIndexedAnnotationsChange={setIndexedAnnotations}
+                          selectedAnnotationNumber={
+                            selectedAnnotationId?.startsWith("obj-")
+                              ? Number(selectedAnnotationId.slice(4))
+                              : null
+                          }
+                          onSelectedAnnotationNumberChange={(annotationNumber) => {
+                            setSelectedAnnotationId(
+                              annotationNumber != null ? `obj-${annotationNumber}` : null,
+                            );
                           }}
-                          title={`Annotation #${row.number}`}
-                          style={{
-                            position: "absolute",
-                            left: Math.max(10, row.centerX - 12),
-                            top: Math.max(10, row.centerY - 12),
-                            width: 24,
-                            height: 24,
-                            borderRadius: "50%",
-                            border: selected
-                              ? "2px solid rgba(251,191,36,0.98)"
-                              : "1px solid rgba(255,255,255,0.82)",
-                            background: selected
-                              ? "rgba(251,191,36,0.95)"
-                              : "rgba(15,23,42,0.9)",
-                            color: selected ? "#111827" : "#f8fafc",
-                            fontSize: 11,
-                            fontWeight: 700,
-                            lineHeight: "24px",
-                            textAlign: "center",
-                            cursor: "pointer",
-                            boxShadow: "0 1px 4px rgba(0,0,0,0.45)",
-                            zIndex: 26,
-                            padding: 0,
-                          }}
-                        >
-                          {row.number}
-                        </button>
-                      );
-                    })}
-                  {activeTool === "color-picker" && (
-                    <ColorPickerTool
-                      jobId="lens-pdf-demo"
-                      pageNum={page.page_num}
-                      pageWidthPts={page.width_pts}
-                      pageHeightPts={page.height_pts}
-                      canvasWidth={canvasW}
-                      canvasHeight={canvasH}
-                    />
-                  )}
-                  {activeTool === "densitometer" && (
-                    <DensitometerTool
-                      jobId="lens-pdf-demo"
-                      pageNum={page.page_num}
-                      pageWidthPts={page.width_pts}
-                      pageHeightPts={page.height_pts}
-                      canvasWidth={canvasW}
-                      canvasHeight={canvasH}
-                      tacLimit={tacLimit}
-                    />
-                  )}
-                  {activeTool === "measure" && (
-                    <MeasureTool
-                      pageWidthPts={page.width_pts}
-                      pageHeightPts={page.height_pts}
-                      canvasWidth={canvasW}
-                      canvasHeight={canvasH}
-                    />
-                  )}
+                        />
+                      </div>
+                    )}
+                    {showAnnotate &&
+                      indexedAnnotations.map((row) => {
+                        const id = `obj-${row.number}`;
+                        const selected = selectedAnnotationId === id;
+                        return (
+                          <button
+                            key={id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedAnnotationId(id);
+                              setActiveTool("annotate");
+                            }}
+                            title={`Annotation #${row.number}`}
+                            style={{
+                              position: "absolute",
+                              left: Math.max(10, row.centerX - 12),
+                              top: Math.max(10, row.centerY - 12),
+                              width: 24,
+                              height: 24,
+                              borderRadius: "50%",
+                              border: selected
+                                ? "2px solid rgba(251,191,36,0.98)"
+                                : "1px solid rgba(255,255,255,0.82)",
+                              background: selected ? "rgba(251,191,36,0.95)" : "rgba(15,23,42,0.9)",
+                              color: selected ? "#111827" : "#f8fafc",
+                              fontSize: 11,
+                              fontWeight: 700,
+                              lineHeight: "24px",
+                              textAlign: "center",
+                              cursor: "pointer",
+                              boxShadow: "0 1px 4px rgba(0,0,0,0.45)",
+                              zIndex: 26,
+                              padding: 0,
+                            }}
+                          >
+                            {row.number}
+                          </button>
+                        );
+                      })}
+                    {activeTool === "color-picker" && (
+                      <ColorPickerTool
+                        jobId="lens-pdf-demo"
+                        pageNum={page.page_num}
+                        pageWidthPts={page.width_pts}
+                        pageHeightPts={page.height_pts}
+                        canvasWidth={canvasW}
+                        canvasHeight={canvasH}
+                      />
+                    )}
+                    {activeTool === "densitometer" && (
+                      <DensitometerTool
+                        jobId="lens-pdf-demo"
+                        pageNum={page.page_num}
+                        pageWidthPts={page.width_pts}
+                        pageHeightPts={page.height_pts}
+                        canvasWidth={canvasW}
+                        canvasHeight={canvasH}
+                        tacLimit={tacLimit}
+                      />
+                    )}
+                    {activeTool === "measure" && (
+                      <MeasureTool
+                        pageWidthPts={page.width_pts}
+                        pageHeightPts={page.height_pts}
+                        canvasWidth={canvasW}
+                        canvasHeight={canvasH}
+                      />
+                    )}
 
-                  {preparing && (
+                    {preparing && (
                       <div style={preparingOverlayStyle}>
                         Rasterising page &amp; computing CMYK…
                       </div>
                     )}
+                  </div>
                 </div>
-              </div>
-            )}
-          </section>
+              )}
+            </section>
           </div>
         </div>
 
@@ -1877,4 +1829,3 @@ export function LensPDF({
     );
   }
 }
-

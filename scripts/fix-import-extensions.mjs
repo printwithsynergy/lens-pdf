@@ -6,7 +6,7 @@
 // `./bar`   -> `./bar/index.js` when dist/.../bar/index.js exists
 // Specifiers that already end in .js / .mjs / .cjs / .json are left alone.
 
-import { readdir, readFile, writeFile, stat } from "node:fs/promises";
+import { readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -78,6 +78,4 @@ for await (const file of walk(distDir)) {
   totalCount++;
   if (await rewriteFile(file)) changedCount++;
 }
-console.log(
-  `[fix-import-extensions] rewrote ${changedCount}/${totalCount} files in ${distDir}`,
-);
+console.log(`[fix-import-extensions] rewrote ${changedCount}/${totalCount} files in ${distDir}`);

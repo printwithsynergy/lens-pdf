@@ -37,16 +37,12 @@ describe("fromLintFindings", () => {
     // pass through and are clamped downstream by <LensPDF>. This
     // test pins that contract so future refactors don't accidentally
     // start dropping out-of-range items here.
-    const items = fromLintFindings([
-      { id: "way-past-end", page_num: 999, message: "off the end" },
-    ]);
+    const items = fromLintFindings([{ id: "way-past-end", page_num: 999, message: "off the end" }]);
     expect(items[0].page).toBe(1000);
   });
 
   it("uses 1-indexed page field when page_num is absent", () => {
-    const items = fromLintFindings([
-      { id: "x", page: 3, message: "page-3 finding" },
-    ]);
+    const items = fromLintFindings([{ id: "x", page: 3, message: "page-3 finding" }]);
     expect(items[0].page).toBe(3);
   });
 });
@@ -104,9 +100,7 @@ describe("regions passthrough", () => {
   });
 
   it("fromCallasFindings passes regions through", () => {
-    const items = fromCallasFindings([
-      { id: "ca1", page: 1, regions: validRegions, message: "m" },
-    ]);
+    const items = fromCallasFindings([{ id: "ca1", page: 1, regions: validRegions, message: "m" }]);
     expect(items[0].regions).toEqual(validRegions);
   });
 
@@ -118,16 +112,12 @@ describe("regions passthrough", () => {
   });
 
   it("fromArtworkFindings passes regions through", () => {
-    const items = fromArtworkFindings([
-      { id: "a1", page: 1, regions: validRegions, message: "m" },
-    ]);
+    const items = fromArtworkFindings([{ id: "a1", page: 1, regions: validRegions, message: "m" }]);
     expect(items[0].regions).toEqual(validRegions);
   });
 
   it("omits regions when absent (not an empty array, so the field round-trips)", () => {
-    const items = fromCodexFindings([
-      { id: "c1", page: 1, bbox: [0, 0, 5, 5], message: "m" },
-    ]);
+    const items = fromCodexFindings([{ id: "c1", page: 1, bbox: [0, 0, 5, 5], message: "m" }]);
     expect(items[0]).not.toHaveProperty("regions");
   });
 
@@ -137,7 +127,11 @@ describe("regions passthrough", () => {
         id: "l1",
         page_num: 0,
         // first is too short, second is non-numeric, third valid
-        regions: [[1, 2, 3], ["a", 2, 3, 4], [10, 10, 20, 20]],
+        regions: [
+          [1, 2, 3],
+          ["a", 2, 3, 4],
+          [10, 10, 20, 20],
+        ],
         message: "m",
       },
     ]);
@@ -158,9 +152,7 @@ describe("regions passthrough", () => {
     // Smoke-test the full round-trip from raw source → OverlayItem with
     // only regions set, the case where regions alone makes the item
     // locatable (see plugin/findings-location.hasViewerLocation).
-    const items = fromCodexFindings([
-      { id: "c1", page: 1, regions: validRegions, message: "m" },
-    ]);
+    const items = fromCodexFindings([{ id: "c1", page: 1, regions: validRegions, message: "m" }]);
     expect(items[0].bbox).toBeUndefined();
     expect(items[0].regions).toEqual(validRegions);
   });

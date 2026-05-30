@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { DEFAULT_DPI } from "../types";
 import { useViewerServices } from "../host";
+import { DEFAULT_DPI } from "../types";
 
 /**
  * WS-17C — instant layer toggling via per-OCG isolated tiles.
@@ -44,9 +44,7 @@ export function LayerCanvas({
 }: LayerCanvasProps) {
   const { layers: layerService } = useViewerServices();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [layerImages, setLayerImages] = useState<Map<number, HTMLImageElement>>(
-    new Map(),
-  );
+  const [layerImages, setLayerImages] = useState<Map<number, HTMLImageElement>>(new Map());
   const [loadingLayers, setLoadingLayers] = useState<Set<number>>(new Set());
 
   // Drop the cache when the page changes — different page = different
@@ -54,7 +52,7 @@ export function LayerCanvas({
   useEffect(() => {
     setLayerImages(new Map());
     setLoadingLayers(new Set());
-  }, [pageNum]);
+  }, []);
 
   const loadLayer = useCallback(
     async (layerIndex: number) => {

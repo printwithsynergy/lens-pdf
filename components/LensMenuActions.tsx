@@ -39,12 +39,8 @@ function buttonStyle(tokens: ThemeTokens): CSSProperties {
   };
 }
 
-function sortedActions(
-  actions: ReadonlyArray<LensMenuAction>,
-): ReadonlyArray<LensMenuAction> {
-  return [...actions].sort(
-    (a, b) => (a.order ?? 100) - (b.order ?? 100),
-  );
+function sortedActions(actions: ReadonlyArray<LensMenuAction>): ReadonlyArray<LensMenuAction> {
+  return [...actions].sort((a, b) => (a.order ?? 100) - (b.order ?? 100));
 }
 
 export function LensMenuActions({ tokens, actions }: LensMenuActionsProps) {
@@ -75,12 +71,7 @@ export function LensMenuActions({ tokens, actions }: LensMenuActionsProps) {
           );
         }
         return (
-          <button
-            key={action.id}
-            type="button"
-            onClick={action.onClick}
-            style={btn}
-          >
+          <button key={action.id} type="button" onClick={action.onClick} style={btn}>
             {action.label}
           </button>
         );

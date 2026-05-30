@@ -1,19 +1,12 @@
 "use client";
 
-import {
-  Fragment,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
 import type { ReactNode } from "react";
-import type { PageInfo } from "../types";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPdfJsFallback } from "../fallback-pdfjs";
+import { ViewerHostContext, ViewerServicesContext } from "../host";
 import type { PdfFallbackAdapter, ThemeTokens, ViewerServices } from "../plugin/services";
 import { defaultThemeTokens } from "../plugin/services";
-import { ViewerHostContext, ViewerServicesContext } from "../host";
-import { createPdfJsFallback } from "../fallback-pdfjs";
+import type { PageInfo } from "../types";
 import { ColorPickerTool } from "./ColorPickerTool";
 import { LayerPanel } from "./LayerPanel";
 import { MeasureTool } from "./MeasureTool";
@@ -161,9 +154,7 @@ export function LensPDFViewer(props: LensPDFViewerProps) {
     fallback.listLayers().then((layers) => {
       if (cancelled) return;
       setHasLayers(layers.length > 0);
-      setEnabledLayers(
-        new Set(layers.filter((l) => l.default_on).map((l) => l.ocg_index)),
-      );
+      setEnabledLayers(new Set(layers.filter((l) => l.default_on).map((l) => l.ocg_index)));
       setLayersDiscovered(true);
     });
     return () => {
@@ -237,13 +228,10 @@ export function LensPDFViewer(props: LensPDFViewerProps) {
 
   // Selecting a tool from the mobile drawer should close the drawer
   // so the page is visible to actually use the tool.
-  const handleToolPick = useCallback(
-    (next: "color-picker" | "measure") => {
-      setActiveTool((t) => (t === next ? "none" : next));
-      setMenuOpen(false);
-    },
-    [],
-  );
+  const handleToolPick = useCallback((next: "color-picker" | "measure") => {
+    setActiveTool((t) => (t === next ? "none" : next));
+    setMenuOpen(false);
+  }, []);
 
   const handleLayersPick = useCallback(() => {
     setLayersOpen((v) => !v);
@@ -300,7 +288,13 @@ export function LensPDFViewer(props: LensPDFViewerProps) {
       className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-white/10 text-slate-300 hover:bg-slate-800 hover:text-white"
       aria-label="Open tools menu"
     >
-      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <svg
+        className="h-5 w-5"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2}
+      >
         <path d="M4 6h16M4 12h16M4 18h16" />
       </svg>
     </button>
@@ -355,7 +349,13 @@ export function LensPDFViewer(props: LensPDFViewerProps) {
                 className="rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-white"
                 aria-label="Close menu"
               >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
                   <path d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
@@ -413,7 +413,13 @@ export function LensPDFViewer(props: LensPDFViewerProps) {
                 className="rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-white"
                 aria-label="Close layers"
               >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
                   <path d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
@@ -428,9 +434,7 @@ export function LensPDFViewer(props: LensPDFViewerProps) {
   return (
     <ViewerHostContext.Provider value={hostValue}>
       {services ? (
-        <ViewerServicesContext.Provider value={services}>
-          {content}
-        </ViewerServicesContext.Provider>
+        <ViewerServicesContext.Provider value={services}>{content}</ViewerServicesContext.Provider>
       ) : (
         content
       )}
@@ -479,8 +483,19 @@ function Stage({
     return (
       <div className="flex h-full items-center justify-center text-xs text-slate-400">
         <svg className="mr-2 h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          <circle
+            className="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            strokeWidth="4"
+          />
+          <path
+            className="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+          />
         </svg>
         Loading PDF…
       </div>
@@ -488,9 +503,7 @@ function Stage({
   }
 
   const pages =
-    mode === "single"
-      ? [currentPage]
-      : Array.from({ length: pageCount }, (_, i) => i + 1);
+    mode === "single" ? [currentPage] : Array.from({ length: pageCount }, (_, i) => i + 1);
 
   return (
     <div ref={containerRef} className="h-full overflow-auto p-4">
@@ -677,7 +690,15 @@ function ToolButton({
   );
 }
 
-function PageNav({ page, total, onChange }: { page: number; total: number; onChange: (n: number) => void }) {
+function PageNav({
+  page,
+  total,
+  onChange,
+}: {
+  page: number;
+  total: number;
+  onChange: (n: number) => void;
+}) {
   return (
     <div className="flex items-center gap-1.5">
       <button
@@ -738,7 +759,9 @@ function DrawerItem({
       onClick={onClick}
       className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-slate-200 transition-colors hover:bg-slate-800"
     >
-      <span className="flex h-5 w-5 shrink-0 items-center justify-center text-slate-400">{icon}</span>
+      <span className="flex h-5 w-5 shrink-0 items-center justify-center text-slate-400">
+        {icon}
+      </span>
       <span className={active ? "font-medium text-white" : ""}>{label}</span>
       {active && <span className="ml-auto h-2 w-2 shrink-0 rounded-full bg-blue-400" />}
     </button>

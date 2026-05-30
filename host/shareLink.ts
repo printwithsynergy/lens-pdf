@@ -133,13 +133,13 @@ export function parseShareParams(searchParams: URLSearchParams): ParsedSharePara
   const zoom = searchParams.get("zoom");
   if (zoom) {
     const parsed = parseInt(zoom, 10);
-    if (!isNaN(parsed) && parsed > 0) result.zoom = parsed;
+    if (!Number.isNaN(parsed) && parsed > 0) result.zoom = parsed;
   }
 
   const page = searchParams.get("page");
   if (page) {
     const parsed = parseInt(page, 10);
-    if (!isNaN(parsed) && parsed > 0) result.page = parsed;
+    if (!Number.isNaN(parsed) && parsed > 0) result.page = parsed;
   }
 
   const mode = searchParams.get("mode");

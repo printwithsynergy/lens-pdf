@@ -16,7 +16,7 @@
  * @public
  */
 
-import * as React from "react";
+import type * as React from "react";
 
 import type { DielineResult } from "../types";
 
@@ -30,7 +30,7 @@ export interface DielineInfoPanelProps {
 }
 
 function formatMm(widthPts: number, heightPts: number): string {
-  return `${(widthPts * 25.4 / 72).toFixed(2)} × ${(heightPts * 25.4 / 72).toFixed(2)} mm`;
+  return `${((widthPts * 25.4) / 72).toFixed(2)} × ${((heightPts * 25.4) / 72).toFixed(2)} mm`;
 }
 
 function formatInches(widthPts: number, heightPts: number): string {
@@ -48,14 +48,11 @@ export function DielineInfoPanel({
   return (
     <aside
       className={
-        className ??
-        "rounded-lg border border-slate-800 bg-slate-900 p-3 text-xs text-slate-200"
+        className ?? "rounded-lg border border-slate-800 bg-slate-900 p-3 text-xs text-slate-200"
       }
     >
       <div className="mb-2 flex items-center justify-between gap-2 border-b border-slate-800 pb-2">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-300">
-          {title}
-        </p>
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-300">{title}</p>
         {dieline.multi_color ? (
           <span
             className="rounded bg-red-500/20 px-1.5 py-0.5 text-[9px] font-semibold text-red-300"

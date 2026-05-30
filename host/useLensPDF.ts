@@ -11,11 +11,11 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPdfJsFallback } from "../fallback-pdfjs";
 import type { PdfFallbackAdapter, ThemeTokens, ViewerServices } from "../plugin/services";
 import { defaultThemeTokens, markUnwired, noopI18n, noopTelemetry } from "../plugin/services";
 import type { PageInfo } from "../types";
 import { pageInfoFromDimensions } from "../types";
-import { createPdfJsFallback } from "../fallback-pdfjs";
 import type { ViewerHostContextValue } from "./index";
 
 // ---------------------------------------------------------------------------
@@ -125,7 +125,7 @@ export function useLensPDF(
   const tokens: ThemeTokens = useMemo(
     () => ({ ...defaultThemeTokens, ...tokenOverrides }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [JSON.stringify(tokenOverrides)],
+    [tokenOverrides],
   );
 
   // -----------------------------------------------------------------------
@@ -147,7 +147,9 @@ export function useLensPDF(
       tacHeatmap: markUnwired({ getHeatmapImageUrl: () => "", listRuns: async () => [] }),
       colorSample: markUnwired({ sampleAt: async () => null }),
       densitometer: markUnwired({
-        sampleAt: async () => { throw new Error("No separations available for this page."); },
+        sampleAt: async () => {
+          throw new Error("No separations available for this page.");
+        },
       }),
       annotations: markUnwired({
         list: async () => [],
@@ -214,9 +216,15 @@ export function useLensPDF(
     let cancelled = false;
     fallback
       .getPageCount()
-      .then((n) => { if (!cancelled) setPageCount(n); })
-      .catch((err: Error) => { if (!cancelled) setError(err.message); });
-    return () => { cancelled = true; };
+      .then((n) => {
+        if (!cancelled) setPageCount(n);
+      })
+      .catch((err: Error) => {
+        if (!cancelled) setError(err.message);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [fallback]);
 
   useEffect(() => {
@@ -227,7 +235,9 @@ export function useLensPDF(
       setHasLayers(layers.length > 0);
       setEnabledLayers(new Set(layers.filter((l) => l.default_on).map((l) => l.ocg_index)));
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [fallback]);
 
   // -----------------------------------------------------------------------

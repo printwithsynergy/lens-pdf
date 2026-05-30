@@ -17,11 +17,13 @@
  * no per-overlay zoom math needed.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
-import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import type { ReactZoomPanPinchRef } from "react-zoom-pan-pinch";
+import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
+import { computeFitScale, rectsEqual } from "../plugin/fit";
+import type { ThemeTokens } from "../plugin/services";
 // CSS lives inline (see `reactPdfCss.ts`) and gets injected into
 // document.head on first mount. The previous side-effect imports
 // of `react-pdf/dist/Page/*.css` broke Node ESM during SSR — any
@@ -30,8 +32,6 @@ import type { ReactZoomPanPinchRef } from "react-zoom-pan-pinch";
 // `defaultPdfjsWorkerSrc` for a preload tag) triggered the chain
 // and the server boot died with ERR_UNKNOWN_FILE_EXTENSION.
 import { ensureReactPdfCss } from "./reactPdfCss";
-import { computeFitScale, rectsEqual } from "../plugin/fit";
-import type { ThemeTokens } from "../plugin/services";
 
 // Required: react-pdf needs the pdf.js worker URL. react-pdf 10.x
 // ships with a SENTINEL default of `"pdf.worker.mjs"` (a bare module
@@ -55,13 +55,12 @@ import type { ThemeTokens } from "../plugin/services";
 // the server graph. Re-export here for backwards-compat with
 // consumers importing from `./PdfSubstrate` directly.
 import { defaultPdfjsWorkerSrc } from "./pdfjsWorker";
+
 export { defaultPdfjsWorkerSrc } from "./pdfjsWorker";
 
 if (typeof window !== "undefined") {
   const current = pdfjs.GlobalWorkerOptions.workerSrc;
-  const isRealUrl =
-    typeof current === "string" &&
-    /^(https?:|blob:|\/)/.test(current);
+  const isRealUrl = typeof current === "string" && /^(https?:|blob:|\/)/.test(current);
   if (!isRealUrl) {
     pdfjs.GlobalWorkerOptions.workerSrc = defaultPdfjsWorkerSrc;
   }
@@ -295,9 +294,7 @@ export function LensLoadingSkeleton({
           animation: "lens-pdf-skel-spin 0.8s linear infinite",
         }}
       />
-      {label && (
-        <span style={{ opacity: 0.65, fontSize: 12 }}>{label}</span>
-      )}
+      {label && <span style={{ opacity: 0.65, fontSize: 12 }}>{label}</span>}
       <style>{`
         @keyframes lens-pdf-skel-spin {
           to { transform: rotate(360deg); }
@@ -406,12 +403,7 @@ export function PdfSubstrate({
   );
 
   const handlePageLoadSuccess = useCallback(
-    (page: {
-      width: number;
-      height: number;
-      originalWidth: number;
-      originalHeight: number;
-    }) => {
+    (page: { width: number; height: number; originalWidth: number; originalHeight: number }) => {
       const info: RenderedPage = {
         page: pageNumber,
         width: page.width,
@@ -507,10 +499,7 @@ export function PdfSubstrate({
     </div>
   );
   const pageLoading = loadingPlaceholder ?? (
-    <LensLoadingSkeleton
-      tokens={tokens}
-      label={`Rendering page ${pageNumber}…`}
-    />
+    <LensLoadingSkeleton tokens={tokens} label={`Rendering page ${pageNumber}…`} />
   );
 
   return (
@@ -578,25 +567,25 @@ export function PdfSubstrate({
               // mounted in a hung state.
               documentError
             ) : (
-            <Document
-              file={file}
-              loading={documentLoading}
-              error={documentError}
-              onLoadSuccess={handleDocumentLoad}
-              onLoadError={handleLoadError}
-              onSourceError={handleLoadError}
-              options={documentOptions}
-            >
-              <Page
-                pageNumber={pageNumber}
-                scale={RENDER_SCALE}
-                devicePixelRatio={DEVICE_PIXEL_RATIO}
-                onLoadSuccess={handlePageLoadSuccess}
-                loading={pageLoading}
-                renderTextLayer
-                renderAnnotationLayer
-              />
-            </Document>
+              <Document
+                file={file}
+                loading={documentLoading}
+                error={documentError}
+                onLoadSuccess={handleDocumentLoad}
+                onLoadError={handleLoadError}
+                onSourceError={handleLoadError}
+                options={documentOptions}
+              >
+                <Page
+                  pageNumber={pageNumber}
+                  scale={RENDER_SCALE}
+                  devicePixelRatio={DEVICE_PIXEL_RATIO}
+                  onLoadSuccess={handlePageLoadSuccess}
+                  loading={pageLoading}
+                  renderTextLayer
+                  renderAnnotationLayer
+                />
+              </Document>
             )}
             {rendered && (
               <div
@@ -622,13 +611,11 @@ export function PdfSubstrate({
                         (rendered.height / rendered.heightPts),
                       width: Math.max(
                         1,
-                        (focusRect[2] - focusRect[0]) *
-                          (rendered.width / rendered.widthPts),
+                        (focusRect[2] - focusRect[0]) * (rendered.width / rendered.widthPts),
                       ),
                       height: Math.max(
                         1,
-                        (focusRect[3] - focusRect[1]) *
-                          (rendered.height / rendered.heightPts),
+                        (focusRect[3] - focusRect[1]) * (rendered.height / rendered.heightPts),
                       ),
                       pointerEvents: "none",
                     }}

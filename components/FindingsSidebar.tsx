@@ -25,7 +25,7 @@
  * @public
  */
 
-import * as React from "react";
+import type * as React from "react";
 import { useMemo, useState } from "react";
 
 import type { DecisionRecord, DecisionType, OverlayItem } from "../plugin";
@@ -121,10 +121,7 @@ export function FindingsSidebar({
   const [infoOpen, setInfoOpen] = useState(true);
 
   const allItems = useMemo(
-    () =>
-      Array.from(items ?? []).filter(
-        (it) => !hideSpelling || it.type !== "spell_check",
-      ),
+    () => Array.from(items ?? []).filter((it) => !hideSpelling || it.type !== "spell_check"),
     [items, hideSpelling],
   );
 
@@ -139,16 +136,11 @@ export function FindingsSidebar({
 
   const visible = useMemo(
     () =>
-      tierFilter === "all"
-        ? allItems
-        : allItems.filter((i) => tierLabel(i.tier) === tierFilter),
+      tierFilter === "all" ? allItems : allItems.filter((i) => tierLabel(i.tier) === tierFilter),
     [allItems, tierFilter],
   );
 
-  const { located, informational } = useMemo(
-    () => splitFindingsByLocation(visible),
-    [visible],
-  );
+  const { located, informational } = useMemo(() => splitFindingsByLocation(visible), [visible]);
 
   const total = allItems.length;
   const tierOrder: TierFilter[] = ["all", "error", "warning", "advisory", "info"];
@@ -158,9 +150,7 @@ export function FindingsSidebar({
       className={`${widthClass} hidden shrink-0 flex-col border-r border-slate-800 bg-slate-900/60 text-slate-100 md:flex`}
     >
       <div className="border-b border-slate-800 px-4 py-3">
-        <p className="text-xs font-semibold uppercase tracking-wider text-brand-300">
-          {title}
-        </p>
+        <p className="text-xs font-semibold uppercase tracking-wider text-brand-300">{title}</p>
         {filename ? (
           <p className="mt-1 truncate text-xs text-slate-500" title={filename}>
             {filename}
@@ -169,7 +159,7 @@ export function FindingsSidebar({
         {total > 0 ? (
           <div className="mt-3 flex flex-wrap gap-1.5">
             {tierOrder.map((tier) => {
-              const count = tier === "all" ? total : tierCounts[tier] ?? 0;
+              const count = tier === "all" ? total : (tierCounts[tier] ?? 0);
               if (tier !== "all" && count === 0) return null;
               const active = tierFilter === tier;
               return (
@@ -211,9 +201,7 @@ export function FindingsSidebar({
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {total === 0 ? (
-          <p className="px-4 py-6 text-center text-xs text-slate-500">
-            No findings on this PDF.
-          </p>
+          <p className="px-4 py-6 text-center text-xs text-slate-500">No findings on this PDF.</p>
         ) : null}
 
         {located.length > 0 ? (
@@ -253,7 +241,9 @@ export function FindingsSidebar({
                     <div className="flex gap-1 border-t border-slate-800/60 px-4 py-1.5 opacity-0 transition-opacity group-hover:opacity-100">
                       {hasActiveDecision ? (
                         <span className="text-[10px] text-emerald-400">
-                          ✓ {decision.decision_type.charAt(0).toUpperCase() + decision.decision_type.slice(1)}
+                          ✓{" "}
+                          {decision.decision_type.charAt(0).toUpperCase() +
+                            decision.decision_type.slice(1)}
                           {" · "}
                           <button
                             type="button"
@@ -265,9 +255,24 @@ export function FindingsSidebar({
                         </span>
                       ) : (
                         <>
-                          <DecideButton label="Approve" type="button" onClick={() => onDecide(item, "approve")} color="emerald" />
-                          <DecideButton label="Waive" type="button" onClick={() => onDecide(item, "waive")} color="amber" />
-                          <DecideButton label="Reject" type="button" onClick={() => onDecide(item, "reject")} color="red" />
+                          <DecideButton
+                            label="Approve"
+                            type="button"
+                            onClick={() => onDecide(item, "approve")}
+                            color="emerald"
+                          />
+                          <DecideButton
+                            label="Waive"
+                            type="button"
+                            onClick={() => onDecide(item, "waive")}
+                            color="amber"
+                          />
+                          <DecideButton
+                            label="Reject"
+                            type="button"
+                            onClick={() => onDecide(item, "reject")}
+                            color="red"
+                          />
                         </>
                       )}
                     </div>

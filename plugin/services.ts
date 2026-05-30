@@ -52,11 +52,7 @@ export interface LayerService {
    * one PNG per OCG with a transparent background; the viewer
    * composites the active subset locally.
    */
-  getLayerImageUrl(args: {
-    pageNum: number;
-    layerIndex: number;
-    dpi: number;
-  }): string;
+  getLayerImageUrl(args: { pageNum: number; layerIndex: number; dpi: number }): string;
   /** List the OCGs available for the current document. */
   listLayers(): Promise<
     ReadonlyArray<{
@@ -82,11 +78,7 @@ export interface SeparationService {
    * (`"Pantone Reflex Blue C"`, etc.). The host is responsible for
    * percent-encoding the channel name in whatever URL it returns.
    */
-  getChannelImageUrl(args: {
-    pageNum: number;
-    channelName: string;
-    dpi: number;
-  }): string;
+  getChannelImageUrl(args: { pageNum: number; channelName: string; dpi: number }): string;
 }
 
 /**
@@ -98,21 +90,13 @@ export interface SeparationService {
  */
 export interface TACHeatmapService {
   /** Synchronous URL for the heatmap image (per-pixel RGBA tint). */
-  getHeatmapImageUrl(args: {
-    pageNum: number;
-    dpi: number;
-    tacLimit: number;
-  }): string;
+  getHeatmapImageUrl(args: { pageNum: number; dpi: number; tacLimit: number }): string;
   /**
    * Per-text-run TAC readings used to drive the hover-tooltip layer.
    * Coordinates are PDF points with origin at the **top-left** of the
    * page (matches poppler's ``pdftotext -bbox`` output).
    */
-  listRuns(args: {
-    pageNum: number;
-    dpi: number;
-    tacLimit: number;
-  }): Promise<
+  listRuns(args: { pageNum: number; dpi: number; tacLimit: number }): Promise<
     ReadonlyArray<{
       x0: number;
       y0: number;
@@ -292,9 +276,7 @@ export interface PdfFallbackAdapter {
     heightPts: number;
   }>;
   renderPageToUrl(args: { pageNum: number; dpi: number }): Promise<string>;
-  listLayers(): Promise<
-    ReadonlyArray<{ name: string; ocg_index: number; default_on: boolean }>
-  >;
+  listLayers(): Promise<ReadonlyArray<{ name: string; ocg_index: number; default_on: boolean }>>;
   sampleColorAt(args: {
     pageNum: number;
     pdfX: number;
@@ -369,10 +351,7 @@ export const noopTelemetry: TelemetryService = {
 export const noopI18n: I18nService = {
   t: (key: string, params?: Record<string, string | number>) => {
     if (!params) return key;
-    return Object.entries(params).reduce(
-      (acc, [k, v]) => acc.replaceAll(`{${k}}`, String(v)),
-      key,
-    );
+    return Object.entries(params).reduce((acc, [k, v]) => acc.replaceAll(`{${k}}`, String(v)), key);
   },
 };
 

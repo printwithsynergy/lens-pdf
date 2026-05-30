@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { DEFAULT_DPI } from "../types";
 import { isUnwired, logUnwiredHide, useViewerHost, useViewerServices } from "../host";
+import { DEFAULT_DPI } from "../types";
 
 /**
  * RGB tint colors for compositing each channel onto a white background
@@ -28,18 +28,29 @@ function spotColorRgb(name: string): [number, number, number] {
   const c = (1 - Math.abs(2 * l - 1)) * s;
   const x = c * (1 - Math.abs(((hue / 60) % 2) - 1));
   const m = l - c / 2;
-  let r = 0, g = 0, b = 0;
-  if (hue < 60) { r = c; g = x; }
-  else if (hue < 120) { r = x; g = c; }
-  else if (hue < 180) { g = c; b = x; }
-  else if (hue < 240) { g = x; b = c; }
-  else if (hue < 300) { r = x; b = c; }
-  else { r = c; b = x; }
-  return [
-    Math.round((r + m) * 255),
-    Math.round((g + m) * 255),
-    Math.round((b + m) * 255),
-  ];
+  let r = 0,
+    g = 0,
+    b = 0;
+  if (hue < 60) {
+    r = c;
+    g = x;
+  } else if (hue < 120) {
+    r = x;
+    g = c;
+  } else if (hue < 180) {
+    g = c;
+    b = x;
+  } else if (hue < 240) {
+    g = x;
+    b = c;
+  } else if (hue < 300) {
+    r = x;
+    b = c;
+  } else {
+    r = c;
+    b = x;
+  }
+  return [Math.round((r + m) * 255), Math.round((g + m) * 255), Math.round((b + m) * 255)];
 }
 
 interface SeparationCanvasProps {
@@ -65,18 +76,14 @@ export function SeparationCanvas({
   const { debug } = useViewerHost();
   const hidden = isUnwired(separations);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [channelImages, setChannelImages] = useState<
-    Map<string, HTMLImageElement>
-  >(new Map());
-  const [loadingChannels, setLoadingChannels] = useState<Set<string>>(
-    new Set(),
-  );
+  const [channelImages, setChannelImages] = useState<Map<string, HTMLImageElement>>(new Map());
+  const [loadingChannels, setLoadingChannels] = useState<Set<string>>(new Set());
 
   // Clear cached channel images when page changes
   useEffect(() => {
     setChannelImages(new Map());
     setLoadingChannels(new Set());
-  }, [pageNum]);
+  }, []);
 
   useEffect(() => {
     if (hidden && debug) logUnwiredHide("SeparationCanvas", "separations");

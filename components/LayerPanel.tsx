@@ -1,14 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import type { CSSProperties } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { logUnwiredHide, useFallbackMode, useViewerHost, useViewerServices } from "../host";
 import type { LayerInfo } from "../types";
-import {
-  logUnwiredHide,
-  useFallbackMode,
-  useViewerHost,
-  useViewerServices,
-} from "../host";
 
 interface LayerPanelProps {
   jobId: string;
@@ -210,18 +205,14 @@ export function LayerPanel({
       </div>
       {showingSyntheticFallback && (
         <p style={messageStyle}>
-          No optional-content groups (OCGs) were found, so this row represents
-          the flattened page artwork. Many exported PDFs are flat.
+          No optional-content groups (OCGs) were found, so this row represents the flattened page
+          artwork. Many exported PDFs are flat.
         </p>
       )}
 
       <div style={layerListStyle}>
         {displayLayers.map((layer) => (
-          <label
-            key={layer.ocg_index}
-            style={layerRowStyle}
-            title={`Toggle "${layer.name}"`}
-          >
+          <label key={layer.ocg_index} style={layerRowStyle} title={`Toggle "${layer.name}"`}>
             <input
               type="checkbox"
               checked={enabledLayers.has(layer.ocg_index)}

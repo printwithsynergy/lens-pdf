@@ -11,12 +11,12 @@
  * focusable button.
  */
 
-import { useMemo } from "react";
 import type { CSSProperties } from "react";
-import type { DecisionRecord, OverlayItem } from "../plugin/types";
+import { useMemo } from "react";
 import { collectItemRects } from "../plugin/fit";
-import { SEVERITY_COLORS } from "../types";
 import type { ThemeTokens } from "../plugin/services";
+import type { DecisionRecord, OverlayItem } from "../plugin/types";
+import { SEVERITY_COLORS } from "../types";
 
 const TIER_STROKE: Record<string, string> = {
   error: SEVERITY_COLORS.error.stroke,
@@ -121,11 +121,7 @@ function bboxStyle(
   };
 }
 
-function badgeStyle(
-  pos: PositionedRect,
-  color: string,
-  isSelected: boolean,
-): CSSProperties {
+function badgeStyle(pos: PositionedRect, color: string, isSelected: boolean): CSSProperties {
   // Pill-shaped badge anchored to the bbox's top-right corner.
   const fontSize = isSelected ? 11 : 10;
   return {
@@ -140,8 +136,7 @@ function badgeStyle(
     color: "#fff",
     fontSize,
     fontWeight: 700,
-    fontFamily:
-      "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+    fontFamily: "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -166,14 +161,7 @@ export function FindingsOverlayDOM({
   tokens: _tokens,
 }: FindingsOverlayDOMProps) {
   const positioned = useMemo(
-    () =>
-      positionItems(
-        items,
-        pageWidthPts,
-        pageHeightPts,
-        pageWidthPx,
-        pageHeightPx,
-      ),
+    () => positionItems(items, pageWidthPts, pageHeightPts, pageWidthPx, pageHeightPx),
     [items, pageWidthPts, pageHeightPts, pageWidthPx, pageHeightPx],
   );
 

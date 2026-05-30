@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { DEFAULT_DPI } from "../types";
 import { isUnwired, logUnwiredHide, useViewerHost, useViewerServices } from "../host";
+import { DEFAULT_DPI } from "../types";
 
 /** Per-text-run TAC reading.
  *
@@ -92,11 +92,9 @@ export function TACHeatmapOverlay({
   useEffect(() => {
     let cancelled = false;
     setRuns([]);
-    void tacHeatmap
-      .listRuns({ pageNum, dpi, tacLimit })
-      .then((items) => {
-        if (!cancelled) setRuns([...items]);
-      });
+    void tacHeatmap.listRuns({ pageNum, dpi, tacLimit }).then((items) => {
+      if (!cancelled) setRuns([...items]);
+    });
     return () => {
       cancelled = true;
     };
@@ -130,7 +128,21 @@ export function TACHeatmapOverlay({
         }}
       >
         <div className="flex flex-col items-center gap-2 rounded-lg bg-black/60 px-4 py-3">
-          <svg className="h-6 w-6 animate-spin text-white" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+          <svg className="h-6 w-6 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+            />
+          </svg>
           <span className="text-xs text-white/70">Generating heatmap</span>
         </div>
       </div>
@@ -232,15 +244,24 @@ export function TACHeatmapOverlay({
       <div className="absolute bottom-20 right-2 rounded bg-black/80 p-2 text-xs text-white shadow-lg sm:bottom-2">
         <p className="mb-1 font-semibold">TAC Coverage</p>
         <div className="flex items-center gap-1">
-          <span className="inline-block h-2 w-4 rounded" style={{ backgroundColor: "rgb(0, 180, 0)" }} />
+          <span
+            className="inline-block h-2 w-4 rounded"
+            style={{ backgroundColor: "rgb(0, 180, 0)" }}
+          />
           <span>&lt; 250%</span>
         </div>
         <div className="flex items-center gap-1">
-          <span className="inline-block h-2 w-4 rounded" style={{ backgroundColor: "rgb(255, 200, 0)" }} />
+          <span
+            className="inline-block h-2 w-4 rounded"
+            style={{ backgroundColor: "rgb(255, 200, 0)" }}
+          />
           <span>250–{tacLimit}%</span>
         </div>
         <div className="flex items-center gap-1">
-          <span className="inline-block h-2 w-4 rounded" style={{ backgroundColor: "rgb(255, 0, 0)" }} />
+          <span
+            className="inline-block h-2 w-4 rounded"
+            style={{ backgroundColor: "rgb(255, 0, 0)" }}
+          />
           <span>&ge; {tacLimit}%</span>
         </div>
       </div>

@@ -2,13 +2,8 @@
 
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useState } from "react";
+import { logUnwiredHide, useFallbackMode, useViewerHost, useViewerServices } from "../host";
 import type { ColorSample } from "../types";
-import {
-  logUnwiredHide,
-  useFallbackMode,
-  useViewerHost,
-  useViewerServices,
-} from "../host";
 import { useIsMobile } from "./useIsMobile";
 
 interface ColorPickerToolProps {
@@ -81,7 +76,16 @@ export function ColorPickerTool({
         setLoading(false);
       }
     },
-    [colorSample, pdfFallback, mode, pageNum, pageWidthPts, pageHeightPts, canvasWidth, canvasHeight],
+    [
+      colorSample,
+      pdfFallback,
+      mode,
+      pageNum,
+      pageWidthPts,
+      pageHeightPts,
+      canvasWidth,
+      canvasHeight,
+    ],
   );
 
   if (mode === "hidden") return null;
@@ -125,12 +129,8 @@ export function ColorPickerTool({
       }
     : {
         position: "absolute",
-        left: position
-          ? Math.min(position.x + 16, canvasWidth - 230)
-          : 0,
-        top: position
-          ? Math.min(position.y + 16, canvasHeight - 200)
-          : 0,
+        left: position ? Math.min(position.x + 16, canvasWidth - 230) : 0,
+        top: position ? Math.min(position.y + 16, canvasHeight - 200) : 0,
         zIndex: 30,
         pointerEvents: "none",
         minWidth: 200,
@@ -176,8 +176,7 @@ export function ColorPickerTool({
             />
             <span
               style={{
-                fontFamily:
-                  "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
                 fontWeight: 700,
               }}
             >
@@ -196,8 +195,7 @@ export function ColorPickerTool({
                 marginTop: 6,
                 paddingTop: 6,
                 borderTop: "1px solid rgba(255, 255, 255, 0.1)",
-                fontFamily:
-                  "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
                 fontSize: 10,
               }}
             >
@@ -232,9 +230,7 @@ export function ColorPickerTool({
                           flexShrink: 0,
                         }}
                       />
-                      <span style={{ color: "#cbd5e1", width: 18 }}>
-                        {processAbbr(ink.name)}
-                      </span>
+                      <span style={{ color: "#cbd5e1", width: 18 }}>{processAbbr(ink.name)}</span>
                       <span
                         style={{
                           fontVariantNumeric: "tabular-nums",
@@ -292,9 +288,7 @@ export function ColorPickerTool({
                         >
                           {ink.name}
                         </span>
-                        <span
-                          style={{ fontVariantNumeric: "tabular-nums", color: "#f1f5f9" }}
-                        >
+                        <span style={{ fontVariantNumeric: "tabular-nums", color: "#f1f5f9" }}>
                           {ink.percent.toFixed(1)}%
                         </span>
                       </div>
@@ -310,9 +304,7 @@ export function ColorPickerTool({
           style={{
             position: isMobile ? "fixed" : "absolute",
             left: isMobile ? 16 : position.x + 16,
-            ...(isMobile
-              ? { bottom: 16, right: 16 }
-              : { top: position.y + 16 }),
+            ...(isMobile ? { bottom: 16, right: 16 } : { top: position.y + 16 }),
             zIndex: 60,
             pointerEvents: "none",
             padding: "4px 10px",

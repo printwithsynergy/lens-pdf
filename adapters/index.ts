@@ -54,11 +54,7 @@ function truncate(s: string, n: number): string {
 }
 
 function asBbox(v: unknown): [number, number, number, number] | undefined {
-  if (
-    Array.isArray(v) &&
-    v.length === 4 &&
-    v.every((x) => typeof x === "number")
-  ) {
+  if (Array.isArray(v) && v.length === 4 && v.every((x) => typeof x === "number")) {
     return [v[0], v[1], v[2], v[3]];
   }
   return undefined;
@@ -105,45 +101,24 @@ export function fromCodexSummary(summary: Record<string, unknown>): {
   const die = summary.dieline;
   if (die && typeof die === "object") {
     const d = die as Record<string, unknown>;
-    const size =
-      d.size && typeof d.size === "object"
-        ? (d.size as Record<string, unknown>)
-        : null;
+    const size = d.size && typeof d.size === "object" ? (d.size as Record<string, unknown>) : null;
     if (size && size.available === true) {
       const widthPt = typeof size.width_pt === "number" ? size.width_pt : 0;
       const heightPt = typeof size.height_pt === "number" ? size.height_pt : 0;
       const x0 = typeof size.x0_pt === "number" ? size.x0_pt : 0;
       const y0 = typeof size.y0_pt === "number" ? size.y0_pt : 0;
-      const widthMm =
-        typeof size.width_mm === "number"
-          ? size.width_mm
-          : (widthPt * 25.4) / 72;
-      const heightMm =
-        typeof size.height_mm === "number"
-          ? size.height_mm
-          : (heightPt * 25.4) / 72;
+      const widthMm = typeof size.width_mm === "number" ? size.width_mm : (widthPt * 25.4) / 72;
+      const heightMm = typeof size.height_mm === "number" ? size.height_mm : (heightPt * 25.4) / 72;
       const candidates = Array.isArray(d.candidates) ? d.candidates : [];
       const firstNamed = candidates
-        .filter(
-          (c): c is Record<string, unknown> =>
-            Boolean(c && typeof c === "object"),
-        )
-        .find(
-          (c) =>
-            typeof c.name === "string" &&
-            c.source !== "analysis_stroke_bbox",
-        );
-      const overallConf =
-        typeof d.overall_confidence === "number" ? d.overall_confidence : 0;
-      const sizeConf =
-        typeof size.confidence === "number" ? size.confidence : 0;
+        .filter((c): c is Record<string, unknown> => Boolean(c && typeof c === "object"))
+        .find((c) => typeof c.name === "string" && c.source !== "analysis_stroke_bbox");
+      const overallConf = typeof d.overall_confidence === "number" ? d.overall_confidence : 0;
+      const sizeConf = typeof size.confidence === "number" ? size.confidence : 0;
       dieline = {
         source: firstNamed ? "name" : "vision",
         polylines: [],
-        spot_name:
-          firstNamed && typeof firstNamed.name === "string"
-            ? firstNamed.name
-            : null,
+        spot_name: firstNamed && typeof firstNamed.name === "string" ? firstNamed.name : null,
         confidence: Math.max(0, Math.min(1, overallConf || sizeConf)),
         regions: [
           {
@@ -171,8 +146,7 @@ export function fromCodexSummary(summary: Record<string, unknown>): {
         if (!entry || typeof entry !== "object") continue;
         const e = entry as Record<string, unknown>;
         const name = typeof e.name === "string" ? e.name.trim() : "";
-        const hex =
-          typeof e.swatch_hex === "string" ? e.swatch_hex.trim() : "";
+        const hex = typeof e.swatch_hex === "string" ? e.swatch_hex.trim() : "";
         if (name && hex) out[name] = hex;
       }
       if (Object.keys(out).length > 0) spotPalette = out;
@@ -193,22 +167,15 @@ export function fromCodexSummary(summary: Record<string, unknown>): {
  *
  * @public
  */
-export function fromCodexFindings(
-  findings: ReadonlyArray<Record<string, unknown>>,
-): OverlayItem[] {
+export function fromCodexFindings(findings: ReadonlyArray<Record<string, unknown>>): OverlayItem[] {
   return findings.map((f, i) => {
-    const id =
-      typeof f.id === "string" && f.id
-        ? `codex-${f.id}`
-        : `codex-finding-${i}`;
+    const id = typeof f.id === "string" && f.id ? `codex-${f.id}` : `codex-finding-${i}`;
     const tier = pickTier(f.severity);
     const page = typeof f.page === "number" && f.page > 0 ? f.page : 1;
     const bbox = asBbox(f.bbox);
     const regions = asRegions(f.regions);
     const message =
-      typeof f.message === "string" && f.message
-        ? f.message
-        : String(f.type ?? "finding");
+      typeof f.message === "string" && f.message ? f.message : String(f.type ?? "finding");
     const code = typeof f.type === "string" ? f.type : undefined;
     return {
       id,
@@ -244,9 +211,7 @@ export function fromCodexFindings(
  *
  * @public
  */
-export function fromLintFindings(
-  findings: ReadonlyArray<Record<string, unknown>>,
-): OverlayItem[] {
+export function fromLintFindings(findings: ReadonlyArray<Record<string, unknown>>): OverlayItem[] {
   return findings.map((f, i) => {
     const code =
       (typeof f.inspection_id === "string" && f.inspection_id) ||
@@ -257,32 +222,18 @@ export function fromLintFindings(
       (typeof f.message === "string" && f.message) ||
       (typeof f.description === "string" && f.description) ||
       code;
-    const id =
-      typeof f.id === "string" && f.id ? f.id : `lintpdf-${code}-${i}`;
-    const tier = pickTier(
-      (f.severity ?? f.level) as string | null | undefined,
-    );
+    const id = typeof f.id === "string" && f.id ? f.id : `lintpdf-${code}-${i}`;
+    const tier = pickTier((f.severity ?? f.level) as string | null | undefined);
     const validPageNum =
-      typeof f.page_num === "number" &&
-      Number.isInteger(f.page_num) &&
-      f.page_num >= 0;
-    const validPage1 =
-      typeof f.page === "number" &&
-      Number.isInteger(f.page) &&
-      f.page > 0;
-    const page = validPageNum
-      ? (f.page_num as number) + 1
-      : validPage1
-        ? (f.page as number)
-        : 1;
+      typeof f.page_num === "number" && Number.isInteger(f.page_num) && f.page_num >= 0;
+    const validPage1 = typeof f.page === "number" && Number.isInteger(f.page) && f.page > 0;
+    const page = validPageNum ? (f.page_num as number) + 1 : validPage1 ? (f.page as number) : 1;
     const bbox = asBbox(f.bbox);
     const regions = asRegions(f.regions);
     // Spell-check findings get a squiggly rendering hint so PageCanvas
     // draws a wavy underline instead of the standard filled rectangle.
     const type =
-      typeof code === "string" && code.startsWith("LPDF_SPELL")
-        ? "spell_check"
-        : undefined;
+      typeof code === "string" && code.startsWith("LPDF_SPELL") ? "spell_check" : undefined;
     return {
       id,
       page,
@@ -324,10 +275,8 @@ export function fromCallasFindings(
       (typeof f.checkName === "string" && f.checkName) ||
       undefined;
     const rawPage = f.page ?? f.pageNumber ?? f.page_num;
-    const page =
-      typeof rawPage === "number" ? (rawPage > 0 ? rawPage : 1) : 1;
-    const id =
-      typeof f.id === "string" && f.id ? f.id : `callas-${code ?? i}-${i}`;
+    const page = typeof rawPage === "number" ? (rawPage > 0 ? rawPage : 1) : 1;
+    const id = typeof f.id === "string" && f.id ? f.id : `callas-${code ?? i}-${i}`;
     const bbox = asBbox(f.bbox ?? f.rect);
     const regions = asRegions(f.regions);
     return {
@@ -370,12 +319,8 @@ export function fromPitstopFindings(
       (typeof f.rule === "string" && f.rule) ||
       undefined;
     const rawPage = f.pageNumber ?? f.page_num ?? f.page;
-    const page =
-      typeof rawPage === "number" ? (rawPage > 0 ? rawPage : 1) : 1;
-    const id =
-      typeof f.id === "string" && f.id
-        ? f.id
-        : `pitstop-${code ?? i}-${i}`;
+    const page = typeof rawPage === "number" ? (rawPage > 0 ? rawPage : 1) : 1;
+    const id = typeof f.id === "string" && f.id ? f.id : `pitstop-${code ?? i}-${i}`;
     const bbox = asBbox(f.bbox ?? f.rect);
     const regions = asRegions(f.regions);
     return {
@@ -413,9 +358,9 @@ export function fromArtworkFindings(
         ? "error"
         : rawSev === "warn"
           ? "warning"
-          : (["error", "warning", "advisory", "info"].includes(rawSev)
+          : ((["error", "warning", "advisory", "info"].includes(rawSev)
               ? rawSev
-              : "advisory") as OverlayItem["tier"];
+              : "advisory") as OverlayItem["tier"]);
     const page = typeof f.page === "number" && f.page > 0 ? f.page : 1;
     const bbox = asBbox(f.bbox);
     const regions = asRegions(f.regions);
@@ -427,10 +372,7 @@ export function fromArtworkFindings(
       (typeof f.checkName === "string" && f.checkName) ||
       (typeof f.type === "string" && f.type) ||
       undefined;
-    const id =
-      typeof f.id === "string" && f.id
-        ? f.id
-        : `artwork-${code ?? i}-${i}`;
+    const id = typeof f.id === "string" && f.id ? f.id : `artwork-${code ?? i}-${i}`;
     return [
       {
         id,

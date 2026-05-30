@@ -50,18 +50,15 @@ export function MeasureTool({
     [canvasWidth, canvasHeight, pageWidthPts, pageHeightPts],
   );
 
-  const beginMeasure = useCallback(
-    (clientX: number, clientY: number, el: HTMLElement) => {
-      const rect = el.getBoundingClientRect();
-      const x = clientX - rect.left;
-      const y = clientY - rect.top;
-      setStart({ x, y });
-      setEnd(null);
-      setMeasurement(null);
-      setMeasuring(true);
-    },
-    [],
-  );
+  const beginMeasure = useCallback((clientX: number, clientY: number, el: HTMLElement) => {
+    const rect = el.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+    setStart({ x, y });
+    setEnd(null);
+    setMeasurement(null);
+    setMeasuring(true);
+  }, []);
 
   const moveMeasure = useCallback(
     (clientX: number, clientY: number, el: HTMLElement, shiftKey?: boolean) => {
@@ -106,7 +103,8 @@ export function MeasureTool({
     [beginMeasure],
   );
   const handleMouseMove = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => moveMeasure(e.clientX, e.clientY, e.currentTarget, e.shiftKey),
+    (e: React.MouseEvent<HTMLDivElement>) =>
+      moveMeasure(e.clientX, e.clientY, e.currentTarget, e.shiftKey),
     [moveMeasure],
   );
   const handleMouseUp = useCallback(() => finishMeasure(), [finishMeasure]);
@@ -211,8 +209,7 @@ export function MeasureTool({
             background: "rgba(15, 23, 42, 0.95)",
             color: "#bbf7d0",
             fontSize: 12,
-            fontFamily:
-              "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+            fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
             fontWeight: 500,
             whiteSpace: "nowrap",
             boxShadow: "0 4px 12px rgba(0, 0, 0, 0.4)",
@@ -222,9 +219,7 @@ export function MeasureTool({
             .map((u) => {
               const value = u.fromPoints(measurement.distancePts);
               const rounded =
-                u.id === "in"
-                  ? Math.round(value * 1000) / 1000
-                  : Math.round(value * 100) / 100;
+                u.id === "in" ? Math.round(value * 1000) / 1000 : Math.round(value * 100) / 100;
               return `${rounded} ${u.label}`;
             })
             .join(" · ")}

@@ -1,23 +1,23 @@
 #!/usr/bin/env node
 
-import { readdir, rename, realpath } from 'fs/promises';
-import { resolve, sep, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { readdir, realpath, rename } from "node:fs/promises";
+import { dirname, resolve, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const SAFE_SEGMENT = /^[A-Za-z0-9._-]+$/;
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
-const DIST_DIR = await realpath(resolve(SCRIPT_DIR, '..', 'dist'));
+const DIST_DIR = await realpath(resolve(SCRIPT_DIR, "..", "dist"));
 const DIST_PREFIX = DIST_DIR + sep;
 
 function isSafeSegment(name) {
   return (
-    typeof name === 'string'
-    && name.length > 0
-    && name.length <= 255
-    && name !== '.'
-    && name !== '..'
-    && SAFE_SEGMENT.test(name)
+    typeof name === "string" &&
+    name.length > 0 &&
+    name.length <= 255 &&
+    name !== "." &&
+    name !== ".." &&
+    SAFE_SEGMENT.test(name)
   );
 }
 
@@ -40,8 +40,8 @@ async function processDist() {
 
       if (entry.isDirectory()) {
         queue.push(childPath);
-      } else if (entry.isFile() && entry.name.endsWith('.jsx')) {
-        const newName = entry.name.slice(0, -4) + '.js';
+      } else if (entry.isFile() && entry.name.endsWith(".jsx")) {
+        const newName = entry.name.slice(0, -4) + ".js";
         if (!isSafeSegment(newName)) continue;
         const newPath = currentDir + sep + newName;
         if (!isInsideDist(newPath)) continue;

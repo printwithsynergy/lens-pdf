@@ -41,17 +41,12 @@ function ptToInches(pts: number): number {
 
 function formatSize(widthPts: number, heightPts: number) {
   return {
-    mm: `${(widthPts * 25.4 / 72).toFixed(2)} × ${(heightPts * 25.4 / 72).toFixed(2)} mm`,
+    mm: `${((widthPts * 25.4) / 72).toFixed(2)} × ${((heightPts * 25.4) / 72).toFixed(2)} mm`,
     inches: `${ptToInches(widthPts).toFixed(3)} × ${ptToInches(heightPts).toFixed(3)} in`,
   };
 }
 
-export function DielineOverlay({
-  page,
-  canvasWidth,
-  canvasHeight,
-  dieline,
-}: DielineOverlayProps) {
+export function DielineOverlay({ page, canvasWidth, canvasHeight, dieline }: DielineOverlayProps) {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
 
   const regions = dieline?.regions ?? [];

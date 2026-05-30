@@ -2,8 +2,8 @@
 
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useState } from "react";
-import type { DensitometerSample } from "../types";
 import { isUnwired, logUnwiredHide, useViewerHost, useViewerServices } from "../host";
+import type { DensitometerSample } from "../types";
 import { useIsMobile } from "./useIsMobile";
 
 interface DensitometerToolProps {
@@ -70,9 +70,7 @@ export function DensitometerTool({
         });
         setSample(data);
       } catch (e) {
-        setError(
-          e instanceof Error ? e.message : "Sampling failed",
-        );
+        setError(e instanceof Error ? e.message : "Sampling failed");
       } finally {
         setLoading(false);
       }
@@ -132,8 +130,7 @@ export function DensitometerTool({
 
   if (hidden) return null;
 
-  const monoFont =
-    "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
+  const monoFont = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
 
   // Floating tooltip on desktop, bottom sheet on mobile.
   const readoutStyle: CSSProperties = isMobile
@@ -155,12 +152,8 @@ export function DensitometerTool({
       }
     : {
         position: "absolute",
-        left: position
-          ? Math.min(position.x + 16, canvasWidth - 230)
-          : 0,
-        top: position
-          ? Math.min(position.y + 16, canvasHeight - 140)
-          : 0,
+        left: position ? Math.min(position.x + 16, canvasWidth - 230) : 0,
+        top: position ? Math.min(position.y + 16, canvasHeight - 140) : 0,
         zIndex: 30,
         pointerEvents: "none",
         minWidth: 200,
@@ -187,11 +180,7 @@ export function DensitometerTool({
     >
       {position && (sample || loading || error) && (
         <div style={readoutStyle}>
-          {loading && (
-            <div style={{ fontSize: 11, color: "#cbd5e1" }}>
-              Sampling separations…
-            </div>
-          )}
+          {loading && <div style={{ fontSize: 11, color: "#cbd5e1" }}>Sampling separations…</div>}
           {error && !loading && (
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               <div style={{ fontWeight: 600, color: "#fcd34d" }}>Densitometer</div>
@@ -219,9 +208,7 @@ export function DensitometerTool({
                 >
                   Densitometer
                 </span>
-                <span style={{ fontSize: 10, color: "#94a3b8" }}>
-                  @{sample.dpi}dpi
-                </span>
+                <span style={{ fontSize: 10, color: "#94a3b8" }}>@{sample.dpi}dpi</span>
               </div>
               <div
                 style={{
@@ -254,9 +241,7 @@ export function DensitometerTool({
                             backgroundColor: swatchFor(ch.name),
                           }}
                         />
-                        <span style={{ width: 24, color: "#cbd5e1" }}>
-                          {lbl.abbr}
-                        </span>
+                        <span style={{ width: 24, color: "#cbd5e1" }}>{lbl.abbr}</span>
                         <span
                           style={{
                             flex: 1,
@@ -297,10 +282,7 @@ export function DensitometerTool({
                   {sample.channels
                     .filter((ch) => !isProcess(ch.name))
                     .map((ch) => (
-                      <div
-                        key={ch.name}
-                        style={{ display: "flex", alignItems: "center", gap: 6 }}
-                      >
+                      <div key={ch.name} style={{ display: "flex", alignItems: "center", gap: 6 }}>
                         <span
                           style={{
                             display: "inline-block",
@@ -362,9 +344,7 @@ export function DensitometerTool({
                     {sample.tac.toFixed(1)}%
                   </span>
                 </div>
-                <div
-                  style={{ textAlign: "right", fontSize: 10, color: "#94a3b8" }}
-                >
+                <div style={{ textAlign: "right", fontSize: 10, color: "#94a3b8" }}>
                   {sample.limit_exceeded
                     ? `over ${sample.tac_limit}% limit`
                     : `under ${sample.tac_limit}% limit`}

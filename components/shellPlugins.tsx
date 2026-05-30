@@ -6,12 +6,7 @@ import type { AnnotationTool } from "./AnnotationToolbar";
 import type { LensPDFDemoTool } from "./LensPDFDemo";
 
 export type ViewerMode = "page" | "separation" | "layer" | "findings";
-export type PointerTool =
-  | "none"
-  | "color-picker"
-  | "densitometer"
-  | "measure"
-  | "annotate";
+export type PointerTool = "none" | "color-picker" | "densitometer" | "measure" | "annotate";
 
 export interface LensPDFFeatureAvailability {
   colorPicker: boolean;
@@ -54,8 +49,7 @@ export function computeFeatureAvailability({
     measure: toolSet.has("measure") && hasMeasurement,
     annotate: toolSet.has("annotate") && hasAnnotations,
     tacHeatmap: toolSet.has("tac-heatmap") && hasTacHeatmap,
-    separations:
-      toolSet.has("separations") && hasSeparationService && hasSeparationData,
+    separations: toolSet.has("separations") && hasSeparationService && hasSeparationData,
     layers: toolSet.has("layers") && hasLayerService && hasLayerData,
   };
 }
@@ -251,5 +245,3 @@ export function pluginsForSlot(
     return plugin.isAvailable(ctx);
   });
 }
-
-
