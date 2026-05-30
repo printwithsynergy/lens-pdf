@@ -1,10 +1,10 @@
-import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import type { Finding } from "./renderTypes.js";
 
 const SEV_RGB: Record<string, [number, number, number]> = {
   error: [0.937, 0.267, 0.267],
-  warning: [0.961, 0.620, 0.043],
-  advisory: [0.231, 0.510, 0.965],
+  warning: [0.961, 0.62, 0.043],
+  advisory: [0.231, 0.51, 0.965],
 };
 const SEV_STROKE: Record<string, [number, number, number]> = {
   error: [0.863, 0.149, 0.149],
@@ -43,7 +43,8 @@ export async function generateAnnotatedPdf(
       const bbox = f.bbox;
       if (Array.isArray(bbox) && bbox[0] != null) {
         const [bx0, by0, bx1, by1] = bbox as [number, number, number, number];
-        const bw = bx1 - bx0, bh = by1 - by0;
+        const bw = bx1 - bx0,
+          bh = by1 - by0;
         if (bw > 1 && bh > 1) {
           // Semi-transparent fill via low-opacity stroke trick (pdf-lib doesn't support opacity directly)
           page.drawRectangle({
@@ -83,27 +84,45 @@ export async function generateAnnotatedPdf(
 
   // Append legend page
   const legendPage = doc.addPage([612, 792]);
-  const MARGIN = 40, LINE_H = 14, FONT_SIZE = 8, HEADER_SIZE = 12;
+  const MARGIN = 40,
+    LINE_H = 14,
+    FONT_SIZE = 8,
+    HEADER_SIZE = 12;
   legendPage.drawText(`${brandingName} — Preflight Finding Index`, {
-    x: MARGIN, y: 792 - MARGIN - HEADER_SIZE,
-    size: HEADER_SIZE, font, color: rgb(0.1, 0.2, 0.5),
+    x: MARGIN,
+    y: 792 - MARGIN - HEADER_SIZE,
+    size: HEADER_SIZE,
+    font,
+    color: rgb(0.1, 0.2, 0.5),
   });
   let y = 792 - MARGIN - HEADER_SIZE - LINE_H * 2;
   for (const f of findings.slice(0, 50)) {
     if (y < MARGIN + LINE_H) break;
     const sev = f.severity ?? "advisory";
     const sevRgb = SEV_RGB[sev] ?? SEV_RGB.advisory;
-    legendPage.drawText(String((findings.indexOf(f) + 1)), {
-      x: MARGIN, y, size: FONT_SIZE, font, color: rgb(...sevRgb),
+    legendPage.drawText(String(findings.indexOf(f) + 1), {
+      x: MARGIN,
+      y,
+      size: FONT_SIZE,
+      font,
+      color: rgb(...sevRgb),
     });
     const msgText = `${f.inspection_id} — ${(f.message ?? "").slice(0, 100)}${(f.message ?? "").length > 100 ? "…" : ""}`;
     legendPage.drawText(msgText, {
-      x: MARGIN + 20, y, size: FONT_SIZE, font, color: rgb(0.2, 0.2, 0.2),
+      x: MARGIN + 20,
+      y,
+      size: FONT_SIZE,
+      font,
+      color: rgb(0.2, 0.2, 0.2),
       maxWidth: 612 - MARGIN * 2 - 20,
     });
     if (f.page_num && f.page_num > 0) {
       legendPage.drawText(`p.${f.page_num}`, {
-        x: 612 - MARGIN - 30, y, size: FONT_SIZE, font, color: rgb(0.5, 0.5, 0.5),
+        x: 612 - MARGIN - 30,
+        y,
+        size: FONT_SIZE,
+        font,
+        color: rgb(0.5, 0.5, 0.5),
       });
     }
     y -= LINE_H;

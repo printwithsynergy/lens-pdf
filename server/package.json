@@ -1,7 +1,7 @@
 {
   "name": "@printwithsynergy/lens-server",
   "version": "0.1.0",
-  "description": "Canonical headless renderer for the lens-pdf viewer family. Serves report rendering (HTML / PDF / annotated PDF / markup PDF), page rendering, and color sampling for backends that can't run the browser-only lens-pdf React library directly. Powered by Ghostscript + Puppeteer + pdf-lib.",
+  "description": "Canonical headless renderer for the lens-pdf viewer family. Serves report rendering (HTML / PDF / annotated PDF / markup PDF), page rendering, and color sampling for backends that can't run the browser-only lens-pdf React library directly. Powered by Ghostscript + Puppeteer + pdf-lib. Hono + bearer auth + pino logs + Prometheus metrics + RFC 7807 errors.",
   "license": "AGPL-3.0-or-later",
   "repository": {
     "type": "git",
@@ -27,25 +27,31 @@
     "start": "node dist/index.js",
     "build": "tsc && node -e \"require('node:fs').cpSync('src/templates','dist/templates',{recursive:true})\"",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "biome check src",
+    "lint:fix": "biome check --write src",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "express": "^4.21.0",
-    "morgan": "^1.10.0",
-    "multer": "^2.1.1",
+    "@hono/node-server": "^1.13.0",
+    "hono": "^4.6.0",
     "nunjucks": "^3.2.4",
     "pdf-lib": "^1.17.1",
+    "pino": "^9.5.0",
+    "prom-client": "^15.1.0",
     "puppeteer": "^22.0.0",
-    "sharp": "^0.33.0"
+    "sharp": "^0.33.0",
+    "zod": "^3.23.0"
   },
   "devDependencies": {
-    "@types/express": "^4.17.21",
-    "@types/morgan": "^1.9.9",
-    "@types/multer": "^1.4.11",
-    "@types/nunjucks": "^3.2.6",
+    "@biomejs/biome": "^1.9.0",
     "@types/node": "^22.7.0",
+    "@types/nunjucks": "^3.2.6",
+    "pino-pretty": "^11.3.0",
     "tsx": "^4.19.0",
-    "typescript": "^5.5.0"
+    "typescript": "^5.5.0",
+    "vitest": "^2.1.0"
   },
   "engines": {
     "node": ">=20"
@@ -58,6 +64,7 @@
     "ghostscript",
     "puppeteer",
     "lens-pdf",
-    "renderer"
+    "renderer",
+    "hono"
   ]
 }

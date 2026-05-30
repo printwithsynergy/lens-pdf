@@ -1,7 +1,7 @@
-import sharp from "sharp";
 import { PDFDocument } from "pdf-lib";
-import type { Finding, AnnotatedPage, Callout } from "./renderTypes.js";
+import sharp from "sharp";
 import { renderComposite } from "./ghostscript.js";
+import type { AnnotatedPage, Callout, Finding } from "./renderTypes.js";
 
 const SEVERITY_STROKE: Record<string, string> = {
   error: "#dc2626",
@@ -65,7 +65,8 @@ function buildAnnotationSvg(
       const py0 = Math.round(height - (b3 - mb.y) * scaleY);
       const px1 = Math.round((b2 - mb.x) * scaleX);
       const py1 = Math.round(height - (b1 - mb.y) * scaleY);
-      const rx = Math.max(0, px0), ry = Math.max(0, py0);
+      const rx = Math.max(0, px0),
+        ry = Math.max(0, py0);
       const rw = Math.max(0, Math.min(px1, width) - rx);
       const rh = Math.max(0, Math.min(py1, height) - ry);
       if (rw > 2 && rh > 2) {
@@ -102,7 +103,12 @@ export async function renderAnnotatedPage(
   const width = meta.width!;
   const height = meta.height!;
 
-  const { svg, callouts } = buildAnnotationSvg(width, height, findings, mediaBox);
+  const { svg, callouts } = buildAnnotationSvg(
+    width,
+    height,
+    findings,
+    mediaBox,
+  );
   const svgBuf = Buffer.from(svg);
 
   const annotated = await sharp(pngBuf)
@@ -137,11 +143,15 @@ export async function renderFindingThumbnail(
   const stroke = SEVERITY_STROKE[sev] ?? "#2563eb";
   const fill = SEVERITY_FILL[sev] ?? "rgba(59,130,246,0.14)";
   const PADDING = 48;
-  const THUMB_W = 240, THUMB_H = 180;
+  const THUMB_W = 240,
+    THUMB_H = 180;
   const bbox = finding.bbox;
   const hasBbox = Array.isArray(bbox) && bbox[0] != null;
 
-  let cropX = 0, cropY = 0, cropW = width, cropH = height;
+  let cropX = 0,
+    cropY = 0,
+    cropW = width,
+    cropH = height;
   let highlightSvg = "";
 
   if (hasBbox) {
@@ -157,8 +167,10 @@ export async function renderFindingThumbnail(
     cropY = Math.max(0, py0 - PADDING);
     cropW = Math.min(width, px1 + PADDING) - cropX;
     cropH = Math.min(height, py1 + PADDING) - cropY;
-    const rx = px0 - cropX, ry = py0 - cropY;
-    const rw = px1 - px0, rh = py1 - py0;
+    const rx = px0 - cropX,
+      ry = py0 - cropY;
+    const rw = px1 - px0,
+      rh = py1 - py0;
     highlightSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${cropW}" height="${cropH}"><rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="${fill}" stroke="${stroke}" stroke-width="2"/></svg>`;
   } else {
     cropX = Math.max(0, Math.floor(width / 2) - THUMB_W);
@@ -167,10 +179,20 @@ export async function renderFindingThumbnail(
     cropH = Math.min(height - cropY, THUMB_H * 2);
   }
 
-  let pipeline = sharp(pngBuf).extract({ left: cropX, top: cropY, width: cropW, height: cropH });
+  let pipeline = sharp(pngBuf).extract({
+    left: cropX,
+    top: cropY,
+    width: cropW,
+    height: cropH,
+  });
   if (highlightSvg) {
-    pipeline = pipeline.composite([{ input: Buffer.from(highlightSvg), top: 0, left: 0 }]);
+    pipeline = pipeline.composite([
+      { input: Buffer.from(highlightSvg), top: 0, left: 0 },
+    ]);
   }
-  const thumb = await pipeline.resize(THUMB_W, THUMB_H, { fit: "inside" }).png().toBuffer();
+  const thumb = await pipeline
+    .resize(THUMB_W, THUMB_H, { fit: "inside" })
+    .png()
+    .toBuffer();
   return thumb.toString("base64");
 }

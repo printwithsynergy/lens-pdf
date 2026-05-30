@@ -52,7 +52,10 @@ class LRU<T> {
 export const compositeCache = new LRU<Buffer>();
 export const separationsCache = new LRU<SeparationResult>();
 
-export function jobCacheKey(jobId: string, ...parts: (string | number)[]): string {
+export function jobCacheKey(
+  jobId: string,
+  ...parts: (string | number)[]
+): string {
   return `${jobId}|${parts.join("|")}`;
 }
 

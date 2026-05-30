@@ -1,9 +1,12 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import nunjucks from "nunjucks";
-import path from "path";
-import { fileURLToPath } from "url";
-import type { RenderContext, Finding, AnnotatedPage } from "./renderTypes.js";
-import { renderAnnotatedPage, renderFindingThumbnail } from "./pageAnnotator.js";
-import { sourcePath, jobExists } from "./storage.js";
+import {
+  renderAnnotatedPage,
+  renderFindingThumbnail,
+} from "./pageAnnotator.js";
+import type { AnnotatedPage, Finding, RenderContext } from "./renderTypes.js";
+import { jobExists, sourcePath } from "./storage.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATES_DIR = path.join(__dirname, "templates");
@@ -12,9 +15,12 @@ let _env: nunjucks.Environment | null = null;
 
 function getEnv(): nunjucks.Environment {
   if (_env) return _env;
-  _env = new nunjucks.Environment(new nunjucks.FileSystemLoader(TEMPLATES_DIR), {
-    autoescape: true,
-  });
+  _env = new nunjucks.Environment(
+    new nunjucks.FileSystemLoader(TEMPLATES_DIR),
+    {
+      autoescape: true,
+    },
+  );
   _env.addFilter("decode_svg_data_uri", (dataUri: string) => {
     try {
       const b64 = dataUri.split(",", 2)[1];
@@ -36,12 +42,28 @@ function computeHealthScore(summary: Record<string, number>) {
   const errors = summary.error_count ?? 0;
   const warnings = summary.warning_count ?? 0;
   const advisory = summary.advisory_count ?? 0;
-  const score = Math.max(0, Math.min(100, Math.round(100 - errors * 10 - warnings * 3 - advisory * 0.5)));
-  let grade = "F", color = "#ef4444";
-  if (score >= 90) { grade = "A"; color = "#22c55e"; }
-  else if (score >= 80) { grade = "B"; color = "#22c55e"; }
-  else if (score >= 70) { grade = "C"; color = "#f59e0b"; }
-  else if (score >= 60) { grade = "D"; color = "#ef4444"; }
+  const score = Math.max(
+    0,
+    Math.min(
+      100,
+      Math.round(100 - errors * 10 - warnings * 3 - advisory * 0.5),
+    ),
+  );
+  let grade = "F",
+    color = "#ef4444";
+  if (score >= 90) {
+    grade = "A";
+    color = "#22c55e";
+  } else if (score >= 80) {
+    grade = "B";
+    color = "#22c55e";
+  } else if (score >= 70) {
+    grade = "C";
+    color = "#f59e0b";
+  } else if (score >= 60) {
+    grade = "D";
+    color = "#ef4444";
+  }
   return { score, grade, color };
 }
 
@@ -58,17 +80,33 @@ function deduplicateFindings(findings: Finding[]): Finding[] {
   }
   return Array.from(groups.values()).map(({ _count, ...f }) => ({
     ...f,
-    message: _count > 1 ? `${f.message} (+${_count - 1} similar on this page)` : f.message,
+    message:
+      _count > 1
+        ? `${f.message} (+${_count - 1} similar on this page)`
+        : f.message,
   }));
 }
 
-export async function renderHtml(ctx: RenderContext, jobId?: string): Promise<Buffer> {
-  const { result_json, branding, detail_level = "standard", summary_page = "prepend" } = ctx;
+export async function renderHtml(
+  ctx: RenderContext,
+  jobId?: string,
+): Promise<Buffer> {
+  const {
+    result_json,
+    branding,
+    detail_level = "standard",
+    summary_page = "prepend",
+  } = ctx;
   const { summary, metadata, findings = [] } = result_json;
 
-  const severityOrder: Record<string, number> = { error: 0, warning: 1, advisory: 2 };
+  const severityOrder: Record<string, number> = {
+    error: 0,
+    warning: 1,
+    advisory: 2,
+  };
   const sortedFindings = [...findings].sort(
-    (a, b) => (severityOrder[a.severity] ?? 3) - (severityOrder[b.severity] ?? 3),
+    (a, b) =>
+      (severityOrder[a.severity] ?? 3) - (severityOrder[b.severity] ?? 3),
   );
   const topFindings = sortedFindings.slice(0, 10);
 
@@ -88,7 +126,7 @@ export async function renderHtml(ctx: RenderContext, jobId?: string): Promise<Bu
   if (jobId && detail_level !== "executive") {
     if (await jobExists(jobId)) {
       const pdfPath = sourcePath(jobId);
-      const { readFile } = await import("fs/promises");
+      const { readFile } = await import("node:fs/promises");
       let pdfBytes: Buffer | null = null;
       try {
         pdfBytes = await readFile(pdfPath);
@@ -107,7 +145,11 @@ export async function renderHtml(ctx: RenderContext, jobId?: string): Promise<Bu
           pageNums.map(async (pageNum) => {
             try {
               const result = await renderAnnotatedPage(
-                pdfPath, pdfBytes!, pageNum, findingsByPage.get(pageNum)!, 150,
+                pdfPath,
+                pdfBytes!,
+                pageNum,
+                findingsByPage.get(pageNum)!,
+                150,
               );
               annotatedPages[pageNum] = result;
             } catch {
@@ -115,15 +157,23 @@ export async function renderHtml(ctx: RenderContext, jobId?: string): Promise<Bu
             }
           }),
         );
-        if (pageNums.length > 0 && Object.keys(annotatedPages).length === 0) renderFailed = true;
+        if (pageNums.length > 0 && Object.keys(annotatedPages).length === 0)
+          renderFailed = true;
 
         // Per-finding thumbnails
         await Promise.allSettled(
           findings.map(async (f) => {
-            if ((f.page_num ?? 0) < 1) { f.thumbnail_base64 = ""; return; }
+            if ((f.page_num ?? 0) < 1) {
+              f.thumbnail_base64 = "";
+              return;
+            }
             try {
               f.thumbnail_base64 = await renderFindingThumbnail(
-                pdfPath, pdfBytes!, f.page_num!, f, 120,
+                pdfPath,
+                pdfBytes!,
+                f.page_num!,
+                f,
+                120,
               );
             } catch {
               f.thumbnail_base64 = "";
@@ -140,7 +190,9 @@ export async function renderHtml(ctx: RenderContext, jobId?: string): Promise<Bu
             ),
           );
           for (const r of thumbResults) {
-            pageThumbnails.push(r.status === "fulfilled" ? r.value.image_base64 : "");
+            pageThumbnails.push(
+              r.status === "fulfilled" ? r.value.image_base64 : "",
+            );
           }
         }
       }
@@ -168,7 +220,14 @@ export async function renderHtml(ctx: RenderContext, jobId?: string): Promise<Bu
       } else if (iid === "LPDF_INK_001") {
         const page = f.page_num ?? 0;
         if (page > 0) {
-          inkTacByPage.push([page, { max_tac: details.max_tac ?? 0, tac_limit: details.tac_limit ?? 0, sample_count: details.sample_count ?? 0 }]);
+          inkTacByPage.push([
+            page,
+            {
+              max_tac: details.max_tac ?? 0,
+              tac_limit: details.tac_limit ?? 0,
+              sample_count: details.sample_count ?? 0,
+            },
+          ]);
         }
       }
     }
@@ -186,7 +245,8 @@ export async function renderHtml(ctx: RenderContext, jobId?: string): Promise<Bu
     const details = (f.details ?? {}) as Record<string, unknown>;
     if (f.inspection_id === "LPDF_INK_002") {
       const n = String(details.separation_name ?? "");
-      if (n && !["Cyan","Magenta","Yellow","Black"].includes(n)) spotColors.push(n);
+      if (n && !["Cyan", "Magenta", "Yellow", "Black"].includes(n))
+        spotColors.push(n);
     }
     if (f.inspection_id === "LPDF_INK_001") {
       const mt = Number(details.max_tac ?? 0);
@@ -198,7 +258,8 @@ export async function renderHtml(ctx: RenderContext, jobId?: string): Promise<Bu
     }
   }
   const summaryColorInfo = {
-    color_spaces: colorSpaces.size > 0 ? Array.from(colorSpaces).sort() : ["DeviceCMYK"],
+    color_spaces:
+      colorSpaces.size > 0 ? Array.from(colorSpaces).sort() : ["DeviceCMYK"],
     spot_colors: spotColors.slice(0, 6),
     max_tac: Math.round(maxTac * 10) / 10,
   };
@@ -211,7 +272,9 @@ export async function renderHtml(ctx: RenderContext, jobId?: string): Promise<Bu
   );
 
   const passed = summary?.passed ?? true;
-  const health = computeHealthScore(summary as unknown as Record<string, number>);
+  const health = computeHealthScore(
+    summary as unknown as Record<string, number>,
+  );
 
   const templateCtx = {
     result: {
@@ -233,7 +296,8 @@ export async function renderHtml(ctx: RenderContext, jobId?: string): Promise<Bu
     color_quality_score: metadata?.color_quality_score ?? null,
     color_quality_grade: metadata?.color_quality_grade ?? null,
     file_name: result_json.file_name ?? metadata?.file_name ?? "",
-    generated_at: new Date().toISOString().slice(0, 16).replace("T", " ") + " UTC",
+    generated_at:
+      new Date().toISOString().slice(0, 16).replace("T", " ") + " UTC",
     detail_level,
     top_findings: topFindings,
     all_findings_sorted: allFindingsSorted,
@@ -293,7 +357,10 @@ export async function closeBrowser(): Promise<void> {
   }
 }
 
-export async function renderPdf(ctx: RenderContext, jobId?: string): Promise<Buffer> {
+export async function renderPdf(
+  ctx: RenderContext,
+  jobId?: string,
+): Promise<Buffer> {
   const htmlBuf = await renderHtml(ctx, jobId);
   const html = htmlBuf.toString("utf-8");
 
