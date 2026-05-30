@@ -15,9 +15,9 @@
  */
 
 import { spawn } from "node:child_process";
-import { mkdir, readdir, readFile, rm, stat } from "node:fs/promises";
-import path from "node:path";
+import { mkdir, readFile, readdir, rm, stat } from "node:fs/promises";
 import os from "node:os";
+import path from "node:path";
 import sharp from "sharp";
 import { config } from "./config.js";
 
@@ -89,9 +89,7 @@ async function runGs(args: string[], cwd: string): Promise<void> {
       if (hardTimer) clearTimeout(hardTimer);
       settle(() => {
         if (timedOut) {
-          reject(
-            new Error(`Ghostscript timed out after ${GS_TIMEOUT_MS} ms.`),
-          );
+          reject(new Error(`Ghostscript timed out after ${GS_TIMEOUT_MS} ms.`));
         } else if (code === 0) {
           resolve();
         } else {
@@ -226,7 +224,9 @@ export async function readPageCount(pdfPath: string): Promise<number> {
     // stdout depending on Ghostscript version; reading the output file
     // gives us a deterministic line count of "%%BoundingBox:" entries.
     const txt = await readFile(out, "utf8").catch(() => "");
-    const lines = txt.split(/\r?\n/).filter((l) => l.startsWith("%%BoundingBox"));
+    const lines = txt
+      .split(/\r?\n/)
+      .filter((l) => l.startsWith("%%BoundingBox"));
     if (lines.length > 0) return lines.length;
     // Fallback: read the file size to confirm the file actually
     // existed; if Ghostscript's bbox device is missing in this build,
@@ -241,12 +241,15 @@ export async function readPageCount(pdfPath: string): Promise<number> {
 function decodeChannelName(rawFromFilename: string): string {
   // tiffsep replaces non-filesystem-safe characters with `#XX` escapes.
   return rawFromFilename.replace(/#([0-9a-fA-F]{2})/g, (_, hex) =>
-    String.fromCharCode(parseInt(hex, 16)),
+    String.fromCharCode(Number.parseInt(hex, 16)),
   );
 }
 
 async function mkdtemp(prefix: string): Promise<string> {
-  const dir = path.join(os.tmpdir(), `lens-${prefix}${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+  const dir = path.join(
+    os.tmpdir(),
+    `lens-${prefix}${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+  );
   await mkdir(dir, { recursive: true });
   return dir;
 }

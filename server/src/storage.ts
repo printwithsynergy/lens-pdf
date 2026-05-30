@@ -11,16 +11,16 @@
  * tmpfs without inflating the source-of-truth dir.
  */
 
-import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { type LookupAddress, lookup as dnsLookup } from "node:dns";
 import { createWriteStream } from "node:fs";
-import { lookup as dnsLookup, type LookupAddress } from "node:dns";
-import { request as httpRequest, type IncomingMessage } from "node:http";
+import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { type IncomingMessage, request as httpRequest } from "node:http";
 import { request as httpsRequest } from "node:https";
 import { isIPv4, isIPv6 } from "node:net";
-import { Readable } from "node:stream";
-import { pipeline } from "node:stream/promises";
 import type { LookupFunction } from "node:net";
 import path from "node:path";
+import type { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import { config } from "./config.js";
 
 export interface JobMeta {
@@ -62,7 +62,10 @@ export async function saveSourceFromStream(
   body: Readable,
   contentLength: number | null,
 ): Promise<JobMeta> {
-  if (contentLength !== null && contentLength > config.maxUploadMib * 1024 * 1024) {
+  if (
+    contentLength !== null &&
+    contentLength > config.maxUploadMib * 1024 * 1024
+  ) {
     throw new ValidationError(
       `PDF too large (${(contentLength / 1024 / 1024).toFixed(1)} MiB > ${config.maxUploadMib} MiB).`,
     );
@@ -152,8 +155,7 @@ function fetchWithSafeLookup(parsed: URL): Promise<IncomingMessage> {
           callback(null, address as string, family);
         }
       } catch (e) {
-        const wrapped =
-          e instanceof Error ? e : new Error("forbidden address");
+        const wrapped = e instanceof Error ? e : new Error("forbidden address");
         (wrapped as NodeJS.ErrnoException).code = "EFORBIDDEN";
         callback(wrapped as NodeJS.ErrnoException, "", 0);
       }
@@ -190,7 +192,9 @@ function assertPublicAddress(ip: string): void {
       (a === 100 && b >= 64 && b <= 127) ||
       a >= 224
     ) {
-      throw new ValidationError(`Refusing to fetch private/loopback IPv4 ${ip}.`);
+      throw new ValidationError(
+        `Refusing to fetch private/loopback IPv4 ${ip}.`,
+      );
     }
     return;
   }

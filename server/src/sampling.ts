@@ -44,7 +44,15 @@ export async function sampleDensitometer(args: {
   pdfY: number;
   tacLimit: number;
 }): Promise<DensitometerSample> {
-  const { separations, pageWidthPts, pageHeightPts, dpi, pdfX, pdfY, tacLimit } = args;
+  const {
+    separations,
+    pageWidthPts,
+    pageHeightPts,
+    dpi,
+    pdfX,
+    pdfY,
+    tacLimit,
+  } = args;
 
   if (separations.width === 0 || separations.height === 0) {
     throw new Error("Cannot sample: separations have no rendered dimensions.");
@@ -116,11 +124,7 @@ export async function sampleColor(args: {
     x: pdfX,
     y: pdfY,
     rgb: [r, g, b],
-    hex:
-      "#" +
-      [r, g, b]
-        .map((v) => v.toString(16).padStart(2, "0"))
-        .join(""),
+    hex: "#" + [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join(""),
     tac,
   };
 }
@@ -138,13 +142,17 @@ export async function renderTacHeatmap(args: {
   const w = separations.width;
   const h = separations.height;
   if (w === 0 || h === 0) {
-    throw new Error("Cannot render TAC heatmap: separations have no dimensions.");
+    throw new Error(
+      "Cannot render TAC heatmap: separations have no dimensions.",
+    );
   }
 
   // Pull every channel into a flat Uint8Array we can iterate per pixel.
   const channelArrays: Uint8Array[] = [];
   for (const png of Object.values(separations.channels)) {
-    const { data } = await sharp(png).raw().toBuffer({ resolveWithObject: true });
+    const { data } = await sharp(png)
+      .raw()
+      .toBuffer({ resolveWithObject: true });
     channelArrays.push(new Uint8Array(data));
   }
 
@@ -170,7 +178,10 @@ export async function renderTacHeatmap(args: {
     .toBuffer();
 }
 
-function tacToRgba(tac: number, limit: number): [number, number, number, number] {
+function tacToRgba(
+  tac: number,
+  limit: number,
+): [number, number, number, number] {
   // Below limit: transparent. Above limit: green → yellow → red as
   // the over-coverage grows. Cap at 2× limit for the colour scale.
   if (tac <= limit) return [0, 0, 0, 0];
@@ -198,8 +209,14 @@ function tacToRgba(tac: number, limit: number): [number, number, number, number]
   return [r, g, b, 200];
 }
 
-async function readPixelGray(png: Buffer, x: number, y: number): Promise<number> {
-  const { data, info } = await sharp(png).raw().toBuffer({ resolveWithObject: true });
+async function readPixelGray(
+  png: Buffer,
+  x: number,
+  y: number,
+): Promise<number> {
+  const { data, info } = await sharp(png)
+    .raw()
+    .toBuffer({ resolveWithObject: true });
   const idx = (y * info.width + x) * info.channels;
   return data[idx] ?? 255;
 }
@@ -209,13 +226,11 @@ async function readPixelRgb(
   x: number,
   y: number,
 ): Promise<[number, number, number]> {
-  const { data, info } = await sharp(png).raw().toBuffer({ resolveWithObject: true });
+  const { data, info } = await sharp(png)
+    .raw()
+    .toBuffer({ resolveWithObject: true });
   const idx = (y * info.width + x) * info.channels;
-  return [
-    data[idx] ?? 0,
-    data[idx + 1] ?? 0,
-    data[idx + 2] ?? 0,
-  ];
+  return [data[idx] ?? 0, data[idx + 1] ?? 0, data[idx + 2] ?? 0];
 }
 
 function clamp(n: number, lo: number, hi: number): number {

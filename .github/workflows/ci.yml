@@ -36,7 +36,7 @@ jobs:
           ls -lh dist/ | head
 
   lens-server:
-    name: lens-server — typecheck + build
+    name: lens-server — lint + typecheck + test + build
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -53,11 +53,19 @@ jobs:
       - name: Install
         run: npm install --no-audit --no-fund
 
+      - name: Lint
+        run: npm run lint
+
       - name: Typecheck
         run: npm run typecheck
+
+      - name: Test
+        run: npm test
 
       - name: Build
         run: npm run build
 
       - name: Verify dist artifacts
-        run: test -f dist/index.js
+        run: |
+          test -f dist/index.js
+          test -f dist/templates/report.njk

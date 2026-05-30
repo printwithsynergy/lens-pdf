@@ -115,8 +115,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json && node scripts/fix-import-extensions.mjs",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "test": "vitest run --exclude '**/node_modules/**' --exclude '**/dist/**' --exclude 'server/**'",
+    "test:watch": "vitest --exclude '**/node_modules/**' --exclude '**/dist/**' --exclude 'server/**'",
     "prepare": "tsc -p tsconfig.build.json && node scripts/fix-import-extensions.mjs"
   },
   "dependencies": {
