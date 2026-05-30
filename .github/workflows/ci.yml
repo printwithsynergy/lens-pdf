@@ -23,6 +23,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Host-agnostic tripwire
+        run: bash scripts/check-host-agnostic.sh
+
       - name: Typecheck
         run: npm run typecheck
 
