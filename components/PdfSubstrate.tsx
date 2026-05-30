@@ -30,7 +30,7 @@ import type { ReactZoomPanPinchRef } from "react-zoom-pan-pinch";
 // `defaultPdfjsWorkerSrc` for a preload tag) triggered the chain
 // and the server boot died with ERR_UNKNOWN_FILE_EXTENSION.
 import { ensureReactPdfCss } from "./reactPdfCss";
-import { computeFitScale } from "../plugin/fit";
+import { computeFitScale, rectsEqual } from "../plugin/fit";
 import type { ThemeTokens } from "../plugin/services";
 
 // Required: react-pdf needs the pdf.js worker URL. react-pdf 10.x
@@ -90,6 +90,19 @@ const RENDER_SCALE = 1.5;
  * TransformWrapper's job.
  */
 const DEVICE_PIXEL_RATIO = 1;
+
+/**
+ * Default zoom bounds. The TransformWrapper's pan/pinch limits and
+ * `computeFitScale`'s clamp **must** stay aligned — drift produces
+ * a zoom-to-fit that asks for a scale the wrapper can't apply,
+ * which manifests as the wrapper silently re-clamping to its own
+ * cap (so framing lands at the wrong rect). One module-scoped
+ * source of truth for both; hosts that need to widen the range
+ * (high-DPI signage, wide-format art) pass `minScale`/`maxScale`
+ * props instead of editing one side.
+ */
+const DEFAULT_MIN_SCALE = 0.25;
+const DEFAULT_MAX_SCALE = 4;
 
 export interface PdfSubstrateProps {
   /** Source PDF — URL string, File, or { url, ... } object. Mirrors
@@ -161,9 +174,21 @@ export interface PdfSubstrateProps {
    * Identity of the focus request (e.g. the selected finding id). The
    * substrate re-frames only when this value changes, so unrelated
    * re-renders — or the user manually panning/zooming — don't yank the
-   * view back to the finding.
+   * view back to the finding. The rect contents are also compared, so
+   * an in-place geometry update on the same id (e.g. live preflight
+   * enriching a finding's regions) still re-frames.
    */
   focusKey?: string | number | null;
+  /**
+   * Lower / upper zoom bounds (transform scale, 1 = 100%). Defaults
+   * align the TransformWrapper's pan/pinch limits with the
+   * `computeFitScale` clamp the focus effect uses, so a fit can
+   * never ask for a scale the wrapper won't apply. Bump `maxScale`
+   * for hosts that want deeper zoom on signage / high-DPI imagery.
+   * Defaults: ``0.25`` / ``4``.
+   */
+  minScale?: number;
+  maxScale?: number;
 }
 
 interface RenderedPage {
@@ -298,11 +323,20 @@ export function PdfSubstrate({
   loadTimeoutMs = 30_000,
   focusRect = null,
   focusKey = null,
+  minScale = DEFAULT_MIN_SCALE,
+  maxScale = DEFAULT_MAX_SCALE,
 }: PdfSubstrateProps) {
   const transformRef = useRef<ReactZoomPanPinchRef | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const focusElRef = useRef<HTMLDivElement | null>(null);
-  const lastFocusKeyRef = useRef<string | number | null>(null);
+  // Last-applied focus state: id + rect. Deduping on the tuple lets a
+  // host enrich a finding's geometry in place (same id, new regions)
+  // and still get re-framed — id-only dedup would have stuck on the
+  // stale rect.
+  const lastFocusRef = useRef<{
+    key: string | number;
+    rect: readonly [number, number, number, number] | null;
+  } | null>(null);
   const [rendered, setRendered] = useState<RenderedPage | null>(null);
 
   // Inject react-pdf's text + annotation layer CSS into the document
@@ -331,7 +365,10 @@ export function PdfSubstrate({
   // target page to render before measuring the focus element.
   useEffect(() => {
     if (!focusRect || focusKey == null) return;
-    if (focusKey === lastFocusKeyRef.current) return;
+    const last = lastFocusRef.current;
+    if (last && last.key === focusKey && rectsEqual(last.rect, focusRect)) {
+      return;
+    }
     const ref = transformRef.current;
     const focusEl = focusElRef.current;
     const wrap = wrapperRef.current;
@@ -345,16 +382,16 @@ export function PdfSubstrate({
     const vp = wrap.getBoundingClientRect();
     const scale = computeFitScale(rectW, rectH, vp.width, vp.height, {
       padding: 48,
-      minScale: 0.25,
-      maxScale: 4,
+      minScale,
+      maxScale,
     });
     ref.zoomToElement(focusEl, scale, 350);
-    lastFocusKeyRef.current = focusKey;
+    lastFocusRef.current = { key: focusKey, rect: focusRect };
     // The TransformWrapper's `onTransform` handler (wired below) emits
     // each animation tick of zoomToElement back through handleZoomChange,
     // so the host zoom readout/slider stays in sync without a fragile
     // post-animation timer.
-  }, [focusKey, focusRect, rendered, pageNumber]);
+  }, [focusKey, focusRect, rendered, pageNumber, minScale, maxScale]);
 
   const loadedRef = useRef(false);
   const [loaded, setLoaded] = useState(false);
@@ -491,8 +528,8 @@ export function PdfSubstrate({
       <TransformWrapper
         ref={transformRef}
         initialScale={zoom / 100}
-        minScale={0.25}
-        maxScale={4}
+        minScale={minScale}
+        maxScale={maxScale}
         centerOnInit
         wheel={{ step: 0.15 }}
         pinch={{ disabled: !pinchEnabled, step: 5 }}

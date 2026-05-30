@@ -4,6 +4,7 @@ import {
   collectItemRects,
   computeFitScale,
   itemFocusBbox,
+  rectsEqual,
   unionBbox,
   type Bbox,
 } from "./fit";
@@ -116,5 +117,30 @@ describe("collectItemRects / itemFocusBbox", () => {
     const it1 = item({ regions: [] });
     expect(collectItemRects(it1)).toEqual([]);
     expect(itemFocusBbox(it1)).toBeNull();
+  });
+});
+
+describe("rectsEqual", () => {
+  it("returns true for two nulls", () => {
+    expect(rectsEqual(null, null)).toBe(true);
+  });
+
+  it("returns false when only one side is null", () => {
+    expect(rectsEqual(null, [0, 0, 1, 1])).toBe(false);
+    expect(rectsEqual([0, 0, 1, 1], null)).toBe(false);
+  });
+
+  it("returns true for identical rects (same reference)", () => {
+    const a: Bbox = [1, 2, 3, 4];
+    expect(rectsEqual(a, a)).toBe(true);
+  });
+
+  it("returns true for two value-equal rects with distinct identity", () => {
+    expect(rectsEqual([1, 2, 3, 4], [1, 2, 3, 4])).toBe(true);
+  });
+
+  it("returns false when any coordinate differs", () => {
+    expect(rectsEqual([1, 2, 3, 4], [1.001, 2, 3, 4])).toBe(false);
+    expect(rectsEqual([1, 2, 3, 4], [1, 2, 3, 5])).toBe(false);
   });
 });

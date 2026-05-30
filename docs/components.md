@@ -52,6 +52,7 @@ export function ProofPage() {
 | `initialZoom` | `number` | `80` | Starting zoom percentage. |
 | `initialPage` | `number` | `1` | Starting page (1-indexed). |
 | `initialShowFindings` | `boolean` | `false` | Mount with the finding overlay layer already on (boxes + F-number badges drawn). Default off — the user reveals overlays via the "Finding overlays" toggle or the Inspection tab. |
+| `minScale` / `maxScale` | `number` | `0.25` / `4` | Lower / upper zoom bounds (transform scale, 1 = 100%). Defaults align with the substrate's pan/pinch limits **and** the zoom-to-fit clamp, so a fit can't ask for a scale the substrate won't apply. Bump `maxScale` for hosts that need deeper zoom on wide-format art or high-DPI imagery. |
 | `tacLimit` | `number` | `300` | TAC limit (in percent) for the heatmap + densitometer. |
 | `tokens` | `Partial<ThemeTokens>` | `darkThemeTokens` | Theme override merged onto the dark palette. Add `logoUrl` / `logoText` / `logoMaxHeight` / `logoAlt` to bundle brand identity into the tokens object. |
 | `brand` / `brandLogoUrl` | `string` | _(none)_ | Optional brand label / logo. Rendered in the built-in [top bar](#built-in-top-bar) when `showTopBar` is on. Falls back to `tokens.logoText` / `tokens.logoUrl` when the props are unset. |
