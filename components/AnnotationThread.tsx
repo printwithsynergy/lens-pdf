@@ -1,14 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import type { CSSProperties } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { isUnwired, logUnwiredHide, useViewerHost, useViewerServices } from "../host";
 import type { AnnotationEntry } from "../plugin/services";
-import {
-  isUnwired,
-  logUnwiredHide,
-  useViewerHost,
-  useViewerServices,
-} from "../host";
 
 interface AnnotationThreadProps {
   jobId: string;
@@ -147,7 +142,7 @@ export function AnnotationThread({
       return;
     }
     load();
-  }, [load, hidden, debug, refreshKey]);
+  }, [load, hidden, debug]);
 
   const handleDelete = useCallback(
     async (annotationId: string) => {
@@ -176,9 +171,7 @@ export function AnnotationThread({
   const rowSx: CSSProperties = comfortable
     ? { ...itemStyle, padding: 14, alignItems: "center" }
     : itemStyle;
-  const metaSx: CSSProperties = comfortable
-    ? { ...metaStyle, fontSize: 12 }
-    : metaStyle;
+  const metaSx: CSSProperties = comfortable ? { ...metaStyle, fontSize: 12 } : metaStyle;
   const jumpSx: CSSProperties = comfortable
     ? {
         ...jumpButtonStyle,
@@ -212,8 +205,7 @@ export function AnnotationThread({
   if (annotations.length === 0) {
     return (
       <div style={emptySx}>
-        No annotations yet. Toggle the annotation tool to start marking up the
-        PDF.
+        No annotations yet. Toggle the annotation tool to start marking up the PDF.
       </div>
     );
   }
@@ -227,26 +219,20 @@ export function AnnotationThread({
             <div style={metaSx}>
               Page {a.pageNum} · {new Date(a.updatedAt).toLocaleString()}
             </div>
-            <button
-              type="button"
-              onClick={() => onJumpToPage?.(a.pageNum)}
-              style={jumpSx}
-            >
+            <button type="button" onClick={() => onJumpToPage?.(a.pageNum)} style={jumpSx}>
               Jump to page
             </button>
           </div>
-          {!readOnly &&
-            currentUserEmail &&
-            a.authorEmail === currentUserEmail && (
-              <button
-                type="button"
-                onClick={() => handleDelete(a.id)}
-                style={delSx}
-                title="Delete annotation"
-              >
-                Delete
-              </button>
-            )}
+          {!readOnly && currentUserEmail && a.authorEmail === currentUserEmail && (
+            <button
+              type="button"
+              onClick={() => handleDelete(a.id)}
+              style={delSx}
+              title="Delete annotation"
+            >
+              Delete
+            </button>
+          )}
         </div>
       ))}
     </div>

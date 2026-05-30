@@ -1,7 +1,7 @@
 "use client";
 
-import type { LensPDFShellPlugin } from "./shellPlugins";
 import { createDefaultShellPlugins } from "./defaultShellPlugins";
+import type { LensPDFShellPlugin } from "./shellPlugins";
 
 export type LensPDFPresetKind = "demo" | "minimal";
 
@@ -16,4 +16,3 @@ export function pluginsForPreset(preset: LensPDFPresetKind): LensPDFShellPlugin[
   }
   return defaults;
 }
-

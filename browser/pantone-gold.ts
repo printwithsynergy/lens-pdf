@@ -152,9 +152,7 @@ function normalize(name: string): string {
     .replace(/\s+/g, " ");
 }
 
-const LOOKUP: Map<string, string> = new Map(
-  RAW.map(([k, v]) => [normalize(k), v.toLowerCase()]),
-);
+const LOOKUP: Map<string, string> = new Map(RAW.map(([k, v]) => [normalize(k), v.toLowerCase()]));
 
 /**
  * Look up a process-plate name (Cyan / Magenta / Yellow / Black,

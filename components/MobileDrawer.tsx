@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { ViewerConfig } from "../types";
 import { isUnwired, logUnwiredHide, useViewerHost, useViewerServices } from "../host";
+import type { ViewerConfig } from "../types";
 import { ZoomControls } from "./ZoomControls";
 
 // Brand fallback chain: the host's own `config.brand_name` wins; if
@@ -15,7 +15,14 @@ function brandFallback(): string {
   return window.location.hostname || "PDF Viewer";
 }
 
-type ViewerMode = "normal" | "separation" | "layers" | "annotation" | "comparison" | "health" | "chain";
+type ViewerMode =
+  | "normal"
+  | "separation"
+  | "layers"
+  | "annotation"
+  | "comparison"
+  | "health"
+  | "chain";
 type MeasureMode = "none" | "color_picker" | "densitometer" | "ruler";
 
 interface MobileDrawerProps {
@@ -94,9 +101,7 @@ function DrawerItem({
         {icon}
       </span>
       <span className={active ? "font-medium text-white" : ""}>{label}</span>
-      {active && (
-        <span className="ml-auto h-2 w-2 shrink-0 rounded-full bg-blue-400" />
-      )}
+      {active && <span className="ml-auto h-2 w-2 shrink-0 rounded-full bg-blue-400" />}
     </button>
   );
 }
@@ -125,7 +130,13 @@ function DrawerLink({
         {icon}
       </span>
       <span>{label}</span>
-      <svg className="ml-auto h-3.5 w-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <svg
+        className="ml-auto h-3.5 w-3.5 text-slate-500"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2}
+      >
         <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" />
       </svg>
     </a>
@@ -141,7 +152,9 @@ const Icons = {
   ),
   separations: (
     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <circle cx="9" cy="9" r="5" /><circle cx="15" cy="9" r="5" /><circle cx="12" cy="15" r="5" />
+      <circle cx="9" cy="9" r="5" />
+      <circle cx="15" cy="9" r="5" />
+      <circle cx="12" cy="15" r="5" />
     </svg>
   ),
   layers: (
@@ -190,7 +203,8 @@ const Icons = {
   ),
   report: (
     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" />
+      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
     </svg>
   ),
   download: (
@@ -259,15 +273,19 @@ export function MobileDrawer({
         {/* Header */}
         <div className="flex h-12 items-center justify-between border-b border-white/[0.06] px-4">
           <span className="text-sm font-bold text-white">
-            {config.anonymous
-              ? "PDF Report"
-              : config.brand_name || brandFallback()}
+            {config.anonymous ? "PDF Report" : config.brand_name || brandFallback()}
           </span>
           <button
             onClick={onClose}
             className="rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-white"
           >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
               <path d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -276,9 +294,7 @@ export function MobileDrawer({
         <div className="overflow-y-auto" style={{ height: "calc(100% - 48px)" }}>
           {/* Findings summary */}
           <div className="border-b border-white/[0.06] px-4 py-3">
-            {fileName && (
-              <div className="mb-1 truncate text-xs text-slate-400">{fileName}</div>
-            )}
+            {fileName && <div className="mb-1 truncate text-xs text-slate-400">{fileName}</div>}
             <div className="flex gap-3 text-xs font-medium">
               <span className="text-red-400">{findingSummary.error} errors</span>
               <span className="text-amber-400">{findingSummary.warning} warnings</span>
@@ -297,11 +313,17 @@ export function MobileDrawer({
             {hasChain && (
               <DrawerItem
                 label="Approval Chain"
-                icon={(
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                icon={
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
                     <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                )}
+                }
                 active={viewerMode === "chain"}
                 onClick={() => handlePanelMode(() => onToggleMode("chain"))}
               />
@@ -406,17 +428,22 @@ export function MobileDrawer({
               an inert link would mislead reviewers into clicking a dead
               control, so we drop the items entirely. */}
           {(onOpenShare ||
-            (!reportsUnwired &&
-              (config.enable_html_report_link || config.enable_download))) && (
+            (!reportsUnwired && (config.enable_html_report_link || config.enable_download))) && (
             <DrawerSection title="Share &amp; Export" defaultOpen={false}>
               {onOpenShare && (
                 <DrawerItem
                   label="Email Share"
-                  icon={(
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  icon={
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
                       <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                     </svg>
-                  )}
+                  }
                   active={false}
                   onClick={() => handleTool(onOpenShare)}
                 />

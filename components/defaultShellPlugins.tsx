@@ -2,6 +2,7 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import { useState } from "react";
+import { resolveSpotSwatch } from "../browser/pantone-gold";
 import { AnnotationNotesPanel } from "./AnnotationNotesPanel";
 import { AnnotationThread } from "./AnnotationThread";
 import { AnnotationToolbar } from "./AnnotationToolbar";
@@ -14,7 +15,6 @@ import {
   rowStyle,
 } from "./LensPDFDemo.styles";
 import type { LensPDFShellPlugin, LensPDFShellPluginContext } from "./shellPlugins";
-import { resolveSpotSwatch } from "../browser/pantone-gold";
 
 const panelHeaderRowStyle: CSSProperties = {
   display: "flex",
@@ -119,14 +119,7 @@ function modeToolsPlugin(): LensPDFShellPlugin {
     slot: "panel.left",
     order: 10,
     render: (ctx: LensPDFShellPluginContext) => {
-      const {
-        tokens,
-        viewerMode,
-        setViewerMode,
-        activeTool,
-        setActiveTool,
-        availability,
-      } = ctx;
+      const { tokens, viewerMode, setViewerMode, activeTool, setActiveTool, availability } = ctx;
       const { separations, layers, colorPicker, densitometer, measure, annotate, tacHeatmap } =
         availability;
       // Page / Separations / Layers are canvas rendering modes —
@@ -135,9 +128,7 @@ function modeToolsPlugin(): LensPDFShellPlugin {
       // on its own row below as a full-width button. Keeps the
       // canvas-mode toggles visually distinct from the panel-mode
       // toggle.
-      const hasFindings = Boolean(
-        (ctx.items && ctx.items.length > 0) || ctx.forceInspectionPanel,
-      );
+      const hasFindings = Boolean((ctx.items && ctx.items.length > 0) || ctx.forceInspectionPanel);
       const sepIsLast = separations && !layers;
       const pageIsLast = !separations && !layers;
       const showFirstRow = separations || layers || hasFindings;
@@ -185,11 +176,7 @@ function modeToolsPlugin(): LensPDFShellPlugin {
                 <div style={{ ...modeButtonGroupStyle(), marginTop: 6 }}>
                   <button
                     type="button"
-                    style={modeButtonStyle(
-                      tokens,
-                      viewerMode === "findings",
-                      "solo",
-                    )}
+                    style={modeButtonStyle(tokens, viewerMode === "findings", "solo")}
                     onClick={() => setViewerMode("findings")}
                   >
                     Inspection
@@ -235,18 +222,14 @@ function modeToolsPlugin(): LensPDFShellPlugin {
             <ToolRadio
               label="Measure"
               active={activeTool === "measure"}
-              onToggle={() =>
-                setActiveTool((prev) => (prev === "measure" ? "none" : "measure"))
-              }
+              onToggle={() => setActiveTool((prev) => (prev === "measure" ? "none" : "measure"))}
             />
           )}
           {annotate && (
             <ToolRadio
               label="Annotate"
               active={activeTool === "annotate"}
-              onToggle={() =>
-                setActiveTool((prev) => (prev === "annotate" ? "none" : "annotate"))
-              }
+              onToggle={() => setActiveTool((prev) => (prev === "annotate" ? "none" : "annotate"))}
             />
           )}
           {tacHeatmap && (
@@ -341,7 +324,7 @@ function separationsPlugin(): LensPDFShellPlugin {
                     ...channelSwatchStyle,
                     backgroundColor:
                       ink.type === "process"
-                        ? PROCESS_SWATCH[ink.name] ?? "#1f2937"
+                        ? (PROCESS_SWATCH[ink.name] ?? "#1f2937")
                         : resolveSpotSwatch(ink.name, ink.altRgb, ctx.spotPalette),
                   }}
                 />
@@ -427,9 +410,7 @@ function FindingsPanel({ ctx }: { ctx: LensPDFShellPluginContext }) {
   const allItems = ctx.items ?? [];
 
   // Filter spell_check items when spelling is hidden
-  const items = ctx.hideSpelling
-    ? allItems.filter((it) => it.type !== "spell_check")
-    : allItems;
+  const items = ctx.hideSpelling ? allItems.filter((it) => it.type !== "spell_check") : allItems;
 
   const hasSpellItems = allItems.some((it) => it.type === "spell_check");
 
@@ -449,8 +430,7 @@ function FindingsPanel({ ctx }: { ctx: LensPDFShellPluginContext }) {
             color: ctx.tokens.fg,
           }}
         >
-          No findings yet. The host will populate this panel when a
-          preflight pass completes.
+          No findings yet. The host will populate this panel when a preflight pass completes.
         </div>
       </>
     );
@@ -501,7 +481,8 @@ function FindingsPanel({ ctx }: { ctx: LensPDFShellPluginContext }) {
     <>
       <div style={panelHeaderRowStyle}>
         <h2 style={headingStyle}>
-          Inspection ({isFiltered ? `${visible.length}/` : ""}{items.length})
+          Inspection ({isFiltered ? `${visible.length}/` : ""}
+          {items.length})
         </h2>
         <div style={{ display: "flex", gap: 4 }}>
           <button
@@ -623,9 +604,7 @@ function FindingsPanel({ ctx }: { ctx: LensPDFShellPluginContext }) {
                 // Selected → tier-tinted accent so the highlight is
                 // visible against the dark panel background. Previous
                 // 5%-white tint was nearly invisible.
-                border: isSelected
-                  ? `1px solid ${tierColor}`
-                  : "1px solid transparent",
+                border: isSelected ? `1px solid ${tierColor}` : "1px solid transparent",
                 background: isSelected
                   ? `${tierColor.replace("0.85", "0.18").replace("0.75", "0.16")}`
                   : "transparent",
@@ -737,12 +716,8 @@ function FindingsPanel({ ctx }: { ctx: LensPDFShellPluginContext }) {
                     padding: "3px 7px",
                     borderRadius: 4,
                     border: `1px solid ${ctx.tokens.border}`,
-                    background: isHidden
-                      ? "rgba(255,255,255,0.04)"
-                      : "transparent",
-                    color: isHidden
-                      ? "rgba(148,163,184,0.85)"
-                      : ctx.tokens.fg,
+                    background: isHidden ? "rgba(255,255,255,0.04)" : "transparent",
+                    color: isHidden ? "rgba(148,163,184,0.85)" : ctx.tokens.fg,
                     fontSize: 10,
                     fontWeight: 600,
                     lineHeight: 1.4,
@@ -817,7 +792,11 @@ function decideButtonStyle(color: "green" | "amber" | "red" | "slate"): CSSPrope
     green: { border: "rgba(16,185,129,0.5)", text: "rgb(52,211,153)", bg: "rgba(16,185,129,0.1)" },
     amber: { border: "rgba(217,119,6,0.5)", text: "rgb(251,191,36)", bg: "rgba(217,119,6,0.1)" },
     red: { border: "rgba(239,68,68,0.5)", text: "rgb(252,165,165)", bg: "rgba(239,68,68,0.1)" },
-    slate: { border: "rgba(100,116,139,0.5)", text: "rgb(148,163,184)", bg: "rgba(100,116,139,0.1)" },
+    slate: {
+      border: "rgba(100,116,139,0.5)",
+      text: "rgb(148,163,184)",
+      bg: "rgba(100,116,139,0.1)",
+    },
   }[color];
   return {
     padding: "1px 8px",
@@ -876,8 +855,7 @@ function annotationToolbarPlugin(): LensPDFShellPlugin {
     id: "lens.annotation-toolbar",
     slot: "overlay.toolbar",
     order: 10,
-    isAvailable: (ctx) =>
-      ctx.availability.annotate && ctx.activeTool === "annotate",
+    isAvailable: (ctx) => ctx.availability.annotate && ctx.activeTool === "annotate",
     render: (ctx: LensPDFShellPluginContext) => (
       <AnnotationToolbar
         activeTool={ctx.annotationTool}
@@ -904,5 +882,3 @@ export function createDefaultShellPlugins(): LensPDFShellPlugin[] {
     annotationToolbarPlugin(),
   ];
 }
-
-

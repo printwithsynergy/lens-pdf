@@ -19,7 +19,12 @@ const FULL_VH = 0.8;
 
 const SNAP_ORDER: SnapPosition[] = ["collapsed", "half", "full"];
 
-export function MobileBottomSheet({ children, summary, snap: controlledSnap, onSnapChange }: MobileBottomSheetProps) {
+export function MobileBottomSheet({
+  children,
+  summary,
+  snap: controlledSnap,
+  onSnapChange,
+}: MobileBottomSheetProps) {
   const [internalSnap, setInternalSnap] = useState<SnapPosition>("collapsed");
   const [dragging, setDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState<number | null>(null);
@@ -68,19 +73,16 @@ export function MobileBottomSheet({ children, summary, snap: controlledSnap, onS
     }
   }, [controlledSnap]);
 
-  const handleTouchStart = useCallback(
-    (e: React.TouchEvent) => {
-      const touch = e.touches[0];
-      if (!touch) return;
-      startYRef.current = touch.clientY;
-      const el = sheetRef.current;
-      if (el) {
-        startHeightRef.current = el.getBoundingClientRect().height;
-      }
-      setDragging(true);
-    },
-    [],
-  );
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    if (!touch) return;
+    startYRef.current = touch.clientY;
+    const el = sheetRef.current;
+    if (el) {
+      startHeightRef.current = el.getBoundingClientRect().height;
+    }
+    setDragging(true);
+  }, []);
 
   const handleTouchMove = useCallback(
     (e: React.TouchEvent) => {
@@ -128,11 +130,12 @@ export function MobileBottomSheet({ children, summary, snap: controlledSnap, onS
   const isCollapsed = snap === "collapsed" && dragOffset === null;
 
   const snapPx = getSnapHeights();
-  const heightStr = dragOffset !== null
-    ? `${dragOffset}px`
-    // snap is a SnapPosition union key — safe index.
-    // eslint-disable-next-line security/detect-object-injection
-    : `${snapPx[snap]}px`;
+  const heightStr =
+    dragOffset !== null
+      ? `${dragOffset}px`
+      : // snap is a SnapPosition union key — safe index.
+        // eslint-disable-next-line security/detect-object-injection
+        `${snapPx[snap]}px`;
 
   return (
     <div
@@ -166,9 +169,7 @@ export function MobileBottomSheet({ children, summary, snap: controlledSnap, onS
       {/* Content (scrollable when expanded) */}
       {!isCollapsed && (
         <div className="flex-1 overflow-y-auto">
-          <div ref={contentRef}>
-            {children}
-          </div>
+          <div ref={contentRef}>{children}</div>
         </div>
       )}
     </div>

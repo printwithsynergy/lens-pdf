@@ -32,17 +32,31 @@ export function ZoomControls({ zoom, onZoomChange, compact, dark }: ZoomControls
 
     return (
       <div className="flex items-center gap-0.5">
-        <button onClick={zoomOut} disabled={zoom <= ZOOM_STEPS[0]!} className={btnClass} title="Zoom out">
+        <button
+          onClick={zoomOut}
+          disabled={zoom <= ZOOM_STEPS[0]!}
+          className={btnClass}
+          title="Zoom out"
+        >
           −
         </button>
-        <select value={zoom} onChange={(e) => onZoomChange(Number(e.target.value))} className={selectClass}>
+        <select
+          value={zoom}
+          onChange={(e) => onZoomChange(Number(e.target.value))}
+          className={selectClass}
+        >
           {ZOOM_STEPS.map((z) => (
             <option key={z} value={z}>
               {z}%
             </option>
           ))}
         </select>
-        <button onClick={zoomIn} disabled={zoom >= ZOOM_STEPS[ZOOM_STEPS.length - 1]!} className={btnClass} title="Zoom in">
+        <button
+          onClick={zoomIn}
+          disabled={zoom >= ZOOM_STEPS[ZOOM_STEPS.length - 1]!}
+          className={btnClass}
+          title="Zoom in"
+        >
           +
         </button>
       </div>

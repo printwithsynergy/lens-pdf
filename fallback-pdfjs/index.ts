@@ -29,8 +29,8 @@
  */
 
 import * as pdfjs from "pdfjs-dist";
-import type { ColorSample } from "../types";
 import type { PdfFallbackAdapter } from "../plugin/services";
+import type { ColorSample } from "../types";
 
 /**
  * Default URL for the pdf.js worker, served via unpkg pinned to the
@@ -170,11 +170,7 @@ export function createPdfJsFallback(opts: PdfJsFallbackOptions): PdfFallbackAdap
       const r = data[0] ?? 0;
       const g = data[1] ?? 0;
       const b = data[2] ?? 0;
-      const hex =
-        "#" +
-        [r, g, b]
-          .map((v) => v.toString(16).padStart(2, "0"))
-          .join("");
+      const hex = "#" + [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("");
       const sample: ColorSample = {
         x: pdfX,
         y: pdfY,

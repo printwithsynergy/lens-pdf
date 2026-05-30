@@ -1,15 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { logUnwiredHide, useFallbackMode, useViewerHost, useViewerServices } from "../host";
 import type { DecisionRecord, OverlayItem } from "../plugin/types";
 import type { PageInfo } from "../types";
 import { DEFAULT_DPI, SEVERITY_COLORS } from "../types";
-import {
-  logUnwiredHide,
-  useFallbackMode,
-  useViewerHost,
-  useViewerServices,
-} from "../host";
 
 interface PageCanvasProps {
   jobId: string;
@@ -233,7 +228,7 @@ export function PageCanvas({
       el.removeEventListener("touchend", onEnd);
       el.removeEventListener("touchcancel", onEnd);
     };
-  }, [zoom, onZoomChange]);
+  }, [zoom, onZoomChange, pinchDist]);
 
   // onPageChange is kept in the prop list for call-site compatibility, but
   // swipe-to-change-page would fight native touch-pan. Consumers that need
@@ -262,10 +257,7 @@ export function PageCanvas({
   const DPI_CEIL = 450;
   const requestedDpi = Math.min(
     DPI_CEIL,
-    Math.max(
-      DPI_FLOOR,
-      Math.round((dpi * Math.max(0.1, scale)) / DPI_BUCKET) * DPI_BUCKET,
-    ),
+    Math.max(DPI_FLOOR, Math.round((dpi * Math.max(0.1, scale)) / DPI_BUCKET) * DPI_BUCKET),
   );
 
   const trimViewport = (() => {
@@ -414,14 +406,9 @@ export function PageCanvas({
     ctx.drawImage(tileImg, 0, 0, canvasWidth, canvasHeight);
 
     // Draw item overlays
-    const pageItems = items.filter(
-      (it) => it.page === page.page_num && it.bbox,
-    );
+    const pageItems = items.filter((it) => it.page === page.page_num && it.bbox);
 
-    const hasSelected =
-      selectedItem &&
-      selectedItem.page === page.page_num &&
-      selectedItem.bbox;
+    const hasSelected = selectedItem && selectedItem.page === page.page_num && selectedItem.bbox;
 
     for (const item of pageItems) {
       if (!item.bbox) continue;
@@ -442,17 +429,12 @@ export function PageCanvas({
       const decision = decisions?.[item.id];
       const isApproved =
         decision?.is_active &&
-        (decision.decision_type === "approve" ||
-          decision.decision_type === "waive");
+        (decision.decision_type === "approve" || decision.decision_type === "waive");
       const baseAlpha = isApproved ? 0.25 : 1;
 
       // Badge label: F{n} for numbered findings, ✓ suffix when approved
       const badgeLabel =
-        findingN != null
-          ? `F${findingN}${isApproved ? " ✓" : ""}`
-          : isApproved
-            ? "✓"
-            : null;
+        findingN != null ? `F${findingN}${isApproved ? " ✓" : ""}` : isApproved ? "✓" : null;
 
       // Spell-check findings render as squiggly underlines, not filled rects.
       const isSpellCheck = item.type === "spell_check";
@@ -491,10 +473,7 @@ export function PageCanvas({
       } else if (isSelected) {
         // Selected item: prominent highlight with animated glow
         const glowAlpha = (0.15 + pulsePhase * 0.2) * baseAlpha;
-        ctx.fillStyle = colors.fill.replace(
-          /[\d.]+\)$/,
-          `${glowAlpha.toFixed(2)})`,
-        );
+        ctx.fillStyle = colors.fill.replace(/[\d.]+\)$/, `${glowAlpha.toFixed(2)})`);
         ctx.fillRect(px0, py0, pw, ph);
 
         // Animated outer glow
@@ -551,9 +530,7 @@ export function PageCanvas({
     const pdfY = page.height_pts - clickY / (ptsToPixels * scale);
 
     // Find clicked item
-    const pageItems = items.filter(
-      (it) => it.page === page.page_num && it.bbox,
-    );
+    const pageItems = items.filter((it) => it.page === page.page_num && it.bbox);
     for (const item of pageItems) {
       if (!item.bbox) continue;
       const [x0, y0, x1, y1] = item.bbox;
@@ -590,7 +567,21 @@ export function PageCanvas({
           style={{ width: outerWidth, height: outerHeight }}
         >
           <div className="flex flex-col items-center gap-2">
-            <svg className="h-8 w-8 animate-spin text-slate-400" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+            <svg className="h-8 w-8 animate-spin text-slate-400" fill="none" viewBox="0 0 24 24">
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+              />
+            </svg>
             <span className="text-xs text-slate-500">Page {page.page_num}</span>
           </div>
         </div>
@@ -604,54 +595,52 @@ export function PageCanvas({
           height: canvasHeight,
         }}
       >
-      <canvas
-        ref={canvasRef}
-        onClick={handleClick}
-        className={`cursor-crosshair ${loading ? "hidden" : ""}`}
-        style={{
-          width: canvasWidth,
-          height: canvasHeight,
-        }}
-      />
-      {/* Item tooltip */}
-      {tooltip && (
-        <div
-          className="pointer-events-none absolute z-40 max-w-[280px] rounded-lg bg-black/90 px-3 py-2 text-xs text-white shadow-xl"
+        <canvas
+          ref={canvasRef}
+          onClick={handleClick}
+          className={`cursor-crosshair ${loading ? "hidden" : ""}`}
           style={{
-            left: Math.max(8, Math.min(tooltip.x - 100, canvasWidth - 288)),
-            top: Math.max(8, tooltip.y - 8),
-            transform: "translateY(-100%)",
+            width: canvasWidth,
+            height: canvasHeight,
           }}
-        >
-          <div className="mb-1 flex items-center gap-2">
-            <span
-              className="inline-block h-2 w-2 shrink-0 rounded-full"
-              style={{ backgroundColor: TIER_HEX[tooltipTier] }}
-            />
-            <span className="font-bold uppercase" style={{ color: TIER_HEX[tooltipTier] }}>
-              {tooltipTier}
-            </span>
-            {tooltip.item.code && (
-              <code className="ml-auto text-[10px] text-gray-400">{tooltip.item.code}</code>
-            )}
-          </div>
-          <p className="break-words leading-snug text-gray-200">
-            {(() => {
-              const text = tooltip.item.description ?? tooltip.item.label ?? "";
-              return text.length > 160 ? text.slice(0, 160) + "..." : text;
-            })()}
-          </p>
-          {/* Spell-check suggestions */}
-          {Array.isArray(tooltip.item.data?.suggestions) &&
-            (tooltip.item.data.suggestions as string[]).length > 0 && (
-              <div className="mt-2 border-t border-white/20 pt-2">
-                <p className="mb-1 text-[10px] uppercase tracking-wide text-gray-400">
-                  Did you mean?
-                </p>
-                <div className="flex flex-wrap gap-1">
-                  {(tooltip.item.data.suggestions as string[])
-                    .slice(0, 5)
-                    .map((s) => (
+        />
+        {/* Item tooltip */}
+        {tooltip && (
+          <div
+            className="pointer-events-none absolute z-40 max-w-[280px] rounded-lg bg-black/90 px-3 py-2 text-xs text-white shadow-xl"
+            style={{
+              left: Math.max(8, Math.min(tooltip.x - 100, canvasWidth - 288)),
+              top: Math.max(8, tooltip.y - 8),
+              transform: "translateY(-100%)",
+            }}
+          >
+            <div className="mb-1 flex items-center gap-2">
+              <span
+                className="inline-block h-2 w-2 shrink-0 rounded-full"
+                style={{ backgroundColor: TIER_HEX[tooltipTier] }}
+              />
+              <span className="font-bold uppercase" style={{ color: TIER_HEX[tooltipTier] }}>
+                {tooltipTier}
+              </span>
+              {tooltip.item.code && (
+                <code className="ml-auto text-[10px] text-gray-400">{tooltip.item.code}</code>
+              )}
+            </div>
+            <p className="break-words leading-snug text-gray-200">
+              {(() => {
+                const text = tooltip.item.description ?? tooltip.item.label ?? "";
+                return text.length > 160 ? text.slice(0, 160) + "..." : text;
+              })()}
+            </p>
+            {/* Spell-check suggestions */}
+            {Array.isArray(tooltip.item.data?.suggestions) &&
+              (tooltip.item.data.suggestions as string[]).length > 0 && (
+                <div className="mt-2 border-t border-white/20 pt-2">
+                  <p className="mb-1 text-[10px] uppercase tracking-wide text-gray-400">
+                    Did you mean?
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {(tooltip.item.data.suggestions as string[]).slice(0, 5).map((s) => (
                       <span
                         key={s}
                         className="rounded bg-white/10 px-1.5 py-0.5 text-xs text-white"
@@ -659,38 +648,37 @@ export function PageCanvas({
                         {s}
                       </span>
                     ))}
+                  </div>
                 </div>
+              )}
+            {/* Decision badge in tooltip */}
+            {decisions?.[tooltip.item.id]?.is_active && (
+              <div className="mt-2 border-t border-white/20 pt-2 text-[10px] text-emerald-400">
+                ✓{" "}
+                {decisions[tooltip.item.id].decision_type.charAt(0).toUpperCase() +
+                  decisions[tooltip.item.id].decision_type.slice(1)}
+                {" — "}
+                {decisions[tooltip.item.id].decided_by_email ??
+                  decisions[tooltip.item.id].decided_by_user_id}
               </div>
             )}
-          {/* Decision badge in tooltip */}
-          {decisions?.[tooltip.item.id]?.is_active && (
-            <div className="mt-2 border-t border-white/20 pt-2 text-[10px] text-emerald-400">
-              ✓{" "}
-              {decisions[tooltip.item.id].decision_type.charAt(0).toUpperCase() +
-                decisions[tooltip.item.id].decision_type.slice(1)}
-              {" — "}
-              {decisions[tooltip.item.id].decided_by_email ??
-                decisions[tooltip.item.id].decided_by_user_id}
-            </div>
-          )}
-          {onFindingNoteRequest && (
-            <div className="mt-2 border-t border-white/20 pt-2">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onFindingNoteRequest(tooltip.item.id);
-                }}
-                className="pointer-events-auto inline-flex items-center gap-1 rounded bg-white/15 px-2 py-1 text-[11px] font-medium text-white hover:bg-white/25"
-              >
-                Leave a note
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+            {onFindingNoteRequest && (
+              <div className="mt-2 border-t border-white/20 pt-2">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onFindingNoteRequest(tooltip.item.id);
+                  }}
+                  className="pointer-events-auto inline-flex items-center gap-1 rounded bg-white/15 px-2 py-1 text-[11px] font-medium text-white hover:bg-white/25"
+                >
+                  Leave a note
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
 }
-

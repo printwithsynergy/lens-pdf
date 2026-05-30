@@ -169,9 +169,7 @@ const defaultViewerServices: ViewerServices = {
  *
  * @public
  */
-export const ViewerServicesContext = createContext<ViewerServices>(
-  defaultViewerServices,
-);
+export const ViewerServicesContext = createContext<ViewerServices>(defaultViewerServices);
 
 /**
  * Hook for reading the active `ViewerServices`. Returns the no-op
@@ -232,6 +230,16 @@ export function useFallbackMode(
   return "hidden";
 }
 
+export { isUnwired, markUnwired } from "../plugin/services";
+export type { LensPDFProviderProps } from "./LensPDFProvider";
+export { LensPDFProvider } from "./LensPDFProvider";
+export { createPdfJsFallback } from "./pdfFallback";
+export type { PdfValidationResult } from "./pdfValidation";
+export { validatePdfFile, validatePdfUrl } from "./pdfValidation";
+export type { ParsedShareParams, ShareLinkOptions } from "./shareLink";
+export { generateShareLink, parseShareParams } from "./shareLink";
+export type { UseLensPDFOptions, UseLensPDFReturn } from "./useLensPDF";
+export { useLensPDF } from "./useLensPDF";
 /**
  * Pre-built services where every protocol is a no-op default tagged
  * with the unwired marker. Hosts that only need a partial override
@@ -244,18 +252,3 @@ export function useFallbackMode(
  * @public
  */
 export { defaultViewerServices as defaultUnwiredServices };
-
-export { createPdfJsFallback } from "./pdfFallback";
-export { isUnwired, markUnwired } from "../plugin/services";
-
-export { validatePdfFile, validatePdfUrl } from "./pdfValidation";
-export type { PdfValidationResult } from "./pdfValidation";
-
-export { generateShareLink, parseShareParams } from "./shareLink";
-export type { ShareLinkOptions, ParsedShareParams } from "./shareLink";
-
-export { useLensPDF } from "./useLensPDF";
-export type { UseLensPDFOptions, UseLensPDFReturn } from "./useLensPDF";
-
-export { LensPDFProvider } from "./LensPDFProvider";
-export type { LensPDFProviderProps } from "./LensPDFProvider";

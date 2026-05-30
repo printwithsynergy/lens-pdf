@@ -34,20 +34,26 @@
  * @public
  */
 
-import { useEffect, useState } from "react";
 import * as pdfjs from "pdfjs-dist";
-export type { MinimalCodexClient, CodexOverlayServices } from "./codexOverlay";
-export { createCodexOverlayServices, extractInksFromColorWorld, extractLayersFromOcgs } from "./codexOverlay";
-import type { ColorSample, ColorSampleInk, DensitometerSample } from "../types";
+import { useEffect, useState } from "react";
+
+export type { CodexOverlayServices, MinimalCodexClient } from "./codexOverlay";
+export {
+  createCodexOverlayServices,
+  extractInksFromColorWorld,
+  extractLayersFromOcgs,
+} from "./codexOverlay";
+
 import {
+  type AnnotationEntry,
+  defaultThemeTokens,
   markUnwired,
   noopI18n,
   noopTelemetry,
-  type AnnotationEntry,
   type ThemeTokens,
   type ViewerServices,
 } from "../plugin/services";
-import { defaultThemeTokens } from "../plugin/services";
+import type { ColorSample, ColorSampleInk, DensitometerSample } from "../types";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -77,7 +83,9 @@ const MAX_ANALYSIS_CANVAS_PIXELS = 12_000_000;
 const K_FACTOR = 0.8;
 
 export { PROCESS_CHANNELS } from "./constants";
+
 import { PROCESS_CHANNELS } from "./constants";
+
 export {
   pantoneGoldLookup,
   processPlateLookup,
@@ -269,9 +277,7 @@ const SPOT_NAME_RGB: Array<{ pattern: RegExp; rgb: [number, number, number] }> =
 
 /** Decode PDF name-object encoding (`#XX` hex → byte). */
 function decodePdfName(raw: string): string {
-  return raw.replace(/#([0-9a-fA-F]{2})/g, (_, hex) =>
-    String.fromCharCode(parseInt(hex, 16)),
-  );
+  return raw.replace(/#([0-9a-fA-F]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
 }
 
 function spotNameToRgb(name: string): [number, number, number] {
@@ -303,11 +309,7 @@ function hslToRgb(h: number, s: number, l: number): [number, number, number] {
   else if (hh < 5) [r1, g1, b1] = [x, 0, c];
   else [r1, g1, b1] = [c, 0, x];
   const m = l - c / 2;
-  return [
-    Math.round((r1 + m) * 255),
-    Math.round((g1 + m) * 255),
-    Math.round((b1 + m) * 255),
-  ];
+  return [Math.round((r1 + m) * 255), Math.round((g1 + m) * 255), Math.round((b1 + m) * 255)];
 }
 
 /**
@@ -325,7 +327,7 @@ export function detectSpotInksFromPdfBytes(bytes: Uint8Array): DetectedInk[] {
 
   // /Separation /Name AltColorSpace TintTransform
   const sepRe =
-    /\/Separation\s*\/([A-Za-z0-9_#%\-\+\*\(\)\.]+)\s+\/(?:DeviceCMYK|DeviceRGB|DeviceGray|CalRGB|CalGray|Lab)/g;
+    /\/Separation\s*\/([A-Za-z0-9_#%\-+*().]+)\s+\/(?:DeviceCMYK|DeviceRGB|DeviceGray|CalRGB|CalGray|Lab)/g;
   let m: RegExpExecArray | null;
   while ((m = sepRe.exec(text)) !== null) {
     const raw = m[1];
@@ -342,7 +344,7 @@ export function detectSpotInksFromPdfBytes(bytes: Uint8Array): DetectedInk[] {
   const dnRe = /\/DeviceN\s*\[([^\]]{1,500})\]/g;
   while ((m = dnRe.exec(text)) !== null) {
     const arr = m[1] ?? "";
-    const inkRe = /\/([A-Za-z0-9_#%\-\+\*\(\)\.]+)/g;
+    const inkRe = /\/([A-Za-z0-9_#%\-+*().]+)/g;
     let im: RegExpExecArray | null;
     while ((im = inkRe.exec(arr)) !== null) {
       const raw = im[1];
@@ -438,13 +440,8 @@ async function rasterizeBlobUrl(
  * even when `toDataURL` succeeds, so we fall back to the synchronous
  * data-URL path before giving up.
  */
-async function canvasToPngBlob(
-  canvas: HTMLCanvasElement,
-  caller: string,
-): Promise<Blob> {
-  const direct = await new Promise<Blob | null>((resolve) =>
-    canvas.toBlob(resolve, "image/png"),
-  );
+async function canvasToPngBlob(canvas: HTMLCanvasElement, caller: string): Promise<Blob> {
+  const direct = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
   if (direct) return direct;
   let dataUrl: string;
   try {
@@ -469,10 +466,7 @@ async function canvasToPngBlob(
  *   200–limit    → amber (watch)
  *   ≥ limit      → red   (over the press limit)
  */
-function heatmapColor(
-  tac: number,
-  limit: number,
-): [number, number, number, number] {
+function heatmapColor(tac: number, limit: number): [number, number, number, number] {
   if (tac < 200) return [0, 180, 0, 200];
   if (tac < limit) return [255, 200, 0, 200];
   return [255, 0, 0, 220];
@@ -637,9 +631,7 @@ export function createBrowserViewerServices(
       bytesPromise = (async () => {
         const response = await fetch(opts.pdfUrl);
         if (!response.ok) {
-          throw new Error(
-            `[lens-pdf] PDF fetch failed: ${response.status} ${response.statusText}`,
-          );
+          throw new Error(`[lens-pdf] PDF fetch failed: ${response.status} ${response.statusText}`);
         }
         const buf = await response.arrayBuffer();
         return new Uint8Array(buf);
@@ -786,10 +778,7 @@ export function createBrowserViewerServices(
     pageBuilds.set(key, promise);
   }
 
-  async function buildChannelUrl(
-    pageNum: number,
-    channelName: string,
-  ): Promise<string> {
+  async function buildChannelUrl(pageNum: number, channelName: string): Promise<string> {
     const lower = channelName.toLowerCase();
     const processIndex =
       lower === "cyan"
@@ -829,13 +818,9 @@ export function createBrowserViewerServices(
       // any spot the PDF declares, even when pdf.js composited it into
       // the RGB raster.
       const inks = await getInks();
-      const ink = inks.find(
-        (k) => k.name.toLowerCase() === lower && k.type === "spot",
-      );
+      const ink = inks.find((k) => k.name.toLowerCase() === lower && k.type === "spot");
       if (!ink) {
-        url = await rasterizeBlobUrl(raster.widthPx, raster.heightPx, () => [
-          255, 255, 255, 255,
-        ]);
+        url = await rasterizeBlobUrl(raster.widthPx, raster.heightPx, () => [255, 255, 255, 255]);
       } else {
         const [aR, aG, aB] = ink.altRgb;
         url = await rasterizeBlobUrl(raster.widthPx, raster.heightPx, (i) => {
@@ -875,10 +860,7 @@ export function createBrowserViewerServices(
     return promise;
   }
 
-  async function buildHeatmapUrl(
-    pageNum: number,
-    tacLimit: number,
-  ): Promise<string> {
+  async function buildHeatmapUrl(pageNum: number, tacLimit: number): Promise<string> {
     const raster = await getAnalysisRaster(pageNum);
     const data = raster.rgba.data;
     // TAC = process CMYK coverage **plus** every detected spot ink's
@@ -896,15 +878,7 @@ export function createBrowserViewerServices(
       const { tac: cmykPct } = rgbToCmyk(r, g, b);
       let spotPct = 0;
       for (const ink of spots) {
-        spotPct +=
-          estimateInkCoverage(
-            r,
-            g,
-            b,
-            ink.altRgb[0],
-            ink.altRgb[1],
-            ink.altRgb[2],
-          ) * 100;
+        spotPct += estimateInkCoverage(r, g, b, ink.altRgb[0], ink.altRgb[1], ink.altRgb[2]) * 100;
       }
       const tac = cmykPct + spotPct;
       if (tac < 1) return [0, 0, 0, 0];
@@ -956,11 +930,7 @@ export function createBrowserViewerServices(
     }
   }
 
-  async function buildLayerUrl(
-    pageNum: number,
-    layerIndex: number,
-    dpi: number,
-  ): Promise<string> {
+  async function buildLayerUrl(pageNum: number, layerIndex: number, dpi: number): Promise<string> {
     const ids = await getOcgIds(pageNum);
     if (layerIndex < 0 || layerIndex >= ids.length) {
       throw new Error(`[lens-pdf] layer ${layerIndex} out of range`);
@@ -1013,11 +983,7 @@ export function createBrowserViewerServices(
     return url;
   }
 
-  function ensureLayerUrl(
-    pageNum: number,
-    layerIndex: number,
-    dpi: number,
-  ): Promise<string> {
+  function ensureLayerUrl(pageNum: number, layerIndex: number, dpi: number): Promise<string> {
     const key = `${pageNum}|${layerIndex}@${dpi}`;
     const cached = layerUrls.get(key);
     if (cached) return Promise.resolve(cached);
@@ -1054,16 +1020,10 @@ export function createBrowserViewerServices(
   } | null> {
     const raster = await getAnalysisRaster(pageNum);
     const ptsToPx = ANALYSIS_DPI / 72;
-    const pxX = Math.max(
-      0,
-      Math.min(raster.widthPx - 1, Math.round(pdfX * ptsToPx)),
-    );
+    const pxX = Math.max(0, Math.min(raster.widthPx - 1, Math.round(pdfX * ptsToPx)));
     const pxY = Math.max(
       0,
-      Math.min(
-        raster.heightPx - 1,
-        Math.round((raster.heightPts - pdfY) * ptsToPx),
-      ),
+      Math.min(raster.heightPx - 1, Math.round((raster.heightPts - pdfY) * ptsToPx)),
     );
     const i = (pxY * raster.widthPx + pxX) * 4;
     const r = raster.rgba.data[i] ?? 255;
@@ -1211,19 +1171,10 @@ export function createBrowserViewerServices(
                     : sample.cmyk.k * 100;
             return { name: ink.name, percent: pct, type: "process" };
           }
-          const cov = estimateInkCoverage(
-            r,
-            g,
-            b,
-            ink.altRgb[0],
-            ink.altRgb[1],
-            ink.altRgb[2],
-          );
+          const cov = estimateInkCoverage(r, g, b, ink.altRgb[0], ink.altRgb[1], ink.altRgb[2]);
           return { name: ink.name, percent: cov * 100, type: "spot" };
         });
-        const spotTotal = inks
-          .filter((i) => i.type === "spot")
-          .reduce((s, c) => s + c.percent, 0);
+        const spotTotal = inks.filter((i) => i.type === "spot").reduce((s, c) => s + c.percent, 0);
         const out: ColorSample = {
           x: pdfX,
           y: pdfY,
@@ -1262,14 +1213,7 @@ export function createBrowserViewerServices(
           // Spot inks: cosine-similarity coverage estimate. Only fires
           // when the sampled pixel matches the spot's hue direction
           // (cos > 0.92), so unrelated areas read 0 instead of nonsense.
-          const cov = estimateInkCoverage(
-            r,
-            g,
-            b,
-            ink.altRgb[0],
-            ink.altRgb[1],
-            ink.altRgb[2],
-          );
+          const cov = estimateInkCoverage(r, g, b, ink.altRgb[0], ink.altRgb[1], ink.altRgb[2]);
           return { name: ink.name, percent: cov * 100 };
         });
         const spotTotal = channels
@@ -1289,8 +1233,7 @@ export function createBrowserViewerServices(
       },
     },
     annotations: {
-      list: async () =>
-        Array.from(annotations.values()).sort((a, b) => a.pageNum - b.pageNum),
+      list: async () => Array.from(annotations.values()).sort((a, b) => a.pageNum - b.pageNum),
       getForPage: async (pageNum) => annotations.get(pageNum) ?? null,
       saveForPage: async (pageNum, fabricJson) => {
         const now = new Date().toISOString();

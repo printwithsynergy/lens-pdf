@@ -23,9 +23,10 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { darkThemeTokens } from "../plugin/services";
-import type { ThemeTokens } from "../plugin/services";
 import { validatePdfFile, validatePdfUrl } from "../host/pdfValidation";
+import type { ThemeTokens } from "../plugin/services";
+import { darkThemeTokens } from "../plugin/services";
+import { LensPDF, type LensPDFProps, type LensPDFTool } from "./LensPDF";
 import {
   brandStyle,
   btnStyle,
@@ -40,7 +41,6 @@ import {
   urlInputStyle,
 } from "./LensPDFDemo.styles";
 import { useIsMobile } from "./useIsMobile";
-import { LensPDF, type LensPDFProps, type LensPDFTool } from "./LensPDF";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -111,7 +111,7 @@ export function LensPDFDemo({
   const tokens: ThemeTokens = useMemo(
     () => ({ ...darkThemeTokens, ...lensProps.tokens }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [JSON.stringify(lensProps.tokens)],
+    [lensProps.tokens],
   );
   const effectiveBrand = lensProps.brand ?? tokens.logoText ?? "LensPDF";
   const effectiveLogoUrl = lensProps.brandLogoUrl ?? tokens.logoUrl;
@@ -264,42 +264,187 @@ export function LensPDFDemo({
           `showUploadHeader={false}` to let the inner LensPDF top bar
           own the chrome — drag-drop continues to work as a swap path. */}
       {showUploadHeader && (
-      <header
-        style={{
-          ...topbarStyle,
-          position: "relative",
-          zIndex: 100,
-          background: tokens.bg,
-          borderBottom: `1px solid ${tokens.border}`,
-          ...(isMobile
-            ? {
-                flexDirection: "column",
-                alignItems: "stretch",
-                gap: 12,
-                padding: "12px 14px",
-              }
-            : {}),
-        }}
-      >
-        {isMobile ? (
-          <>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                width: "100%",
-                minWidth: 0,
-              }}
-            >
+        <header
+          style={{
+            ...topbarStyle,
+            position: "relative",
+            zIndex: 100,
+            background: tokens.bg,
+            borderBottom: `1px solid ${tokens.border}`,
+            ...(isMobile
+              ? {
+                  flexDirection: "column",
+                  alignItems: "stretch",
+                  gap: 12,
+                  padding: "12px 14px",
+                }
+              : {}),
+          }}
+        >
+          {isMobile ? (
+            <>
               <div
                 style={{
-                  ...brandStyle,
-                  flex: 1,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  width: "100%",
                   minWidth: 0,
-                  overflow: "hidden",
                 }}
               >
+                <div
+                  style={{
+                    ...brandStyle,
+                    flex: 1,
+                    minWidth: 0,
+                    overflow: "hidden",
+                  }}
+                >
+                  {effectiveLogoUrl && (
+                    <img
+                      src={effectiveLogoUrl}
+                      alt={effectiveLogoAlt ?? ""}
+                      aria-hidden={effectiveLogoAlt ? undefined : "true"}
+                      style={{
+                        height: effectiveLogoMaxHeight,
+                        width: "auto",
+                        maxHeight: effectiveLogoMaxHeight,
+                        flexShrink: 0,
+                      }}
+                    />
+                  )}
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {effectiveBrand}
+                  </span>
+                  <span style={{ opacity: 0.4 }}>&middot;</span>
+                  <span
+                    style={{
+                      opacity: 0.6,
+                      fontWeight: 400,
+                      fontSize: 13,
+                      flexShrink: 0,
+                    }}
+                  >
+                    demo
+                  </span>
+                </div>
+                {/* File-controls accordion toggle — icon reflects file state */}
+                <button
+                  type="button"
+                  aria-label={
+                    mobileUrlBarOpen ? "Close file controls" : pdfUrl ? "Change file" : "Open a PDF"
+                  }
+                  aria-expanded={mobileUrlBarOpen}
+                  onClick={() => setMobileUrlBarOpen((v) => !v)}
+                  style={{
+                    flexShrink: 0,
+                    width: 36,
+                    height: 36,
+                    borderRadius: 8,
+                    border: `1px solid ${pdfUrl ? tokens.accent : tokens.border}`,
+                    background: pdfUrl ? `${tokens.accent}22` : "transparent",
+                    color: pdfUrl ? tokens.accent : tokens.fg,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    opacity: mobileUrlBarOpen ? 0.6 : 1,
+                    transition: "opacity 0.15s",
+                  }}
+                >
+                  {pdfUrl ? (
+                    <svg width={16} height={16} viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+                      <path d="M4 2a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V6.414A1 1 0 0 0 12.707 6L9 2.293A1 1 0 0 0 8.586 2H4zm4 .5V6a1 1 0 0 0 1 1h3.5L8 2.5z" />
+                    </svg>
+                  ) : (
+                    <svg
+                      width={16}
+                      height={16}
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={1.5}
+                      aria-hidden
+                    >
+                      <path
+                        d="M2 5a1 1 0 0 1 1-1h3.586a1 1 0 0 1 .707.293L8.414 5.4A1 1 0 0 0 9.121 5.7H13a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5z"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  )}
+                </button>
+              </div>
+              {/* Collapsible URL / upload form */}
+              <div
+                style={{
+                  overflow: "hidden",
+                  maxHeight: mobileUrlBarOpen ? 300 : 0,
+                  transition: "max-height 0.22s ease",
+                }}
+              >
+                <form
+                  onSubmit={loadUrl}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 10,
+                    width: "100%",
+                    paddingTop: 2,
+                    paddingBottom: 2,
+                  }}
+                >
+                  <input
+                    type="text"
+                    inputMode="url"
+                    autoCapitalize="off"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    enterKeyHint="go"
+                    placeholder="Paste PDF URL (https://…)"
+                    value={draftUrl}
+                    onChange={(e) => setDraftUrl(e.target.value)}
+                    style={{
+                      ...urlInputStyle(tokens),
+                      width: "100%",
+                      boxSizing: "border-box",
+                      minHeight: 44,
+                      fontSize: 16,
+                    }}
+                  />
+                  <div style={{ display: "flex", gap: 10, width: "100%" }}>
+                    <button
+                      type="submit"
+                      disabled={!urlValid}
+                      style={{
+                        ...btnStyle(tokens, !urlValid),
+                        flex: 1,
+                        minHeight: 44,
+                        padding: "12px 14px",
+                        fontSize: 15,
+                      }}
+                    >
+                      Load
+                    </button>
+                    <button
+                      type="button"
+                      style={{
+                        ...ghostBtnStyle(tokens),
+                        flex: 1,
+                        minHeight: 44,
+                        padding: "12px 14px",
+                        fontSize: 15,
+                      }}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      Upload PDF
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={brandStyle}>
                 {effectiveLogoUrl && (
                   <img
                     src={effectiveLogoUrl}
@@ -309,186 +454,42 @@ export function LensPDFDemo({
                       height: effectiveLogoMaxHeight,
                       width: "auto",
                       maxHeight: effectiveLogoMaxHeight,
-                      flexShrink: 0,
                     }}
                   />
                 )}
-                <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {effectiveBrand}
-                </span>
+                <span>{effectiveBrand}</span>
                 <span style={{ opacity: 0.4 }}>&middot;</span>
-                <span
-                  style={{
-                    opacity: 0.6,
-                    fontWeight: 400,
-                    fontSize: 13,
-                    flexShrink: 0,
-                  }}
-                >
-                  demo
-                </span>
+                <span style={{ opacity: 0.6, fontWeight: 400, fontSize: 13 }}>demo</span>
               </div>
-              {/* File-controls accordion toggle — icon reflects file state */}
-              <button
-                type="button"
-                aria-label={
-                  mobileUrlBarOpen
-                    ? "Close file controls"
-                    : pdfUrl
-                      ? "Change file"
-                      : "Open a PDF"
-                }
-                aria-expanded={mobileUrlBarOpen}
-                onClick={() => setMobileUrlBarOpen((v) => !v)}
-                style={{
-                  flexShrink: 0,
-                  width: 36,
-                  height: 36,
-                  borderRadius: 8,
-                  border: `1px solid ${pdfUrl ? tokens.accent : tokens.border}`,
-                  background: pdfUrl ? `${tokens.accent}22` : "transparent",
-                  color: pdfUrl ? tokens.accent : tokens.fg,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  opacity: mobileUrlBarOpen ? 0.6 : 1,
-                  transition: "opacity 0.15s",
-                }}
-              >
-                {pdfUrl ? (
-                  <svg width={16} height={16} viewBox="0 0 16 16" fill="currentColor" aria-hidden>
-                    <path d="M4 2a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V6.414A1 1 0 0 0 12.707 6L9 2.293A1 1 0 0 0 8.586 2H4zm4 .5V6a1 1 0 0 0 1 1h3.5L8 2.5z" />
-                  </svg>
-                ) : (
-                  <svg width={16} height={16} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={1.5} aria-hidden>
-                    <path d="M2 5a1 1 0 0 1 1-1h3.586a1 1 0 0 1 .707.293L8.414 5.4A1 1 0 0 0 9.121 5.7H13a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5z" strokeLinejoin="round" />
-                  </svg>
-                )}
-              </button>
-            </div>
-            {/* Collapsible URL / upload form */}
-            <div
-              style={{
-                overflow: "hidden",
-                maxHeight: mobileUrlBarOpen ? 300 : 0,
-                transition: "max-height 0.22s ease",
-              }}
-            >
-              <form
-                onSubmit={loadUrl}
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 10,
-                  width: "100%",
-                  paddingTop: 2,
-                  paddingBottom: 2,
-                }}
-              >
+              <form style={urlBarStyle} onSubmit={loadUrl}>
                 <input
                   type="text"
-                  inputMode="url"
-                  autoCapitalize="off"
-                  autoCorrect="off"
-                  spellCheck={false}
-                  enterKeyHint="go"
-                  placeholder="Paste PDF URL (https://…)"
+                  placeholder="Paste any PDF URL the browser can fetch…"
                   value={draftUrl}
                   onChange={(e) => setDraftUrl(e.target.value)}
-                  style={{
-                    ...urlInputStyle(tokens),
-                    width: "100%",
-                    boxSizing: "border-box",
-                    minHeight: 44,
-                    fontSize: 16,
-                  }}
+                  style={urlInputStyle(tokens)}
                 />
-                <div style={{ display: "flex", gap: 10, width: "100%" }}>
-                  <button
-                    type="submit"
-                    disabled={!urlValid}
-                    style={{
-                      ...btnStyle(tokens, !urlValid),
-                      flex: 1,
-                      minHeight: 44,
-                      padding: "12px 14px",
-                      fontSize: 15,
-                    }}
-                  >
-                    Load
-                  </button>
-                  <button
-                    type="button"
-                    style={{
-                      ...ghostBtnStyle(tokens),
-                      flex: 1,
-                      minHeight: 44,
-                      padding: "12px 14px",
-                      fontSize: 15,
-                    }}
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    Upload PDF
-                  </button>
-                </div>
+                <button type="submit" disabled={!urlValid} style={btnStyle(tokens, !urlValid)}>
+                  Load
+                </button>
               </form>
-            </div>
-          </>
-        ) : (
-          <>
-            <div style={brandStyle}>
-              {effectiveLogoUrl && (
-                <img
-                  src={effectiveLogoUrl}
-                  alt={effectiveLogoAlt ?? ""}
-                  aria-hidden={effectiveLogoAlt ? undefined : "true"}
-                  style={{
-                    height: effectiveLogoMaxHeight,
-                    width: "auto",
-                    maxHeight: effectiveLogoMaxHeight,
-                  }}
-                />
-              )}
-              <span>{effectiveBrand}</span>
-              <span style={{ opacity: 0.4 }}>&middot;</span>
-              <span style={{ opacity: 0.6, fontWeight: 400, fontSize: 13 }}>
-                demo
-              </span>
-            </div>
-            <form style={urlBarStyle} onSubmit={loadUrl}>
-              <input
-                type="text"
-                placeholder="Paste any PDF URL the browser can fetch…"
-                value={draftUrl}
-                onChange={(e) => setDraftUrl(e.target.value)}
-                style={urlInputStyle(tokens)}
-              />
               <button
-                type="submit"
-                disabled={!urlValid}
-                style={btnStyle(tokens, !urlValid)}
+                type="button"
+                style={ghostBtnStyle(tokens)}
+                onClick={() => fileInputRef.current?.click()}
               >
-                Load
+                Upload PDF
               </button>
-            </form>
-            <button
-              type="button"
-              style={ghostBtnStyle(tokens)}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              Upload PDF
-            </button>
-          </>
-        )}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="application/pdf,.pdf"
-          style={{ display: "none" }}
-          onChange={onFileChange}
-        />
-      </header>
+            </>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/pdf,.pdf"
+            style={{ display: "none" }}
+            onChange={onFileChange}
+          />
+        </header>
       )}
 
       {error && (
@@ -529,8 +530,8 @@ export function LensPDFDemo({
               )}
               <h2 style={{ margin: 0 }}>{effectiveBrand} demo viewer</h2>
               <p style={{ margin: 0, maxWidth: 380 }}>
-                Paste a PDF URL above or drag-and-drop a file anywhere on
-                this page to start inspecting.
+                Paste a PDF URL above or drag-and-drop a file anywhere on this page to start
+                inspecting.
               </p>
               <button
                 type="button"
@@ -548,15 +549,13 @@ export function LensPDFDemo({
                   margin: 0,
                 }}
               >
-                LensPDF supports <strong>full CMYK + spot inks</strong>
-                {" "}with no approximation when a backend (Ghostscript /
-                MuPDF + ICC profiles) is wired through the{" "}
-                <code>services</code> prop — the densitometer, TAC heatmap,
-                and color picker read true plate values straight from the
-                host. The RGB-derived path is only used as the fallback
-                when no backend data is supplied, which is the mode this
-                demo runs in. Annotations live in this tab only and are
-                discarded on reload. Max upload {formatMaxSize(maxFileSize)}.
+                LensPDF supports <strong>full CMYK + spot inks</strong> with no approximation when a
+                backend (Ghostscript / MuPDF + ICC profiles) is wired through the{" "}
+                <code>services</code> prop — the densitometer, TAC heatmap, and color picker read
+                true plate values straight from the host. The RGB-derived path is only used as the
+                fallback when no backend data is supplied, which is the mode this demo runs in.
+                Annotations live in this tab only and are discarded on reload. Max upload{" "}
+                {formatMaxSize(maxFileSize)}.
               </p>
             </div>
           </div>

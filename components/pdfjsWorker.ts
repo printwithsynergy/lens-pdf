@@ -40,5 +40,4 @@ export const REACT_PDF_BUNDLED_PDFJS_VERSION = "5.4.296";
  * the worker alongside their HTML to start the ~500 KB download
  * in parallel with the JS bundle.
  */
-export const defaultPdfjsWorkerSrc =
-  `https://unpkg.com/pdfjs-dist@${REACT_PDF_BUNDLED_PDFJS_VERSION}/legacy/build/pdf.worker.min.mjs`;
+export const defaultPdfjsWorkerSrc = `https://unpkg.com/pdfjs-dist@${REACT_PDF_BUNDLED_PDFJS_VERSION}/legacy/build/pdf.worker.min.mjs`;

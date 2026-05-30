@@ -1,13 +1,13 @@
-import { describe, it, expect } from "vitest";
-import type { OverlayItem } from "./types";
+import { describe, expect, it } from "vitest";
 import {
+  type Bbox,
   collectItemRects,
   computeFitScale,
   itemFocusBbox,
   rectsEqual,
   unionBbox,
-  type Bbox,
 } from "./fit";
+import type { OverlayItem } from "./types";
 
 const item = (extra: Partial<OverlayItem>): OverlayItem => ({
   id: "f",
@@ -18,9 +18,7 @@ const item = (extra: Partial<OverlayItem>): OverlayItem => ({
 describe("computeFitScale", () => {
   it("fits a rect into the viewport (no padding)", () => {
     // 400x300 into 800x600 → min(2, 2) = 2
-    expect(
-      computeFitScale(400, 300, 800, 600, { padding: 0 }),
-    ).toBeCloseTo(2);
+    expect(computeFitScale(400, 300, 800, 600, { padding: 0 })).toBeCloseTo(2);
   });
 
   it("uses the tighter of the two axes", () => {

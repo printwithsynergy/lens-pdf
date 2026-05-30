@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { isUnwired, logUnwiredHide, useViewerHost, useViewerServices } from "../host";
 import type { AnnotationEntry } from "../plugin/services";
 
@@ -103,8 +103,7 @@ export function AnnotationNotesPanel({
   const pendingNoteCreatedRef = useRef<string | null>(null);
 
   const storageKey = useMemo(
-    () =>
-      `lens-pdf:annotation-notes:${storageScopeKey ?? "default-document"}`,
+    () => `lens-pdf:annotation-notes:${storageScopeKey ?? "default-document"}`,
     [storageScopeKey],
   );
 
@@ -123,15 +122,13 @@ export function AnnotationNotesPanel({
       });
       setEntries(sorted);
       setSelectedAnnotationId((prev) =>
-        prev && sorted.some((entry) => entry.id === prev)
-          ? prev
-          : (sorted[0]?.id ?? ""),
+        prev && sorted.some((entry) => entry.id === prev) ? prev : (sorted[0]?.id ?? ""),
       );
     })();
     return () => {
       cancelled = true;
     };
-  }, [annotationService, hidden, debug, refreshKey]);
+  }, [annotationService, hidden, debug]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -140,10 +137,7 @@ export function AnnotationNotesPanel({
       if (!raw) return;
       const parsed = JSON.parse(raw) as {
         generalNotes?: string;
-        notesByAnnotationId?: Record<
-          string,
-          string | AnnotationLinkedNote[]
-        >;
+        notesByAnnotationId?: Record<string, string | AnnotationLinkedNote[]>;
       };
       setGeneralNotes(parsed.generalNotes ?? "");
       const migrated: Record<string, AnnotationLinkedNote[]> = {};
@@ -188,12 +182,13 @@ export function AnnotationNotesPanel({
   // hand-drawn annotation targets. Order matters — findings appear at the
   // top of the dropdown so they're discoverable without scrolling.
   const targets = useMemo(() => {
-    const findingPart: Array<{ id: string; pageNum: number; label: string }> =
-      (findingTargets ?? []).map((ft) => ({
-        id: ft.id,
-        pageNum: ft.pageNum,
-        label: ft.label,
-      }));
+    const findingPart: Array<{ id: string; pageNum: number; label: string }> = (
+      findingTargets ?? []
+    ).map((ft) => ({
+      id: ft.id,
+      pageNum: ft.pageNum,
+      label: ft.label,
+    }));
     const annotationPart: Array<{ id: string; pageNum: number; label: string }> =
       indexedAnnotations.length > 0
         ? indexedAnnotations.map((row) => ({
@@ -212,11 +207,10 @@ export function AnnotationNotesPanel({
   if (hidden) return null;
 
   const selectedNotes = selectedAnnotationId
-    ? notesByAnnotationId[selectedAnnotationId] ?? []
+    ? (notesByAnnotationId[selectedAnnotationId] ?? [])
     : [];
 
-  const selectedTarget =
-    targets.find((target) => target.id === selectedAnnotationId) ?? null;
+  const selectedTarget = targets.find((target) => target.id === selectedAnnotationId) ?? null;
 
   useEffect(() => {
     if (!selectedAnnotationIdProp) return;
@@ -276,7 +270,7 @@ export function AnnotationNotesPanel({
     el.focus();
     el.scrollIntoView({ behavior: "smooth", block: "nearest" });
     setFocusNoteId(null);
-  }, [focusNoteId, notesByAnnotationId]);
+  }, [focusNoteId]);
 
   return (
     <div style={cardStyle}>
@@ -438,4 +432,3 @@ export function AnnotationNotesPanel({
     </div>
   );
 }
-

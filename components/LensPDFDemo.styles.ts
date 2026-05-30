@@ -13,10 +13,7 @@
 import type { CSSProperties } from "react";
 import type { ThemeTokens } from "../plugin/services";
 
-export function shellStyle(
-  tokens: ThemeTokens,
-  fullscreen: boolean,
-): CSSProperties {
+export function shellStyle(tokens: ThemeTokens, fullscreen: boolean): CSSProperties {
   const base: CSSProperties = {
     display: "flex",
     flexDirection: "column",
@@ -243,10 +240,7 @@ export const pageNavStyle: CSSProperties = {
   padding: "6px 0",
 };
 
-export function pageNavBtnStyle(
-  tokens: ThemeTokens,
-  disabled: boolean,
-): CSSProperties {
+export function pageNavBtnStyle(tokens: ThemeTokens, disabled: boolean): CSSProperties {
   return {
     width: 28,
     height: 28,

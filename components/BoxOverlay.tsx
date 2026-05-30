@@ -33,14 +33,17 @@ function boxToPixels(
 }
 
 function ptToMm(pts: number): number {
-  return pts * 25.4 / 72;
+  return (pts * 25.4) / 72;
 }
 
 function ptToInches(pts: number): number {
   return pts / 72;
 }
 
-function formatSize(widthPts: number, heightPts: number): {
+function formatSize(
+  widthPts: number,
+  heightPts: number,
+): {
   mm: string;
   inches: string;
 } {
@@ -107,14 +110,8 @@ export function BoxOverlay({ page, canvasWidth, canvasHeight, dieline }: BoxOver
   if (boxes.length === 0 && dielineRegions.length === 0) return null;
 
   return (
-    <div
-      style={{ position: "absolute", inset: 0, zIndex: 15 }}
-    >
-      <svg
-        width={canvasWidth}
-        height={canvasHeight}
-        style={{ pointerEvents: "none" }}
-      >
+    <div style={{ position: "absolute", inset: 0, zIndex: 15 }}>
+      <svg width={canvasWidth} height={canvasHeight} style={{ pointerEvents: "none" }}>
         {dielineRegions.map((region, idx) => {
           const box = { x0: region.x0, y0: region.y0, x1: region.x1, y1: region.y1 };
           const px = boxToPixels(box, page, canvasWidth, canvasHeight);
@@ -181,10 +178,14 @@ export function BoxOverlay({ page, canvasWidth, canvasHeight, dieline }: BoxOver
         const size = formatSize(box.x1 - box.x0, box.y1 - box.y0);
         const isOpen = openPopover === label;
         return (
-          <div key={`icon-${label}`} className="absolute" style={{
-            left: Math.max(0, px.left + 4),
-            top: Math.max(0, px.top - 20),
-          }}>
+          <div
+            key={`icon-${label}`}
+            className="absolute"
+            style={{
+              left: Math.max(0, px.left + 4),
+              top: Math.max(0, px.top - 20),
+            }}
+          >
             <button
               type="button"
               aria-label={`${label} size`}
@@ -288,10 +289,7 @@ export function BoxOverlay({ page, canvasWidth, canvasHeight, dieline }: BoxOver
         <p className="mb-1 font-semibold">Page Boxes</p>
         {boxes.map(({ label, color }) => (
           <div key={label} className="flex items-center gap-1">
-            <span
-              className="inline-block h-2 w-4 rounded"
-              style={{ backgroundColor: color }}
-            />
+            <span className="inline-block h-2 w-4 rounded" style={{ backgroundColor: color }} />
             <span>{label}</span>
           </div>
         ))}

@@ -1,14 +1,14 @@
 "use client";
 
-import { createPortal } from "react-dom";
 import {
+  type CSSProperties,
+  type ReactNode,
   useCallback,
   useEffect,
   useRef,
   useState,
-  type CSSProperties,
-  type ReactNode,
 } from "react";
+import { createPortal } from "react-dom";
 
 /**
  * Annotation tools the toolbar can put into "active" mode. Each
@@ -50,13 +50,7 @@ interface AnnotationToolbarProps {
 /** Mouse-pointer silhouette — reads as “select” better than a lone △. */
 function SelectToolIcon() {
   return (
-    <svg
-      width={15}
-      height={15}
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      aria-hidden
-    >
+    <svg width={15} height={15} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
       <path d="M6 3l12 8.5L13 14l2 7-7-5.5L6 21V3z" />
     </svg>
   );
@@ -72,8 +66,7 @@ const TOOLS: {
   {
     id: "pen",
     label: "Pen",
-    tooltip:
-      "Pen — click and drag to draw freehand strokes in the active colour.",
+    tooltip: "Pen — click and drag to draw freehand strokes in the active colour.",
     icon: "\u270E",
   },
   {
@@ -86,8 +79,7 @@ const TOOLS: {
   {
     id: "arrow",
     label: "Arrow",
-    tooltip:
-      "Arrow — press, drag, release to draw a line with an arrowhead at the end.",
+    tooltip: "Arrow — press, drag, release to draw a line with an arrowhead at the end.",
     icon: "\u2192",
   },
   {
@@ -111,21 +103,12 @@ const TOOLS: {
   {
     id: "highlight",
     label: "Highlight",
-    tooltip:
-      "Highlight — drag diagonally to fill a translucent rectangle (uses active colour).",
+    tooltip: "Highlight — drag diagonally to fill a translucent rectangle (uses active colour).",
     icon: "\u2588",
   },
 ];
 
-const PRESET_COLORS = [
-  "#ef4444",
-  "#f59e0b",
-  "#22c55e",
-  "#3b82f6",
-  "#8b5cf6",
-  "#000000",
-  "#ffffff",
-];
+const PRESET_COLORS = ["#ef4444", "#f59e0b", "#22c55e", "#3b82f6", "#8b5cf6", "#000000", "#ffffff"];
 
 const ACCENT = "#e50c6a";
 
@@ -203,9 +186,7 @@ function swatchStyle(color: string, active: boolean, touch: boolean): CSSPropert
     width: size,
     height: size,
     borderRadius: "50%",
-    border: active
-      ? `2px solid ${ACCENT}`
-      : "2px solid rgba(255, 255, 255, 0.2)",
+    border: active ? `2px solid ${ACCENT}` : "2px solid rgba(255, 255, 255, 0.2)",
     background: color,
     cursor: "pointer",
     padding: 0,

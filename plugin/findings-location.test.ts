@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { buildFindingNumberMap, hasViewerLocation, splitFindingsByLocation } from "./findings-location";
+import {
+  buildFindingNumberMap,
+  hasViewerLocation,
+  splitFindingsByLocation,
+} from "./findings-location";
 import type { OverlayItem } from "./types";
 
 function item(overrides: Partial<OverlayItem> & { id: string }): OverlayItem {
@@ -21,18 +25,12 @@ describe("hasViewerLocation", () => {
 
   it("returns true for a non-empty regions array", () => {
     expect(
-      hasViewerLocation(
-        item({ id: "c", regions: [[0, 0, 10, 10]] } as unknown as OverlayItem),
-      ),
+      hasViewerLocation(item({ id: "c", regions: [[0, 0, 10, 10]] } as unknown as OverlayItem)),
     ).toBe(true);
   });
 
   it("returns false for an empty regions array", () => {
-    expect(
-      hasViewerLocation(
-        item({ id: "d", regions: [] } as unknown as OverlayItem),
-      ),
-    ).toBe(false);
+    expect(hasViewerLocation(item({ id: "d", regions: [] } as unknown as OverlayItem))).toBe(false);
   });
 });
 

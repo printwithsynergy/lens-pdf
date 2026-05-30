@@ -277,10 +277,4 @@ export interface DecisionRecord {
  * Valid decision types, matching the lint-pdf decisions service vocabulary.
  * @public
  */
-export type DecisionType =
-  | "approve"
-  | "reject"
-  | "waive"
-  | "suppress"
-  | "annotate"
-  | "escalate";
+export type DecisionType = "approve" | "reject" | "waive" | "suppress" | "annotate" | "escalate";

@@ -15,9 +15,9 @@
  * @public
  */
 
-import type { SeparationService, LayerService, TACHeatmapService, ViewerServices } from "../plugin/services";
-import type { DetectedInk } from "./index";
+import type { LayerService, SeparationService, TACHeatmapService } from "../plugin/services";
 import { PROCESS_CHANNELS } from "./constants";
+import type { DetectedInk } from "./index";
 
 // ---------------------------------------------------------------------------
 // Minimal codex client interface (structural typing — no codex-client import)
@@ -65,9 +65,7 @@ export interface MinimalCodexClient {
  *
  * @public
  */
-export function extractInksFromColorWorld(
-  colorWorld: Record<string, unknown>,
-): DetectedInk[] {
+export function extractInksFromColorWorld(colorWorld: Record<string, unknown>): DetectedInk[] {
   const process: DetectedInk[] = (PROCESS_CHANNELS as readonly string[]).map((name) => ({
     name,
     type: "process" as const,
@@ -75,13 +73,13 @@ export function extractInksFromColorWorld(
   }));
 
   const spots: DetectedInk[] = [];
-  const colorants = colorWorld["spot_colorants"];
+  const colorants = colorWorld.spot_colorants;
   if (Array.isArray(colorants)) {
     for (const c of colorants) {
       if (!c || typeof c !== "object") continue;
-      const name = String((c as Record<string, unknown>)["name"] ?? "");
+      const name = String((c as Record<string, unknown>).name ?? "");
       if (!name) continue;
-      const rgb = (c as Record<string, unknown>)["rgb"];
+      const rgb = (c as Record<string, unknown>).rgb;
       let altRgb: [number, number, number] = [128, 128, 128];
       if (Array.isArray(rgb) && rgb.length >= 3) {
         altRgb = [
@@ -113,14 +111,14 @@ const _PROCESS_INK_RGB: Record<string, [number, number, number]> = {
 export function extractLayersFromOcgs(
   ocgs: Record<string, unknown>,
 ): Array<{ name: string; ocg_index: number; default_on: boolean }> {
-  const list = ocgs["ocgs"];
+  const list = ocgs.ocgs;
   if (!Array.isArray(list)) return [];
   const result: Array<{ name: string; ocg_index: number; default_on: boolean }> = [];
   for (let i = 0; i < list.length; i++) {
     const item = list[i];
     if (!item || typeof item !== "object") continue;
-    const name = String((item as Record<string, unknown>)["name"] ?? `Layer ${i + 1}`);
-    const defaultOn = (item as Record<string, unknown>)["default_on"];
+    const name = String((item as Record<string, unknown>).name ?? `Layer ${i + 1}`);
+    const defaultOn = (item as Record<string, unknown>).default_on;
     result.push({
       name,
       ocg_index: i,
@@ -181,9 +179,10 @@ export function createCodexOverlayServices(
   function makeBlobUrl(bytes: Uint8Array, type = "image/png"): string {
     // Copy into a plain ArrayBuffer to satisfy Blob's type constraints
     // (TypeScript requires ArrayBuffer, not SharedArrayBuffer).
-    const ab = bytes.buffer instanceof ArrayBuffer
-      ? bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
-      : new Uint8Array(bytes).buffer;
+    const ab =
+      bytes.buffer instanceof ArrayBuffer
+        ? bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
+        : new Uint8Array(bytes).buffer;
     const blob = new Blob([ab], { type });
     const url = URL.createObjectURL(blob);
     blobs.push(url);
@@ -293,7 +292,8 @@ export function createCodexOverlayServices(
       ensureLayer(pageNum, layerIndex);
       return "";
     },
-    listLayers: async () => layerData as Array<{ name: string; ocg_index: number; default_on: boolean }>,
+    listLayers: async () =>
+      layerData as Array<{ name: string; ocg_index: number; default_on: boolean }>,
   };
 
   return {
@@ -317,4 +317,3 @@ export function createCodexOverlayServices(
     },
   };
 }
-

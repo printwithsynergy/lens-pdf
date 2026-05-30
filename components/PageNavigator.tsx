@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useViewerServices } from "../host";
 import type { OverlayItem } from "../plugin/types";
 import type { PageInfo } from "../types";
 import { THUMBNAIL_DPI } from "../types";
-import { useViewerServices } from "../host";
 
 interface PageNavigatorProps {
   pages: PageInfo[];
@@ -36,7 +36,7 @@ export function PageNavigator({
       inline: horizontal ? "center" : undefined,
       behavior: "smooth",
     });
-  }, [currentPage, horizontal]);
+  }, [horizontal]);
 
   const itemsPerPage = new Map<number, { errors: number; warnings: number }>();
   for (const item of items) {
@@ -97,9 +97,7 @@ export function PageNavigator({
 
   return (
     <div className="flex flex-col gap-1 overflow-y-auto p-2">
-      <div className="mb-1 text-xs font-medium text-muted-foreground">
-        Pages ({pages.length})
-      </div>
+      <div className="mb-1 text-xs font-medium text-muted-foreground">Pages ({pages.length})</div>
       {pages.map((page) => {
         const isActive = page.page_num === currentPage;
         const counts = itemsPerPage.get(page.page_num);
