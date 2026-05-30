@@ -38,7 +38,10 @@ describe("lens-server", () => {
         "application/problem+json",
       );
       const body = (await res.json()) as Record<string, unknown>;
-      expect(body.type).toMatch(/lens-pdf/);
+      // Canonical type URIs now point at docs.printwithsynergy.com
+      // (per the shared @printwithsynergy/codex-client/problem-details
+      // module), not lens-pdf docs. See AUDIT.md finding #13.
+      expect(body.type).toMatch(/docs\.printwithsynergy\.com\/problems\//);
       expect(body.title).toBe("Not Found");
       expect(body.status).toBe(404);
       expect(body.detail).toBeTypeOf("string");
