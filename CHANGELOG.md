@@ -6,6 +6,29 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0-beta.17] — 2026-05-29
+
+### Fixed
+- **Selecting the same finding after its geometry changes now re-frames.**
+  The substrate's focus effect deduped on `focusKey` alone, so a host
+  enriching the same finding in place (same id, updated `regions` /
+  `bbox`) would not see the view re-fit. The dedup tuple is now
+  `(key, rect contents)` via a new pure `rectsEqual` helper in
+  `plugin/fit`. Unrelated re-renders still no-op; the manual-pan-not-
+  yanked guarantee is preserved.
+
+### Changed
+- **`minScale` / `maxScale` are a single source of truth — and now
+  configurable.** The TransformWrapper's pan/pinch limits and the
+  `computeFitScale` clamp the focus effect uses previously had two
+  hardcoded `0.25` / `4` copies, so a future edit to one without the
+  other would produce a fit asking for a scale the wrapper silently
+  re-clamped (framing the wrong rect). Hoisted to `DEFAULT_MIN_SCALE`
+  / `DEFAULT_MAX_SCALE` at the top of `PdfSubstrate` and exposed as
+  optional props on `PdfSubstrate` and `LensPDF` so hosts that need
+  deeper zoom on wide-format art or high-DPI imagery can widen the
+  range without forking. Defaults unchanged.
+
 ## [0.4.0-beta.16] — 2026-05-29
 
 ### Added
