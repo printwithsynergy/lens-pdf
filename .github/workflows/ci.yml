@@ -34,3 +34,30 @@ jobs:
           test -f dist/index.js
           test -f dist/index.d.ts
           ls -lh dist/ | head
+
+  lens-server:
+    name: lens-server — typecheck + build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+
+      - name: Install
+        run: npm install --no-audit --no-fund
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify dist artifacts
+        run: test -f dist/index.js

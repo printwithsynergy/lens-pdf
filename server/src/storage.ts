@@ -13,8 +13,13 @@
 
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { createWriteStream } from "node:fs";
+import { lookup as dnsLookup, type LookupAddress } from "node:dns";
+import { request as httpRequest, type IncomingMessage } from "node:http";
+import { request as httpsRequest } from "node:https";
+import { isIPv4, isIPv6 } from "node:net";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
+import type { LookupFunction } from "node:net";
 import path from "node:path";
 import { config } from "./config.js";
 
@@ -76,27 +81,139 @@ export async function saveSourceFromStream(
 }
 
 /**
- * Fetch a PDF from a host-supplied URL into the job dir. The host is
- * responsible for the URL itself being safe to fetch — we don't second-
- * guess private IP addresses, redirects, or signed-URL handling.
+ * Fetch a PDF from a host-supplied URL into the job dir.
+ *
+ * SSRF prevention is enforced at the *connect-time DNS lookup* via
+ * the `lookup` option to `http(s).request`: when Node is about to
+ * open a TCP socket, our custom resolver checks the IP and refuses
+ * any address in loopback / private / link-local / cloud-metadata
+ * ranges. This closes the TOCTOU window a pre-fetch dns.lookup
+ * leaves open (DNS rebinding between validation and connect).
+ *
+ * Redirects are not followed; a 3xx response from the host is
+ * rejected explicitly so callers must resolve their own redirects.
  */
 export async function saveSourceFromUrl(
   jobId: string,
   url: string,
 ): Promise<JobMeta> {
-  const res = await fetch(url);
-  if (!res.ok) {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new ValidationError("URL is not parseable.");
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new ValidationError("URL must be http(s).");
+  }
+
+  const res = await fetchWithSafeLookup(parsed);
+  if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400) {
+    res.resume();
     throw new ValidationError(
-      `Source fetch failed: ${res.status} ${res.statusText}`,
+      "Redirect responses are not followed; provide the resolved URL.",
     );
   }
-  if (!res.body) throw new ValidationError("Source response had no body.");
-  const cl = res.headers.get("content-length");
-  return saveSourceFromStream(
-    jobId,
-    Readable.fromWeb(res.body as never),
-    cl ? Number(cl) : null,
-  );
+  if (!res.statusCode || res.statusCode < 200 || res.statusCode >= 400) {
+    res.resume();
+    throw new ValidationError(
+      `Source fetch failed: ${res.statusCode ?? "?"} ${res.statusMessage ?? ""}`,
+    );
+  }
+  const cl = res.headers["content-length"];
+  return saveSourceFromStream(jobId, res, cl ? Number(cl) : null);
+}
+
+/**
+ * Issue a GET against the URL using `http(s).request` with a custom
+ * DNS lookup that validates each candidate IP and refuses private /
+ * loopback / link-local / cloud-metadata ranges. This is the
+ * sanitizer pattern CodeQL recognizes for js/request-forgery.
+ */
+function fetchWithSafeLookup(parsed: URL): Promise<IncomingMessage> {
+  const requestFn = parsed.protocol === "https:" ? httpsRequest : httpRequest;
+  // The `lookup` option runs at TCP-connect time. Any rejection here
+  // happens *before* a byte is sent over the wire — this is the
+  // sanitizer pattern CodeQL recognizes for js/request-forgery.
+  const safeLookup: LookupFunction = (hostname, options, callback) => {
+    dnsLookup(hostname, options, (err, address, family) => {
+      if (err) {
+        callback(err, "", 0);
+        return;
+      }
+      try {
+        if (Array.isArray(address)) {
+          for (const a of address as LookupAddress[]) {
+            assertPublicAddress(a.address);
+          }
+          callback(null, address, family);
+        } else {
+          assertPublicAddress(address as string);
+          callback(null, address as string, family);
+        }
+      } catch (e) {
+        const wrapped =
+          e instanceof Error ? e : new Error("forbidden address");
+        (wrapped as NodeJS.ErrnoException).code = "EFORBIDDEN";
+        callback(wrapped as NodeJS.ErrnoException, "", 0);
+      }
+    });
+  };
+  return new Promise<IncomingMessage>((resolve, reject) => {
+    const req = requestFn(
+      parsed,
+      { method: "GET", lookup: safeLookup },
+      (res) => resolve(res),
+    );
+    req.on("error", (err) => reject(err));
+    req.end();
+  });
+}
+
+/** Throws ValidationError for any address we won't fetch over. */
+function assertPublicAddress(ip: string): void {
+  if (isIPv4(ip)) {
+    const parts = ip.split(".").map(Number);
+    if (parts.length !== 4 || parts.some((n) => !Number.isInteger(n))) {
+      throw new ValidationError(`Malformed IPv4 ${ip}.`);
+    }
+    const [a, b] = parts as [number, number, number, number];
+    // 0.0.0.0/8, 10/8, 127/8, 169.254/16, 172.16/12, 192.168/16,
+    // 100.64/10 (CGNAT), 224/4 (multicast), 240/4 (reserved + 255.255.255.255).
+    if (
+      a === 0 ||
+      a === 10 ||
+      a === 127 ||
+      (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) ||
+      (a === 100 && b >= 64 && b <= 127) ||
+      a >= 224
+    ) {
+      throw new ValidationError(`Refusing to fetch private/loopback IPv4 ${ip}.`);
+    }
+    return;
+  }
+  if (isIPv6(ip)) {
+    const lower = ip.toLowerCase();
+    // ::1 loopback, fc00::/7 unique-local, fe80::/10 link-local,
+    // ::ffff:x.x.x.x IPv4-mapped (validate the IPv4 inside).
+    if (lower === "::1" || lower === "::") {
+      throw new ValidationError(`Refusing to fetch IPv6 loopback ${ip}.`);
+    }
+    if (/^f[cd][0-9a-f]{2}:/.test(lower)) {
+      throw new ValidationError(`Refusing to fetch unique-local IPv6 ${ip}.`);
+    }
+    if (/^fe[89ab][0-9a-f]:/.test(lower)) {
+      throw new ValidationError(`Refusing to fetch link-local IPv6 ${ip}.`);
+    }
+    const mapped = lower.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
+    if (mapped?.[1]) {
+      assertPublicAddress(mapped[1]);
+    }
+    return;
+  }
+  throw new ValidationError(`Unparseable address ${ip}.`);
 }
 
 export async function jobExists(jobId: string): Promise<boolean> {

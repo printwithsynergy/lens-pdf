@@ -1,14 +1,33 @@
 {
-  "name": "lens-pdf-server",
-  "version": "0.0.0",
-  "private": true,
-  "description": "Reference HTTP backend for LensPDF \u2014 provides ink separations, densitometer, TAC heatmap, color sampling via Ghostscript.",
+  "name": "@printwithsynergy/lens-server",
+  "version": "0.1.0",
+  "description": "Canonical headless renderer for the lens-pdf viewer family. Serves report rendering (HTML / PDF / annotated PDF / markup PDF), page rendering, and color sampling for backends that can't run the browser-only lens-pdf React library directly. Powered by Ghostscript + Puppeteer + pdf-lib.",
+  "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/printwithsynergy/lens-pdf.git",
+    "directory": "server"
+  },
+  "homepage": "https://github.com/printwithsynergy/lens-pdf/tree/main/server",
+  "bugs": {
+    "url": "https://github.com/printwithsynergy/lens-pdf/issues"
+  },
   "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "lens-server": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "dev": "tsx --watch src/index.ts",
     "start": "node dist/index.js",
-    "build": "tsc",
-    "typecheck": "tsc --noEmit"
+    "build": "tsc && node -e \"require('node:fs').cpSync('src/templates','dist/templates',{recursive:true})\"",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "express": "^4.21.0",
@@ -27,5 +46,18 @@
     "@types/node": "^22.7.0",
     "tsx": "^4.19.0",
     "typescript": "^5.5.0"
-  }
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "pdf",
+    "preflight",
+    "printing",
+    "prepress",
+    "ghostscript",
+    "puppeteer",
+    "lens-pdf",
+    "renderer"
+  ]
 }
