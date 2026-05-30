@@ -241,6 +241,15 @@ export interface LensPDFProps {
    * embedded previews, demos).
    */
   initialShowFindings?: boolean;
+  /**
+   * Lower / upper zoom bounds (transform scale, 1 = 100%). Defaults
+   * to ``0.25`` / ``4`` — the same range the substrate's pan/pinch
+   * limits enforce and zoom-to-fit clamps to. Bump ``maxScale`` for
+   * hosts that need deeper zoom on wide-format art or high-DPI
+   * imagery; the focus effect's fit clamp tracks automatically.
+   */
+  minScale?: number;
+  maxScale?: number;
   // ── Optional preflight integration ─────────────────────────────────────
   /**
    * Findings to flag on the page raster. Hosts convert their domain
@@ -441,6 +450,8 @@ export function LensPDF({
   fullscreen: initialFullscreen = false,
   initialPage = 1,
   initialShowFindings = false,
+  minScale,
+  maxScale,
   items,
   forceInspectionPanel,
   spotPalette,
@@ -1570,6 +1581,8 @@ export function LensPDF({
                 onZoomChange={setZoom}
                 focusRect={focusBbox}
                 focusKey={effectiveSelected?.id ?? null}
+                minScale={minScale}
+                maxScale={maxScale}
                 onPageRender={(info) =>
                   setSubstratePage({
                     width: info.width,

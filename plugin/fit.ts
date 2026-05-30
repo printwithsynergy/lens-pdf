@@ -101,3 +101,17 @@ export function collectItemRects(item: OverlayItem): Bbox[] {
 export function itemFocusBbox(item: OverlayItem): Bbox | null {
   return unionBbox(collectItemRects(item));
 }
+
+/**
+ * Element-wise equality on two bboxes (treating ``null`` as a valid
+ * value). Used by the substrate's focus effect to dedupe re-framing:
+ * if a finding's id stays the same but its bbox/regions change
+ * (e.g. live preflight enriches it in place), we still want to
+ * re-fit, but rapid re-renders that hand us an equivalent rect
+ * shouldn't yank the view back.
+ */
+export function rectsEqual(a: Bbox | null, b: Bbox | null): boolean {
+  if (a === b) return true;
+  if (a == null || b == null) return false;
+  return a[0] === b[0] && a[1] === b[1] && a[2] === b[2] && a[3] === b[3];
+}
