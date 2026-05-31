@@ -544,6 +544,13 @@ function FindingsPanel({ ctx }: { ctx: LensPDFShellPluginContext }) {
                 borderColor: activeTiers.has(t) ? "#fff" : "transparent",
                 opacity: isFiltered && !activeTiers.has(t) ? 0.4 : 1,
                 cursor: "pointer",
+                // Kills iOS Safari's 300ms tap-delay + hover-emulation
+                // synthesis. Without this, the FIRST tap on a freshly-
+                // mounted chip (the user just entered Inspection mode,
+                // FindingsPanel just mounted) gets swallowed as a
+                // hover-only event and the toggle takes two taps.
+                touchAction: "manipulation",
+                WebkitTapHighlightColor: "transparent",
                 transition: "opacity 0.15s, border-color 0.15s",
               }}
             >

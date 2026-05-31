@@ -32,6 +32,7 @@ import type { ThemeTokens } from "../plugin/services";
 // `defaultPdfjsWorkerSrc` for a preload tag) triggered the chain
 // and the server boot died with ERR_UNKNOWN_FILE_EXTENSION.
 import { ensureReactPdfCss } from "./reactPdfCss";
+import { useIsMobile } from "./useIsMobile";
 
 // Required: react-pdf needs the pdf.js worker URL. react-pdf 10.x
 // ships with a SENTINEL default of `"pdf.worker.mjs"` (a bare module
@@ -323,6 +324,7 @@ export function PdfSubstrate({
   minScale = DEFAULT_MIN_SCALE,
   maxScale = DEFAULT_MAX_SCALE,
 }: PdfSubstrateProps) {
+  const isMobile = useIsMobile();
   const transformRef = useRef<ReactZoomPanPinchRef | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const focusElRef = useRef<HTMLDivElement | null>(null);
@@ -541,8 +543,14 @@ export function PdfSubstrate({
           wrapperStyle={{ width: "100%", height: "100%" }}
           contentStyle={{
             display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
+            // On mobile, pin to the top-left so the page opens flush
+            // against the viewport edge — the user requested that
+            // behaviour over the centered default. Users can still pan
+            // freely (react-zoom-pan-pinch handles the transform).
+            // Desktop keeps the centered default since the stage is
+            // typically wider than the page on a laptop / monitor.
+            alignItems: isMobile ? "flex-start" : "center",
+            justifyContent: isMobile ? "flex-start" : "center",
           }}
         >
           <div
