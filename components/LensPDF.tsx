@@ -1267,7 +1267,26 @@ export function LensPDF({
           />
         )}
 
-        <div style={{ ...layoutStyle, position: "relative" }}>
+        <div
+          style={
+            isMobile
+              ? {
+                  // Mobile: stage fills the viewport as a block; the
+                  // sidebar overlays via `position: fixed` (below) so the
+                  // parent doesn't need a flex slot for it. Without this,
+                  // the flex layout reserves sidebar width even when the
+                  // drawer is closed and iOS Safari composites the canvas
+                  // as a navy L-shape pushed top-right.
+                  display: "block",
+                  flex: 1,
+                  minHeight: 0,
+                  overflow: "hidden",
+                  position: "relative",
+                  width: "100%",
+                }
+              : { ...layoutStyle, position: "relative" }
+          }
+        >
           {/* Mobile drawer dimmer — sits above all chrome so the tools panel
               is never trapped behind the top bar/header layers. */}
           {hasAnyTool && isMobile && mobileSidebarOpen && (
@@ -1522,6 +1541,11 @@ export function LensPDF({
                 ...stageStyle,
                 ...(isMobile
                   ? {
+                      // Parent is `display: block` on mobile (see layout
+                      // div above) so the stage must opt into full width
+                      // explicitly — `flex: 1` no longer expands it.
+                      width: "100%",
+                      height: "100%",
                       padding: "12px 8px",
                       paddingBottom: "max(12px, env(safe-area-inset-bottom))",
                     }
