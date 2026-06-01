@@ -918,7 +918,8 @@ export function createBrowserViewerServices(
     if (cached) return cached;
     try {
       const doc = await getDoc();
-      const config = await doc.getOptionalContentConfig();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const config = await (doc as any).getOptionalContentConfig({ intent: "print" });
       const ids = extractOcgIds(config);
       ocgIdsPerPage.set(pageNum, ids);
       return ids;
@@ -943,7 +944,9 @@ export function createBrowserViewerServices(
     // can flip every other OCG off and render the chosen group in
     // isolation. The base config exposes `setVisibility(id, visible)`
     // mutators directly on the result of getOptionalContentConfig().
-    const config = await doc.getOptionalContentConfig();
+    // intent must match the render() intent below; pdfjs-dist v5 enforces this.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const config = await (doc as any).getOptionalContentConfig({ intent: "print" });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const cfgAny = config as any;
     if (typeof cfgAny.setVisibility === "function") {
