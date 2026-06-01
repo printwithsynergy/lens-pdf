@@ -190,8 +190,9 @@ export function AnnotationCanvas({
       // the dynamic import rejects at runtime — self-hide rather than
       // flooding the console with unresolved-module errors on every render.
       const fabricMod = await import("fabric").catch(() => null);
-      if (!fabricMod || cancelled || !canvasElRef.current) {
-        if (!fabricMod) setFabricUnavailable(true);
+      if (cancelled || !canvasElRef.current) return;
+      if (!fabricMod) {
+        setFabricUnavailable(true);
         return;
       }
       const fabric = fabricMod;
