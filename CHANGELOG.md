@@ -6,6 +6,31 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0-beta.20] — 2026-06-01
+
+### Fixed
+- **Fabric unavailable self-hides instead of breaking pan/zoom.**
+  `AnnotationCanvas` dynamically imports `fabric` (optional peer dep). When
+  a host hasn't installed it the import previously rejected as an unhandled
+  promise, spamming 50+ errors per session and locking up pointer events
+  (clicks after zoom unresponsive, Move/Pan tools stopping). The component
+  now catches the rejection and returns `null` — annotation canvas
+  self-hides cleanly, matching the `isUnwired` pattern used for other
+  missing services.
+- **Layer raster no longer throws on pdfjs-dist v5.**
+  pdfjs-dist v5 enforces that `getOptionalContentConfig()` and `render()`
+  are called with matching `intent`. All three call sites in
+  `browser/index.ts` (`getOcgIds`, `buildLayerUrl`, `listLayers`) were
+  omitting the argument (defaulting to `display`), causing every layer
+  raster and layer-list request to throw
+  `"Must use the same intent-argument…"`. All three now pass
+  `{ intent: "print" }` to match the render path.
+- **Layer toggle UI default-on state now matches print-intent rasters.**
+  `listLayers` was computing `default_on` / `visible` flags from a
+  display-intent OCG config, so the layer panel could start out of sync
+  with what the print-intent layer composites actually showed. Now uses the
+  same print-intent config as `getOcgIds` / `buildLayerUrl`.
+
 ## [0.4.0-beta.17] — 2026-05-29
 
 ### Fixed
