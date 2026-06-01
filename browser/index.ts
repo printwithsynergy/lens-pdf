@@ -1075,7 +1075,10 @@ export function createBrowserViewerServices(
       listLayers: async () => {
         try {
           const doc = await getDoc();
-          const config = await doc.getOptionalContentConfig();
+          // Match the print-intent used by getOcgIds()/buildLayerUrl() so
+          // default_on reflects the same intent the layers render under.
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const config = await (doc as any).getOptionalContentConfig({ intent: "print" });
           const ids = extractOcgIds(config);
           if (ids.length === 0) {
             return [];
