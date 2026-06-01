@@ -70,6 +70,7 @@ export function AnnotationCanvas({
   const historyRef = useRef<HistoryState>({ stack: [], index: -1 });
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [fabricUnavailable, setFabricUnavailable] = useState(false);
 
   // ── Helpers ──────────────────────────────────────────────────
 
@@ -185,8 +186,16 @@ export function AnnotationCanvas({
     let cancelled = false;
 
     async function init() {
-      const fabric = await import("fabric");
+      // fabric is an optional peer dep. When the host hasn't installed it,
+      // the dynamic import rejects at runtime — self-hide rather than
+      // flooding the console with unresolved-module errors on every render.
+      const fabricMod = await import("fabric").catch(() => null);
       if (cancelled || !canvasElRef.current) return;
+      if (!fabricMod) {
+        setFabricUnavailable(true);
+        return;
+      }
+      const fabric = fabricMod;
 
       const canvas = new fabric.Canvas(canvasElRef.current, {
         width,
@@ -476,7 +485,7 @@ export function AnnotationCanvas({
     };
   }, [activeTool, strokeColor, loaded]);
 
-  if (hidden) return null;
+  if (hidden || fabricUnavailable) return null;
 
   // Inline positioning styles — don't depend on the host's Tailwind
   // config providing `absolute` / `inset-0`, so the annotation canvas
