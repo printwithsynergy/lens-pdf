@@ -12,8 +12,6 @@ jobs:
   semgrep:
     name: semgrep (blocking)
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
@@ -24,7 +22,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install semgrep
-        run: pip install semgrep
+        run: pip install semgrep==1.165.0
 
       - name: Semgrep scan
         run: >-
