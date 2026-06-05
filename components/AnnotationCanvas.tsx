@@ -29,7 +29,7 @@ interface AnnotationCanvasProps {
   selectedAnnotationNumber?: number | null;
   onSelectedAnnotationNumberChange?: (annotationNumber: number | null) => void;
 }
-const ANNOTATION_NUMBER_KEY = "__loupeAnnotationNumber";
+const ANNOTATION_NUMBER_KEY = "__lensAnnotationNumber";
 type IndexedAnnotationRow = {
   number: number;
   pageNum: number;
