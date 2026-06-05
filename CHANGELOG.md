@@ -6,6 +6,24 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0-beta.22] — 2026-06-05
+
+### Fixed
+- **`fromLintFindings` overlay page parity — overlays no longer land one
+  page too high.** The adapter incremented lint-pdf's `page_num` by one,
+  on the false assumption that lint emits 0-indexed pages. lint-pdf's
+  `FindingResponse.page_num` is in fact **already 1-indexed**
+  (`src/lintpdf/api/schemas.py`: "Downstream adapters MUST treat the
+  value as already 1-indexed and pass it through unchanged to pdfjs
+  `getPage(n)`"), so every lint-sourced overlay was drawn on the wrong
+  page (a finding on page 3 rendered on page 4). The `+ 1` is removed;
+  `page_num` now passes through unchanged, with a `0`/document-level
+  value clamped up to page 1. Adopt this bump if you map lint findings
+  through `fromLintFindings` — your overlays now align with the page the
+  finding actually references. The docstring also now points at lint's
+  1-indexed `JobResponse.codex_findings` + `fromCodexFindings` as the
+  preferred path.
+
 ## [0.4.0-beta.20] — 2026-06-01
 
 ### Fixed

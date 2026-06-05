@@ -9,12 +9,13 @@ import {
 } from "./index";
 
 describe("fromLintFindings", () => {
-  it("converts 0-indexed page_num to 1-indexed page", () => {
-    const items = fromLintFindings([
-      { id: "a", page_num: 0, message: "first page" },
-      { id: "b", page_num: 4, message: "fifth page" },
-    ]);
-    expect(items.map((it) => it.page)).toEqual([1, 5]);
+  it("passes lint's 1-indexed page_num through unchanged", () => {
+    // lint-pdf's FindingResponse.page_num is ALREADY 1-indexed
+    // (see lint-pdf src/lintpdf/api/schemas.py:102-110 — "Downstream
+    // adapters MUST treat the value as already 1-indexed"). A
+    // page_num of 3 must land on page 3, not page 4.
+    const items = fromLintFindings([{ id: "a", page_num: 3, message: "page three" }]);
+    expect(items[0].page).toBe(3);
   });
 
   it("falls back to page=1 when page_num is missing", () => {
@@ -38,7 +39,12 @@ describe("fromLintFindings", () => {
     // test pins that contract so future refactors don't accidentally
     // start dropping out-of-range items here.
     const items = fromLintFindings([{ id: "way-past-end", page_num: 999, message: "off the end" }]);
-    expect(items[0].page).toBe(1000);
+    expect(items[0].page).toBe(999);
+  });
+
+  it("clamps a document-level page_num=0 up to page 1", () => {
+    const items = fromLintFindings([{ id: "doc", page_num: 0, message: "doc-level" }]);
+    expect(items[0].page).toBe(1);
   });
 
   it("uses 1-indexed page field when page_num is absent", () => {
