@@ -39,7 +39,12 @@ describe("fromLintFindings", () => {
     // test pins that contract so future refactors don't accidentally
     // start dropping out-of-range items here.
     const items = fromLintFindings([{ id: "way-past-end", page_num: 999, message: "off the end" }]);
-    expect(items[0].page).toBe(1000);
+    expect(items[0].page).toBe(999);
+  });
+
+  it("clamps a document-level page_num=0 up to page 1", () => {
+    const items = fromLintFindings([{ id: "doc", page_num: 0, message: "doc-level" }]);
+    expect(items[0].page).toBe(1);
   });
 
   it("uses 1-indexed page field when page_num is absent", () => {

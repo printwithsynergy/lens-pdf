@@ -196,8 +196,20 @@ export function fromCodexFindings(findings: ReadonlyArray<Record<string, unknown
 // ---------------------------------------------------------------------------
 
 /**
- * Map raw lint-pdf engine findings to `OverlayItem[]`. Lint engine
- * emits 0-indexed `page_num`; OverlayItem expects 1-indexed.
+ * Map raw lint-pdf engine findings to `OverlayItem[]`. lint-pdf's
+ * `FindingResponse.page_num` is **already 1-indexed** (1 = first page,
+ * matching pdfjs and veraPDF; `0`/`null` = document-level) — see
+ * lint-pdf `src/lintpdf/api/schemas.py:102-110, which states
+ * downstream adapters MUST treat the value as already 1-indexed and
+ * pass it through unchanged. This adapter therefore passes `page_num`
+ * straight through (clamping a `0`/document-level value up to `1`); it
+ * does **not** add one. An earlier version incremented `page_num`,
+ * which landed every overlay one page too high.
+ *
+ * **Preferred path:** lint's `JobResponse.codex_findings` is 1-indexed
+ * `CodexFindingSchema[]` — pass those to {@link fromCodexFindings}
+ * instead. `fromLintFindings` is kept for the raw engine finding shape
+ * and backward compatibility.
  *
  * This adapter does not know the document's pageCount and cannot
  * clamp against it — if an engine version drifts and emits a
@@ -205,9 +217,9 @@ export function fromCodexFindings(findings: ReadonlyArray<Record<string, unknown
  * will be out of range. That is caught downstream by `<LensPDF>`'s
  * finding-selection effect, which clamps `currentPage` to
  * `[1, pageCount]` before driving pdfjs. The adapter itself only
- * drops `page_num`s that aren't finite non-negative integers, so
- * a stray `NaN` / `-1` / `"3"` can't become a `page: 0` or
- * `page: -2` overlay item.
+ * accepts `page_num`s that are finite non-negative integers, so a
+ * stray `NaN` / `-1` / `"3"` can't become a `page: 0` or `page: -2`
+ * overlay item.
  *
  * @public
  */
@@ -227,7 +239,13 @@ export function fromLintFindings(findings: ReadonlyArray<Record<string, unknown>
     const validPageNum =
       typeof f.page_num === "number" && Number.isInteger(f.page_num) && f.page_num >= 0;
     const validPage1 = typeof f.page === "number" && Number.isInteger(f.page) && f.page > 0;
-    const page = validPageNum ? (f.page_num as number) + 1 : validPage1 ? (f.page as number) : 1;
+    // page_num is already 1-indexed; pass through, clamping a 0
+    // (document-level) value up to page 1.
+    const page = validPageNum
+      ? Math.max(1, f.page_num as number)
+      : validPage1
+        ? (f.page as number)
+        : 1;
     const bbox = asBbox(f.bbox);
     const regions = asRegions(f.regions);
     // Spell-check findings get a squiggly rendering hint so PageCanvas
