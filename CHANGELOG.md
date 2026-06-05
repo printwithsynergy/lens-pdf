@@ -6,6 +6,19 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0-beta.24] — 2026-06-05
+
+### Fixed
+- **npm publish unblocked (second pnpm v11 gate).** After the `beta.23`
+  `minimumReleaseAge` fix, the publish hit pnpm v11's second strict gate —
+  `ERR_PNPM_IGNORED_BUILDS: canvas@3.2.3` — which errors on un-approved
+  dependency build scripts. Approved the `canvas` native devDependency's
+  prebuilt-binary install via `allowBuilds` in `pnpm-workspace.yaml`. This is
+  the first published build carrying the `fromLintFindings` page-parity fix
+  (from `beta.22`) and the dependency age-pin (from `beta.23`); both of those
+  tags failed to publish.
+
+
 ## [0.4.0-beta.23] — 2026-06-05
 
 ### Fixed

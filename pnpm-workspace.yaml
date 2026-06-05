@@ -10,3 +10,9 @@ overrides:
   semver: "7.8.1"
   undici: "7.27.0"
   obug: "2.1.1"
+
+# pnpm v11 (used by the npm publish workflow) errors on un-approved dependency
+# build scripts. canvas is a native devDependency (jsdom canvas support) that
+# ships prebuilt binaries; approve its build so the publish install succeeds.
+allowBuilds:
+  canvas: true
