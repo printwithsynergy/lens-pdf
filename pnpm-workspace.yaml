@@ -3,3 +3,10 @@ packages: []
 overrides:
   vite: ">=8.0.5"
   ws: ">=8.20.1"
+  # Pin three transitive deps to their latest releases that are >24h old so the
+  # npm publish workflow's pnpm v11 supply-chain minimumReleaseAge guard passes.
+  # The just-published patches (semver 7.8.2, undici 7.27.1, obug 2.1.2) are
+  # legitimate but too fresh; these aged predecessors are functionally equivalent.
+  semver: "7.8.1"
+  undici: "7.27.0"
+  obug: "2.1.1"

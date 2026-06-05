@@ -6,6 +6,20 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0-beta.23] — 2026-06-05
+
+### Fixed
+- **npm publish unblocked.** The publish workflow (pnpm v11) enforces a
+  supply-chain `minimumReleaseAge` guard that rejected three legitimate but
+  freshly-published transitive lockfile entries (`semver@7.8.2`,
+  `undici@7.27.1`, `obug@2.1.2`), failing the `0.4.0-beta.22` release
+  (and `beta.21` before it). Pinned each to its latest >24h-old predecessor
+  (`7.8.1` / `7.27.0` / `2.1.1`) via `pnpm-workspace.yaml` `overrides`;
+  no source or behavior change from `beta.22` (typecheck + 56 tests + build
+  all pass). Ships the `fromLintFindings` page-parity fix that `beta.22`
+  could not publish.
+
+
 ## [0.4.0-beta.22] — 2026-06-05
 
 ### Fixed
