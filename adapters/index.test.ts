@@ -9,12 +9,13 @@ import {
 } from "./index";
 
 describe("fromLintFindings", () => {
-  it("converts 0-indexed page_num to 1-indexed page", () => {
-    const items = fromLintFindings([
-      { id: "a", page_num: 0, message: "first page" },
-      { id: "b", page_num: 4, message: "fifth page" },
-    ]);
-    expect(items.map((it) => it.page)).toEqual([1, 5]);
+  it("passes lint's 1-indexed page_num through unchanged", () => {
+    // lint-pdf's FindingResponse.page_num is ALREADY 1-indexed
+    // (see lint-pdf src/lintpdf/api/schemas.py:102-110 — "Downstream
+    // adapters MUST treat the value as already 1-indexed"). A
+    // page_num of 3 must land on page 3, not page 4.
+    const items = fromLintFindings([{ id: "a", page_num: 3, message: "page three" }]);
+    expect(items[0].page).toBe(3);
   });
 
   it("falls back to page=1 when page_num is missing", () => {
