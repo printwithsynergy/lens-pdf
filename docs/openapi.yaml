@@ -439,7 +439,10 @@ paths:
               properties:
                 context:
                   type: string
-                  description: 'JSON-encoded RenderContext (includes `format`: html|pdf|annotated_pdf|markup_pdf).'
+                  contentMediaType: application/json
+                  contentSchema:
+                    $ref: '#/components/schemas/RenderContext'
+                  description: 'JSON-encoded `RenderContext` (the `format` field selects html|pdf|annotated_pdf|markup_pdf).'
                 pdf:
                   type: string
                   format: binary
@@ -499,6 +502,50 @@ components:
           schema:
             $ref: '#/components/schemas/Problem'
   schemas:
+    RenderContext:
+      type: object
+      description: Report-render request body (sent JSON-encoded in the multipart `context` field).
+      required:
+      - result_json
+      - format
+      properties:
+        result_json:
+          type: object
+          additionalProperties: true
+          description: The lens result payload to render (findings + page metadata).
+        format:
+          type: string
+          enum:
+          - html
+          - pdf
+          - annotated_pdf
+          - markup_pdf
+        branding:
+          type: object
+          additionalProperties: true
+          description: Optional host branding (logo, colors, footer).
+        detail_level:
+          type: string
+          enum:
+          - executive
+          - standard
+          - comprehensive
+        summary_page:
+          type: string
+          enum:
+          - prepend
+          - only
+          - 'off'
+        annotations:
+          type: array
+          description: Viewer annotations to overlay; used by annotated_pdf / markup_pdf.
+          items:
+            type: object
+            additionalProperties: true
+        comments_by_annotation:
+          type: object
+          additionalProperties: true
+          description: Map of annotation id → viewer comments; used by annotated_pdf / markup_pdf.
     Problem:
       type: object
       properties:
@@ -512,6 +559,11 @@ components:
           type: string
     ColorSample:
       type: object
+      required:
+      - x
+      - y
+      - rgb
+      - hex
       properties:
         x:
           type: number
@@ -534,6 +586,14 @@ components:
           description: Total Area Coverage (%); null when no composite raster is available.
     DensitometerSample:
       type: object
+      required:
+      - x
+      - y
+      - dpi
+      - channels
+      - tac
+      - tac_limit
+      - limit_exceeded
       properties:
         x:
           type: number
@@ -545,6 +605,9 @@ components:
           type: array
           items:
             type: object
+            required:
+            - name
+            - percent
             properties:
               name:
                 type: string
