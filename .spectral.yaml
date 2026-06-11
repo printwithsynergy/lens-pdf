@@ -1,0 +1,6 @@
+extends:
+  - spectral:oas
+rules:
+  # Hand-authored OpenAPI 3.1; keep OAS-3.0-centric schema checks as warnings.
+  oas3-schema: warn
+  array-items: warn
