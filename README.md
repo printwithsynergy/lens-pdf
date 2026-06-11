@@ -8,6 +8,8 @@ slug: "overview"
 
 # LensPDF
 
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/lenspdf)
+
 [![ci](https://github.com/Printwithsynergy/lens-pdf/actions/workflows/ci.yml/badge.svg)](https://github.com/Printwithsynergy/lens-pdf/actions/workflows/ci.yml)
 [![license](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue.svg)](./LICENSE)
 [![react](https://img.shields.io/badge/react-19-61dafb.svg?logo=react&logoColor=white)](https://react.dev/)
