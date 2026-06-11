@@ -1,341 +1,558 @@
 openapi: 3.1.0
 info:
   title: lens-server
-  description: |
-    Reference HTTP rendering surface for the Print With Synergy lens-pdf viewer
+  description: 'Reference HTTP rendering surface for the Print With Synergy lens-pdf viewer
+
     core. Renders PDF pages to composite RGB and per-ink separation PNGs, samples
+
     color/density at PDF coordinates, produces TAC heatmaps, and renders findings
+
     reports (HTML / PDF / annotated PDF / markup PDF).
 
+
     Bearer auth is optional: when `LENS_BEARER_TOKEN` is set, every route except
+
     the health/metrics probes requires `Authorization: Bearer <token>`. Errors are
+
     RFC 7807 Problem Details (`application/problem+json`).
+
+    '
   version: 0.1.0
   license:
     name: AGPL-3.0-or-later
+  contact:
+    name: Print With Synergy
+    url: https://github.com/printwithsynergy/lens-pdf
 servers:
-  - url: /
-    description: The lens-server instance.
+- url: /
+  description: The lens-server instance.
 tags:
-  - name: health
-  - name: sources
-  - name: rendering
-  - name: sampling
-  - name: reports
+- name: health
+- name: sources
+- name: rendering
+- name: sampling
+- name: reports
 security:
-  - bearerAuth: []
+- bearerAuth: []
 paths:
   /healthz:
     get:
-      tags: [health]
+      tags:
+      - health
       summary: Liveness probe
       security: []
       responses:
-        "200":
+        '200':
           description: Service is alive.
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  status: { type: string, const: ok }
-                  service: { type: string, const: lens-server }
-                  version: { type: string }
+                  status:
+                    type: string
+                    const: ok
+                  service:
+                    type: string
+                    const: lens-server
+                  version:
+                    type: string
+      operationId: getHealthz
+      description: Liveness probe
   /readyz:
     get:
-      tags: [health]
+      tags:
+      - health
       summary: Readiness probe
       security: []
       responses:
-        "200":
+        '200':
           description: Service is ready.
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  status: { type: string, const: ready }
+                  status:
+                    type: string
+                    const: ready
+      operationId: getReadyz
+      description: Readiness probe
   /metrics:
     get:
-      tags: [health]
+      tags:
+      - health
       summary: Prometheus metrics
       security: []
       responses:
-        "200":
+        '200':
           description: Prometheus exposition format.
           content:
             text/plain:
-              schema: { type: string }
+              schema:
+                type: string
+      operationId: getMetrics
+      description: Prometheus metrics
   /jobs/{jobId}/source:
     post:
-      tags: [sources]
+      tags:
+      - sources
       summary: Register a PDF for a job (raw bytes or URL fetch)
-      description: |
-        Pre-register a PDF before rendering. Send either raw PDF bytes
+      description: 'Pre-register a PDF before rendering. Send either raw PDF bytes
+
         (`application/pdf`) or a JSON body `{ "url": "https://…" }` (http/https
+
         only). Uploads are size-capped by `LENS_MAX_UPLOAD_MIB` (default 100 MiB).
+
+        '
       parameters:
-        - $ref: "#/components/parameters/JobId"
+      - $ref: '#/components/parameters/JobId'
       requestBody:
         required: true
         content:
           application/pdf:
-            schema: { type: string, format: binary }
+            schema:
+              type: string
+              format: binary
           application/json:
             schema:
               type: object
-              required: [url]
+              required:
+              - url
               properties:
-                url: { type: string, format: uri, description: "http(s) URL to fetch the PDF from." }
+                url:
+                  type: string
+                  format: uri
+                  description: http(s) URL to fetch the PDF from.
       responses:
-        "200":
+        '200':
           description: Source registered.
           content:
             application/json:
-              schema: { type: object, additionalProperties: true }
-        "400": { $ref: "#/components/responses/Problem" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "422": { $ref: "#/components/responses/Problem" }
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+      operationId: postJobsJobidSource
   /jobs/{jobId}:
     delete:
-      tags: [sources]
+      tags:
+      - sources
       summary: Drop server-side state for a job
-      description: |
-        Removes the job's stored PDF + render cache. Hosts should pair this with a
+      description: 'Removes the job''s stored PDF + render cache. Hosts should pair this with a
+
         CDN purge of `Cache-Tag: job-{jobId}`.
+
+        '
       parameters:
-        - $ref: "#/components/parameters/JobId"
+      - $ref: '#/components/parameters/JobId'
       responses:
-        "204": { description: Deleted. }
-        "401": { $ref: "#/components/responses/Problem" }
-        "422": { $ref: "#/components/responses/Problem" }
+        '204':
+          description: Deleted.
+        '401':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+      operationId: deleteJobsJobid
   /jobs/{jobId}/page/{pageNum}.png:
     get:
-      tags: [rendering]
+      tags:
+      - rendering
       summary: Composite RGB page PNG
       parameters:
-        - $ref: "#/components/parameters/JobId"
-        - name: pageNum
-          in: path
-          required: true
-          schema: { type: integer, minimum: 1 }
-        - $ref: "#/components/parameters/Dpi"
+      - $ref: '#/components/parameters/JobId'
+      - name: pageNum
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+      - $ref: '#/components/parameters/Dpi'
       responses:
-        "200":
+        '200':
           description: Composite RGB raster.
           headers:
-            Cache-Control: { schema: { type: string }, description: "immutable, 1y" }
-            Cache-Tag: { schema: { type: string }, description: "job-{jobId}" }
+            Cache-Control:
+              schema:
+                type: string
+              description: immutable, 1y
+            Cache-Tag:
+              schema:
+                type: string
+              description: job-{jobId}
           content:
             image/png:
-              schema: { type: string, format: binary }
-        "401": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "422": { $ref: "#/components/responses/Problem" }
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+      operationId: getJobsJobidPagePagenumpng
+      description: Composite RGB page PNG
   /jobs/{jobId}/channels:
     get:
-      tags: [rendering]
+      tags:
+      - rendering
       summary: List ink-channel names on a page
       parameters:
-        - $ref: "#/components/parameters/JobId"
-        - { name: page, in: query, required: true, schema: { type: integer, minimum: 1 } }
-        - $ref: "#/components/parameters/Dpi"
+      - $ref: '#/components/parameters/JobId'
+      - name: page
+        in: query
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+      - $ref: '#/components/parameters/Dpi'
       responses:
-        "200":
+        '200':
           description: Channel names present on the page.
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  channels: { type: array, items: { type: string } }
-        "401": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "422": { $ref: "#/components/responses/Problem" }
+                  channels:
+                    type: array
+                    items:
+                      type: string
+        '401':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+      operationId: getJobsJobidChannels
+      description: List ink-channel names on a page
   /jobs/{jobId}/channel/{name}.png:
     get:
-      tags: [rendering]
+      tags:
+      - rendering
       summary: Per-ink separation PNG (grayscale)
       description: White = no ink, black = full coverage. `name` must match a channel present on the page.
       parameters:
-        - $ref: "#/components/parameters/JobId"
-        - { name: name, in: path, required: true, schema: { type: string }, description: "Channel name (URL-encoded), e.g. Cyan or Pantone%20123%20C." }
-        - { name: page, in: query, required: true, schema: { type: integer, minimum: 1 } }
-        - $ref: "#/components/parameters/Dpi"
+      - $ref: '#/components/parameters/JobId'
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Channel name (URL-encoded), e.g. Cyan or Pantone%20123%20C.
+      - name: page
+        in: query
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+      - $ref: '#/components/parameters/Dpi'
       responses:
-        "200":
+        '200':
           description: Grayscale per-ink raster.
           content:
             image/png:
-              schema: { type: string, format: binary }
-        "401": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "422": { $ref: "#/components/responses/Problem" }
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+      operationId: getJobsJobidChannelNamepng
   /jobs/{jobId}/color:
     get:
-      tags: [sampling]
+      tags:
+      - sampling
       summary: Color sample (RGB + TAC) at a PDF point
       parameters:
-        - $ref: "#/components/parameters/JobId"
-        - { name: page, in: query, required: true, schema: { type: integer, minimum: 1 } }
-        - { name: x, in: query, required: true, schema: { type: number }, description: "PDF x coordinate (points; lower-left origin)." }
-        - { name: y, in: query, required: true, schema: { type: number }, description: "PDF y coordinate (points; lower-left origin)." }
-        - { name: pageWidthPts, in: query, required: true, schema: { type: number } }
-        - { name: pageHeightPts, in: query, required: true, schema: { type: number } }
-        - $ref: "#/components/parameters/Dpi"
+      - $ref: '#/components/parameters/JobId'
+      - name: page
+        in: query
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+      - name: x
+        in: query
+        required: true
+        schema:
+          type: number
+        description: PDF x coordinate (points; lower-left origin).
+      - name: y
+        in: query
+        required: true
+        schema:
+          type: number
+        description: PDF y coordinate (points; lower-left origin).
+      - name: pageWidthPts
+        in: query
+        required: true
+        schema:
+          type: number
+      - name: pageHeightPts
+        in: query
+        required: true
+        schema:
+          type: number
+      - $ref: '#/components/parameters/Dpi'
       responses:
-        "200":
+        '200':
           description: Color sample.
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/ColorSample" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "422": { $ref: "#/components/responses/Problem" }
+              schema:
+                $ref: '#/components/schemas/ColorSample'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+      operationId: getJobsJobidColor
+      description: Color sample (RGB + TAC) at a PDF point
   /jobs/{jobId}/density:
     post:
-      tags: [sampling]
+      tags:
+      - sampling
       summary: Densitometer sample (per-ink density + TAC) at a PDF point
       parameters:
-        - $ref: "#/components/parameters/JobId"
+      - $ref: '#/components/parameters/JobId'
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [page, x, y, pageWidthPts, pageHeightPts, dpi]
+              required:
+              - page
+              - x
+              - y
+              - pageWidthPts
+              - pageHeightPts
+              - dpi
               properties:
-                page: { type: integer, minimum: 1 }
-                x: { type: number }
-                y: { type: number }
-                pageWidthPts: { type: number }
-                pageHeightPts: { type: number }
-                dpi: { type: integer, minimum: 36, maximum: 600 }
-                tacLimit: { type: number, exclusiveMinimum: 0, default: 300, description: "TAC threshold (%)." }
+                page:
+                  type: integer
+                  minimum: 1
+                x:
+                  type: number
+                y:
+                  type: number
+                pageWidthPts:
+                  type: number
+                pageHeightPts:
+                  type: number
+                dpi:
+                  type: integer
+                  minimum: 36
+                  maximum: 600
+                tacLimit:
+                  type: number
+                  exclusiveMinimum: 0
+                  default: 300
+                  description: TAC threshold (%).
       responses:
-        "200":
+        '200':
           description: Densitometer sample.
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/DensitometerSample" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "422": { $ref: "#/components/responses/Problem" }
+              schema:
+                $ref: '#/components/schemas/DensitometerSample'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+      operationId: postJobsJobidDensity
+      description: Densitometer sample (per-ink density + TAC) at a PDF point
   /jobs/{jobId}/tac.png:
     get:
-      tags: [sampling]
+      tags:
+      - sampling
       summary: TAC heatmap PNG (RGBA)
       description: Transparent under `limit`; green→yellow→red gradient above it.
       parameters:
-        - $ref: "#/components/parameters/JobId"
-        - { name: page, in: query, required: true, schema: { type: integer, minimum: 1 } }
-        - { name: dpi, in: query, required: true, schema: { type: integer, minimum: 36, maximum: 600 } }
-        - { name: limit, in: query, required: true, schema: { type: number, exclusiveMinimum: 0 }, description: "TAC threshold (%)." }
+      - $ref: '#/components/parameters/JobId'
+      - name: page
+        in: query
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+      - name: dpi
+        in: query
+        required: true
+        schema:
+          type: integer
+          minimum: 36
+          maximum: 600
+      - name: limit
+        in: query
+        required: true
+        schema:
+          type: number
+          exclusiveMinimum: 0
+        description: TAC threshold (%).
       responses:
-        "200":
+        '200':
           description: RGBA heatmap raster.
           content:
             image/png:
-              schema: { type: string, format: binary }
-        "401": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "422": { $ref: "#/components/responses/Problem" }
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+      operationId: getJobsJobidTacpng
   /render:
     post:
-      tags: [reports]
+      tags:
+      - reports
       summary: Render a findings report (HTML / PDF / annotated PDF / markup PDF)
-      description: |
-        `multipart/form-data` with a JSON `context` field (`RenderContext`) and,
+      description: '`multipart/form-data` with a JSON `context` field (`RenderContext`) and,
+
         for `annotated_pdf` / `markup_pdf`, a `pdf` file part to overlay.
+
+        '
       requestBody:
         required: true
         content:
           multipart/form-data:
             schema:
               type: object
-              required: [context]
+              required:
+              - context
               properties:
                 context:
                   type: string
-                  description: "JSON-encoded RenderContext (includes `format`: html|pdf|annotated_pdf|markup_pdf)."
+                  description: 'JSON-encoded RenderContext (includes `format`: html|pdf|annotated_pdf|markup_pdf).'
                 pdf:
                   type: string
                   format: binary
-                  description: "Original PDF — required for annotated_pdf / markup_pdf."
+                  description: Original PDF — required for annotated_pdf / markup_pdf.
       responses:
-        "200":
+        '200':
           description: Rendered report (HTML or PDF per the requested format).
           content:
             text/html:
-              schema: { type: string }
+              schema:
+                type: string
             application/pdf:
-              schema: { type: string, format: binary }
-        "400": { $ref: "#/components/responses/Problem" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "422": { $ref: "#/components/responses/Problem" }
-        "500": { $ref: "#/components/responses/Problem" }
-        "504": { $ref: "#/components/responses/Problem" }
+              schema:
+                type: string
+                format: binary
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '504':
+          $ref: '#/components/responses/Problem'
+      operationId: postRender
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
-      description: "Required when LENS_BEARER_TOKEN is set; otherwise the server runs open."
+      description: Required when LENS_BEARER_TOKEN is set; otherwise the server runs open.
   parameters:
     JobId:
       name: jobId
       in: path
       required: true
-      schema: { type: string, pattern: "^[a-zA-Z0-9_-]{1,128}$" }
-      description: "Job identifier (1–128 chars of [a-zA-Z0-9_-])."
+      schema:
+        type: string
+        pattern: ^[a-zA-Z0-9_-]{1,128}$
+      description: Job identifier (1–128 chars of [a-zA-Z0-9_-]).
     Dpi:
       name: dpi
       in: query
       required: false
-      schema: { type: integer, minimum: 36, maximum: 600, default: 150 }
-      description: "Render resolution; clamped to [36, 600]."
+      schema:
+        type: integer
+        minimum: 36
+        maximum: 600
+        default: 150
+      description: Render resolution; clamped to [36, 600].
   responses:
     Problem:
       description: RFC 7807 Problem Details.
       content:
         application/problem+json:
-          schema: { $ref: "#/components/schemas/Problem" }
+          schema:
+            $ref: '#/components/schemas/Problem'
   schemas:
     Problem:
       type: object
       properties:
-        status: { type: integer }
-        title: { type: string }
-        detail: { type: string }
-        instance: { type: string }
+        status:
+          type: integer
+        title:
+          type: string
+        detail:
+          type: string
+        instance:
+          type: string
     ColorSample:
       type: object
       properties:
-        x: { type: number }
-        y: { type: number }
+        x:
+          type: number
+        y:
+          type: number
         rgb:
           type: array
-          items: { type: integer, minimum: 0, maximum: 255 }
+          items:
+            type: integer
+            minimum: 0
+            maximum: 255
           minItems: 3
           maxItems: 3
-        hex: { type: string }
+        hex:
+          type: string
         tac:
-          type: [number, "null"]
-          description: "Total Area Coverage (%); null when no composite raster is available."
+          type:
+          - number
+          - 'null'
+          description: Total Area Coverage (%); null when no composite raster is available.
     DensitometerSample:
       type: object
       properties:
-        x: { type: number }
-        y: { type: number }
-        dpi: { type: integer }
+        x:
+          type: number
+        y:
+          type: number
+        dpi:
+          type: integer
         channels:
           type: array
           items:
             type: object
             properties:
-              name: { type: string }
-              percent: { type: number }
-        tac: { type: number }
-        tac_limit: { type: number }
-        limit_exceeded: { type: boolean }
+              name:
+                type: string
+              percent:
+                type: number
+        tac:
+          type: number
+        tac_limit:
+          type: number
+        limit_exceeded:
+          type: boolean
