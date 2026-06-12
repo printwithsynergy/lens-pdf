@@ -183,7 +183,12 @@ export async function renderSeparations(
         height = meta.height ?? 0;
         continue;
       }
-      const m = /^page\.tiff\.(.+)\.tif$/.exec(file);
+      // tiffsep's separation naming varies by Ghostscript version:
+      // modern builds (e.g. 10.x) emit ``page(Cyan).tiff`` — the
+      // colorant in parentheses before the extension — while older
+      // builds emitted ``page.tiff.Cyan.tif``. Accept both.
+      const m =
+        /^page\((.+)\)\.tiff$/.exec(file) ?? /^page\.tiff\.(.+)\.tif$/.exec(file);
       if (!m) continue;
       const channelName = decodeChannelName(m[1]!);
       channels[channelName] = await sharp(full).png().toBuffer();
