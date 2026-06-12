@@ -6,6 +6,7 @@ name: publish-npm
 # Set it once at GitHub repo settings → Secrets → NPM_TOKEN.
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - "v*.*.*"
