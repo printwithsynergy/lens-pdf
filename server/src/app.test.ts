@@ -96,6 +96,40 @@ describe("lens-server", () => {
     });
   });
 
+  describe("inspect", () => {
+    it("POST /inspect rejects a non-integer page", async () => {
+      const res = await app.request("/inspect?page=zero", {
+        method: "POST",
+        headers: { "content-type": "application/pdf" },
+        body: "%PDF-1.4",
+      });
+      expect(res.status).toBe(422);
+      expect(res.headers.get("content-type")).toContain(
+        "application/problem+json",
+      );
+    });
+
+    it("POST /inspect rejects an unsupported content type", async () => {
+      const res = await app.request("/inspect?page=1", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{}",
+      });
+      expect(res.status).toBe(400);
+      expect(res.headers.get("content-type")).toContain(
+        "application/problem+json",
+      );
+    });
+
+    it("POST /inspect rejects an empty pdf body", async () => {
+      const res = await app.request("/inspect?page=1", {
+        method: "POST",
+        headers: { "content-type": "application/pdf" },
+      });
+      expect(res.status).toBe(400);
+    });
+  });
+
   describe("metrics", () => {
     it("GET /metrics returns Prometheus exposition", async () => {
       // Hit a route first so a metric is non-zero.
