@@ -10,6 +10,8 @@ on:
   push:
     tags:
       - "v*.*.*"
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -38,13 +40,30 @@ jobs:
           node-version: "22"
           registry-url: "https://registry.npmjs.org"
 
+      # On main pushes, publish only when package.json moved past npm —
+      # makes merge-triggered runs idempotent (and no-ops for unrelated merges).
+      - name: Check whether this version is already on npm
+        id: guard
+        run: |
+          LOCAL=$(node -p "require('./package.json').version")
+          PUBLISHED=$(npm view "@printwithsynergy/lens-pdf@$LOCAL" version 2>/dev/null || true)
+          if [ "$PUBLISHED" = "$LOCAL" ]; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::$LOCAL already on npm — skipping publish"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Install dependencies
+        if: steps.guard.outputs.publish == 'true'
         run: pnpm install --frozen-lockfile
 
       - name: Build
+        if: steps.guard.outputs.publish == 'true'
         run: pnpm run build
 
       - name: Publish
+        if: steps.guard.outputs.publish == 'true'
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
