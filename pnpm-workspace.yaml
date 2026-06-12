@@ -16,3 +16,11 @@ overrides:
 # ships prebuilt binaries; approve its build so the publish install succeeds.
 allowBuilds:
   canvas: true
+
+# The publish workflow's pnpm v11 minimumReleaseAge guard rejects fresh
+# releases. Biome's per-platform CLI binaries are version-locked to the
+# @biomejs/biome devDependency, so a Biome bump is blocked for 24h after
+# every release. It's dev tooling from a trusted publisher and never ships
+# in the published artifact — exempt the scope from the age gate.
+minimumReleaseAgeExclude:
+  - "@biomejs/*"

@@ -15,6 +15,11 @@ lockstep with this tag) for `POST /inspect`; the library itself picks up
 the loupe→lens key rename and fresher dev tooling.
 
 ### Changed
+- **pdf.js upgraded to 6.x** — `pdfjs-dist` 5.7.284 → 6.0.227 (major).
+  Hosts using the pdf.js fallback adapter should review pdf.js 6's
+  `[api-major]` notes (minimum supported browsers raised, polyfills
+  removed). CI is green across the suite; the structural codex-client
+  surface is unaffected.
 - **Internal annotation key renamed loupe→lens** — completes the
   loupe-pdf → lens-pdf rename inside the annotation model. No public
   API change; adapters and plugin slots are untouched.
