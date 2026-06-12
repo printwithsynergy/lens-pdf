@@ -19,6 +19,7 @@ import os from "node:os";
 import path from "node:path";
 import { Hono } from "hono";
 import { requireAuth } from "../auth.js";
+import { config } from "../config.js";
 import { readPageCount, renderSeparations } from "../ghostscript.js";
 import { badRequest, unprocessable } from "../problemDetails.js";
 
@@ -36,7 +37,8 @@ async function readUploadedPdf(
     const form = await req.formData();
     const file = form.get("file");
     if (!(file instanceof Blob)) return null;
-    return Buffer.from(await file.arrayBuffer());
+    const bytes = await file.arrayBuffer();
+    return bytes.byteLength > 0 ? Buffer.from(bytes) : null;
   }
   if (ct.includes("application/pdf")) {
     const bytes = await req.arrayBuffer();
@@ -58,6 +60,12 @@ inspect.post("/inspect", requireAuth, async (c) => {
     return badRequest(
       c,
       "Send the PDF as a multipart `file` field or an application/pdf body.",
+    );
+  }
+  if (pdf.byteLength > config.maxUploadMib * 1024 * 1024) {
+    return unprocessable(
+      c,
+      `PDF too large (${(pdf.byteLength / 1024 / 1024).toFixed(1)} MiB > ${config.maxUploadMib} MiB).`,
     );
   }
 

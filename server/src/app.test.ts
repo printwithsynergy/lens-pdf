@@ -121,6 +121,19 @@ describe("lens-server", () => {
       );
     });
 
+    it("POST /inspect rejects an empty multipart file", async () => {
+      const form = new FormData();
+      form.append("file", new Blob([], { type: "application/pdf" }), "x.pdf");
+      const res = await app.request("/inspect?page=1", {
+        method: "POST",
+        body: form,
+      });
+      expect(res.status).toBe(400);
+      expect(res.headers.get("content-type")).toContain(
+        "application/problem+json",
+      );
+    });
+
     it("POST /inspect rejects an empty pdf body", async () => {
       const res = await app.request("/inspect?page=1", {
         method: "POST",
