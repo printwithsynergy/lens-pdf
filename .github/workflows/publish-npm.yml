@@ -17,6 +17,7 @@ permissions:
 jobs:
   publish:
     name: publish to npm
+    if: github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment:
       name: release
