@@ -32,6 +32,7 @@ tags:
 - name: rendering
 - name: sampling
 - name: reports
+- name: inspection
 security:
 - bearerAuth: []
 paths:
@@ -469,6 +470,62 @@ paths:
         '504':
           $ref: '#/components/responses/Problem'
       operationId: postRender
+  /inspect:
+    post:
+      tags:
+      - inspection
+      summary: One-shot document inspection (page count, ink channels, page dims)
+      description: 'Send the PDF as a multipart `file` field or a raw `application/pdf`
+
+        body. Nothing is persisted — the document is inspected in a per-request
+
+        temp dir and deleted before the response. This is the contract synergy''s
+
+        `lens.inspect` node calls.
+
+        '
+      parameters:
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+        description: Page number to inspect (1-based).
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The PDF to inspect.
+          application/pdf:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '200':
+          description: Inspection metadata for the requested page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InspectResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+      operationId: postInspect
 components:
   securitySchemes:
     bearerAuth:
@@ -502,6 +559,37 @@ components:
           schema:
             $ref: '#/components/schemas/Problem'
   schemas:
+    InspectResult:
+      type: object
+      description: One-shot inspection metadata for a single page.
+      required:
+      - pageCount
+      - page
+      - inks
+      - widthPx
+      - heightPx
+      - dpi
+      properties:
+        pageCount:
+          type: integer
+          description: Total pages in the document.
+        page:
+          type: integer
+          description: The inspected page (1-based).
+        inks:
+          type: array
+          items:
+            type: string
+          description: Ink-channel names (process + spot) reported by the separations pass.
+        widthPx:
+          type: integer
+          description: Page width in pixels at the inspection DPI.
+        heightPx:
+          type: integer
+          description: Page height in pixels at the inspection DPI.
+        dpi:
+          type: integer
+          description: DPI of the inspection render.
     RenderContext:
       type: object
       description: Report-render request body (sent JSON-encoded in the multipart `context` field).
