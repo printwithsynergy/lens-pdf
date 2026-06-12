@@ -6,6 +6,31 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0-beta.25] — 2026-06-12
+
+First release where the headless renderer carries the synergy
+`lens.inspect` integration: hosts running workflow nodes against
+`@printwithsynergy/lens-server` need **lens-server 0.2.0** (released in
+lockstep with this tag) for `POST /inspect`; the library itself picks up
+the loupe→lens key rename and fresher dev tooling.
+
+### Changed
+- **Internal annotation key renamed loupe→lens** — completes the
+  loupe-pdf → lens-pdf rename inside the annotation model. No public
+  API change; adapters and plugin slots are untouched.
+- Dev-dependency refresh (Biome 2.5.0, vitest 4.1.8, @types/react
+  19.2.17). No runtime dependency changes.
+
+### lens-server 0.2.0 (released with this tag)
+- **Added `POST /inspect`** — the document-inspection route synergy's
+  `lens.inspect` node calls. Returns page geometry + ink/separation
+  summary for a PDF without rendering it.
+- **Fixed Ghostscript ≥10 compatibility**: `readPageCount` now reads
+  bbox output from stderr, and tiffsep separation filenames in the
+  modern `page(Cyan).tiff` form are accepted.
+- **OpenAPI 3.1 spec** published + Spectral-linted for the full
+  lens-server surface.
+
 ## [0.4.0-beta.24] — 2026-06-05
 
 ### Fixed

@@ -1,6 +1,6 @@
 {
   "name": "@printwithsynergy/lens-server",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Canonical headless renderer for the lens-pdf viewer family. Serves report rendering (HTML / PDF / annotated PDF / markup PDF), page rendering, and color sampling for backends that can't run the browser-only lens-pdf React library directly. Powered by Ghostscript + Puppeteer + pdf-lib. Hono + bearer auth + pino logs + Prometheus metrics + RFC 7807 errors.",
   "license": "AGPL-3.0-or-later",
   "repository": {
