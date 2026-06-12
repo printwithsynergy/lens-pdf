@@ -41,8 +41,8 @@ export interface RenderArgs {
 const GS_TIMEOUT_MS = 60_000;
 const GS_HARD_KILL_AFTER_MS = 2_000;
 
-async function runGs(args: string[], cwd: string): Promise<void> {
-  await new Promise<void>((resolve, reject) => {
+async function runGs(args: string[], cwd: string): Promise<string> {
+  return await new Promise<string>((resolve, reject) => {
     const child = spawn(config.ghostscriptBin, args, {
       cwd,
       stdio: ["ignore", "pipe", "pipe"],
@@ -91,7 +91,7 @@ async function runGs(args: string[], cwd: string): Promise<void> {
         if (timedOut) {
           reject(new Error(`Ghostscript timed out after ${GS_TIMEOUT_MS} ms.`));
         } else if (code === 0) {
-          resolve();
+          resolve(stderr);
         } else {
           reject(
             new Error(
@@ -208,7 +208,7 @@ export async function readPageCount(pdfPath: string): Promise<number> {
   const tmp = await mkdtemp("count-");
   try {
     const out = path.join(tmp, "count.txt");
-    await runGs(
+    const stderr = await runGs(
       [
         "-dSAFER",
         "-dBATCH",
@@ -220,18 +220,20 @@ export async function readPageCount(pdfPath: string): Promise<number> {
       ],
       tmp,
     );
-    // The `bbox` device emits one "Page N" line per page in stderr or
-    // stdout depending on Ghostscript version; reading the output file
-    // gives us a deterministic line count of "%%BoundingBox:" entries.
+    // The `bbox` device emits one "%%BoundingBox" line per page —
+    // on STDERR for every modern Ghostscript, into the output file on
+    // some older builds. Count whichever surface has them.
     const txt = await readFile(out, "utf8").catch(() => "");
-    const lines = txt
-      .split(/\r?\n/)
-      .filter((l) => l.startsWith("%%BoundingBox"));
-    if (lines.length > 0) return lines.length;
-    // Fallback: read the file size to confirm the file actually
-    // existed; if Ghostscript's bbox device is missing in this build,
-    // return 1 so callers don't crash.
-    await stat(out);
+    const count = (src: string): number =>
+      src.split(/\r?\n/).filter((l) => l.startsWith("%%BoundingBox")).length;
+    const fromFile = count(txt);
+    if (fromFile > 0) return fromFile;
+    const fromStderr = count(stderr);
+    if (fromStderr > 0) return fromStderr;
+    // Fallback: if Ghostscript's bbox device is missing in this build
+    // (no lines anywhere, file possibly never created), return 1 so
+    // callers don't crash.
+    await stat(out).catch(() => null);
     return 1;
   } finally {
     await rm(tmp, { recursive: true, force: true });
