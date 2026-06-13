@@ -44,9 +44,9 @@ npm install @printwithsynergy/codex-client
 ```
 
 Requires `react@^19` and `react-dom@^19`. `fabric@^7` is an optional peer
-used by the annotation components. `@printwithsynergy/codex-client@^1.8.1`
+used by the annotation components. `@printwithsynergy/codex-client@^1.15.0`
 is an optional peer used by the codex accuracy overlay — hosts that
-never pass the `codex` prop don't need to install it. `pdfjs-dist@^4`
+never pass the `codex` prop don't need to install it. `pdfjs-dist@^6`
 is a regular dependency — it comes along automatically and powers the
 `createBrowserViewerServices` factory exposed at `/browser`. The package
 ships ESM only.

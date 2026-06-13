@@ -147,7 +147,7 @@ and pass its `services` overrides.
 
 The `codex` prop accepts any object matching the structural
 `MinimalCodexClient` interface — in practice that means an instance of
-`HttpClient` from `@printwithsynergy/codex-client@^1.8.1`, declared as
+`HttpClient` from `@printwithsynergy/codex-client@^1.15.0`, declared as
 an optional peer dep. Hosts that don't use the codex overlay don't need
 to install it.
 
