@@ -78,9 +78,10 @@ const fallback = createPdfJsFallback({
 </ViewerHostContext.Provider>
 ```
 
-Add `pdfjs-dist` to your app's dependencies (it's an *optional* peer dep of
-`@printwithsynergy/lens-pdf` and loaded lazily via `import("pdfjs-dist")`,
-so consumers that don't use the fallback pay no bundle cost).
+`pdfjs-dist` is a regular dependency of `@printwithsynergy/lens-pdf` (installed
+transitively) and is imported statically by the `./browser` and
+`./fallback-pdfjs` entry points — so it only lands in your bundle if you import
+one of those entry points.
 
 ### What the fallback can do
 
