@@ -24,6 +24,7 @@ import { Hono } from "hono";
 import { requireAuth } from "../auth.js";
 import { config } from "../config.js";
 import { readPageCount, renderComposite } from "../ghostscript.js";
+import { logger } from "../observability.js";
 import { badRequest, unprocessable } from "../problemDetails.js";
 
 export const renderPage = new Hono();
@@ -46,14 +47,30 @@ async function readUploadedPdf(
   return null;
 }
 
+const PNG_SIGNATURE = Buffer.from([
+  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+]);
+
 /**
  * Read width/height from a PNG's IHDR chunk. A PNG is an 8-byte
  * signature followed by the IHDR chunk whose data begins at byte 16:
  * width (uint32 BE) then height (uint32 BE). Avoids re-decoding the
  * image just to learn its dimensions.
+ *
+ * `renderComposite` always emits a valid Ghostscript `png16m` buffer, so a
+ * malformed/short buffer here means something upstream broke. Rather than
+ * silently returning misleading 0×0 dims (which hides the failure) OR failing
+ * an otherwise-valid render with a 500, we log a warning and fall back to 0×0
+ * so the anomaly is detectable in logs.
  */
 function pngDimensions(png: Buffer): { width: number; height: number } {
-  if (png.length < 24) return { width: 0, height: 0 };
+  if (png.length < 24 || !png.subarray(0, 8).equals(PNG_SIGNATURE)) {
+    logger.warn(
+      { byteLength: png.length },
+      "render-page: rendered buffer is not a well-formed PNG — reporting 0×0 dimensions",
+    );
+    return { width: 0, height: 0 };
+  }
   return { width: png.readUInt32BE(16), height: png.readUInt32BE(20) };
 }
 
@@ -117,6 +134,14 @@ renderPage.post("/render-page", requireAuth, async (c) => {
       pageCount,
     });
   } finally {
-    await rm(tmp, { recursive: true, force: true });
+    // Best-effort cleanup: a failure to remove the temp dir must NOT turn a
+    // successful render response into a 500 (a thrown error in `finally`
+    // replaces the returned value).
+    await rm(tmp, { recursive: true, force: true }).catch((err) => {
+      logger.warn(
+        { tmp, err: String(err) },
+        "render-page: temp dir cleanup failed",
+      );
+    });
   }
 });
