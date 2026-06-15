@@ -9,6 +9,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "./app.js";
+import { config } from "./config.js";
 
 describe("lens-server", () => {
   const app = createApp();
@@ -27,6 +28,22 @@ describe("lens-server", () => {
       expect(res.status).toBe(200);
       const body = (await res.json()) as Record<string, unknown>;
       expect(body.status).toBe("ready");
+    });
+
+    it("GET /v1/contract returns the service descriptor (no auth)", async () => {
+      const res = await app.request("/v1/contract");
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as Record<string, unknown>;
+      expect(body.service).toBe("lens-server");
+      expect(typeof body.version).toBe("string");
+      expect(Array.isArray(body.capabilities)).toBe(true);
+      const caps = body.capabilities as Array<{ name: string }>;
+      expect(caps.some((c) => c.name === "render_page")).toBe(true);
+      // Assert against config so the test tracks the real clamp, not a literal.
+      const limits = body.limits as Record<string, unknown>;
+      expect(limits.min_dpi).toBe(config.minDpi);
+      expect(limits.max_dpi).toBe(config.maxDpi);
+      expect(limits.max_upload_mib).toBe(config.maxUploadMib);
     });
   });
 

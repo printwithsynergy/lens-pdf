@@ -12,6 +12,7 @@ import {
   registry,
 } from "./observability.js";
 import { internalError, notFound } from "./problemDetails.js";
+import { contract } from "./routes/contract.js";
 import { health } from "./routes/health.js";
 import { inspect } from "./routes/inspect.js";
 import { pages } from "./routes/pages.js";
@@ -64,8 +65,9 @@ export function createApp(): Hono {
     });
   });
 
-  // Health (no auth)
+  // Health + contract (no auth — discovery surface for synergy/platform)
   app.route("/", health);
+  app.route("/", contract);
 
   // Authenticated routes
   app.route("/", sources);
