@@ -16,6 +16,7 @@ import { health } from "./routes/health.js";
 import { inspect } from "./routes/inspect.js";
 import { pages } from "./routes/pages.js";
 import { render } from "./routes/render.js";
+import { renderPage } from "./routes/render-page.js";
 import { sampling } from "./routes/sampling.js";
 import { sources } from "./routes/sources.js";
 
@@ -71,6 +72,7 @@ export function createApp(): Hono {
   app.route("/", pages);
   app.route("/", sampling);
   app.route("/", render);
+  app.route("/", renderPage);
   app.route("/", inspect);
 
   app.notFound((c) => notFound(c, "Route not found."));
