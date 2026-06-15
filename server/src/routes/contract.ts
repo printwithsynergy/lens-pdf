@@ -12,8 +12,8 @@
 import { Hono } from "hono";
 import { config } from "../config.js";
 
-/** Server version, surfaced in `/v1/contract` (mirrors `/healthz`). */
-export const SERVICE_VERSION = process.env.npm_package_version ?? "0.2.0";
+/** Server version, surfaced in `/v1/contract` (same source + fallback as `/healthz`). */
+export const SERVICE_VERSION = process.env.npm_package_version ?? "0.0.0";
 
 export const contract = new Hono();
 
