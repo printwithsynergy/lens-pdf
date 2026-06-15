@@ -101,7 +101,11 @@ renderPage.post("/render-page", requireAuth, async (c) => {
       );
     }
 
-    const png = await renderComposite({ pdfPath, pageNum: page, dpi: Math.round(dpi) });
+    const png = await renderComposite({
+      pdfPath,
+      pageNum: page,
+      dpi: Math.round(dpi),
+    });
     const { width, height } = pngDimensions(png);
 
     return c.json({

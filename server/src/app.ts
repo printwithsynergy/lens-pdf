@@ -15,8 +15,8 @@ import { internalError, notFound } from "./problemDetails.js";
 import { health } from "./routes/health.js";
 import { inspect } from "./routes/inspect.js";
 import { pages } from "./routes/pages.js";
-import { render } from "./routes/render.js";
 import { renderPage } from "./routes/render-page.js";
+import { render } from "./routes/render.js";
 import { sampling } from "./routes/sampling.js";
 import { sources } from "./routes/sources.js";
 
