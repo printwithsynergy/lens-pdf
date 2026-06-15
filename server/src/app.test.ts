@@ -28,6 +28,20 @@ describe("lens-server", () => {
       const body = (await res.json()) as Record<string, unknown>;
       expect(body.status).toBe("ready");
     });
+
+    it("GET /v1/contract returns the service descriptor (no auth)", async () => {
+      const res = await app.request("/v1/contract");
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as Record<string, unknown>;
+      expect(body.service).toBe("lens-server");
+      expect(typeof body.version).toBe("string");
+      expect(Array.isArray(body.capabilities)).toBe(true);
+      const caps = body.capabilities as Array<{ name: string }>;
+      expect(caps.some((c) => c.name === "render_page")).toBe(true);
+      const limits = body.limits as Record<string, unknown>;
+      expect(limits.min_dpi).toBe(36);
+      expect(limits.max_dpi).toBe(600);
+    });
   });
 
   describe("Problem Details", () => {
