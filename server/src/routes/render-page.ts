@@ -33,18 +33,25 @@ async function readUploadedPdf(
   ct: string,
   req: Request,
 ): Promise<Buffer | null> {
-  if (ct.includes("multipart/form-data")) {
-    const form = await req.formData();
-    const file = form.get("file");
-    if (!(file instanceof Blob)) return null;
-    const bytes = await file.arrayBuffer();
-    return bytes.byteLength > 0 ? Buffer.from(bytes) : null;
+  // A malformed multipart envelope / truncated body makes formData() or
+  // arrayBuffer() throw; swallow it and return null so the caller answers 400
+  // (bad request) rather than letting it bubble to the 500 error handler.
+  try {
+    if (ct.includes("multipart/form-data")) {
+      const form = await req.formData();
+      const file = form.get("file");
+      if (!(file instanceof Blob)) return null;
+      const bytes = await file.arrayBuffer();
+      return bytes.byteLength > 0 ? Buffer.from(bytes) : null;
+    }
+    if (ct.includes("application/pdf")) {
+      const bytes = await req.arrayBuffer();
+      return bytes.byteLength > 0 ? Buffer.from(bytes) : null;
+    }
+    return null;
+  } catch {
+    return null;
   }
-  if (ct.includes("application/pdf")) {
-    const bytes = await req.arrayBuffer();
-    return bytes.byteLength > 0 ? Buffer.from(bytes) : null;
-  }
-  return null;
 }
 
 const PNG_SIGNATURE = Buffer.from([
@@ -91,6 +98,19 @@ renderPage.post("/render-page", requireAuth, async (c) => {
   }
 
   const ct = (c.req.header("content-type") ?? "").toLowerCase();
+  const maxBytes = config.maxUploadMib * 1024 * 1024;
+
+  // Reject oversize uploads on the declared Content-Length BEFORE buffering the
+  // whole body in memory (memory-pressure DoS guard). The post-read check below
+  // remains as a secondary guard for requests that omit/understate the header.
+  const contentLength = Number(c.req.header("content-length"));
+  if (Number.isFinite(contentLength) && contentLength > maxBytes) {
+    return unprocessable(
+      c,
+      `PDF too large (${(contentLength / 1024 / 1024).toFixed(1)} MiB > ${config.maxUploadMib} MiB).`,
+    );
+  }
+
   const pdf = await readUploadedPdf(ct, c.req.raw);
   if (!pdf) {
     return badRequest(
@@ -98,7 +118,7 @@ renderPage.post("/render-page", requireAuth, async (c) => {
       "Send the PDF as a multipart `file` field or an application/pdf body.",
     );
   }
-  if (pdf.byteLength > config.maxUploadMib * 1024 * 1024) {
+  if (pdf.byteLength > maxBytes) {
     return unprocessable(
       c,
       `PDF too large (${(pdf.byteLength / 1024 / 1024).toFixed(1)} MiB > ${config.maxUploadMib} MiB).`,
